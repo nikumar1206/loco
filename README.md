@@ -87,7 +87,8 @@ This will create the following Kubernetes resources:
 - Ingress (via Traefik or NGINX)
     - Traefik is in Go, and surprisingly fast. Can handle load balancing, SSL termination, and routing quite well with minimal config.
     - Can 'upgrade' to envoy later for even more speed, at the cost of decent bit more configuration and work.
-
+- RBAC?
+    - might not need for Kubernetes for the MVP, unless we are letting ppl have direct access to underlying. def have application RBAC
 ### 4. CLI
 CLI that can help with loco integrations
 - Can generate loco.toml file, or validate it.
@@ -98,7 +99,7 @@ CLI that can help with loco integrations
 
 
 
-### Likely MSVCs or just services we will need
+### Likely MSVCs or just APIs we will need
 1. Deployment Engine
 - will listen to git pushes via webhook, and build container images.
 - Push container images onto a registry
