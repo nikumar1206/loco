@@ -21,25 +21,25 @@ This is mostly for educational purposes to learn more about container orchestrat
 
 1. Add a Git remote:
 
-    ```bash
-    git remote add loco git@yourhost:user/app.git
-    ```
+   ```bash
+   git remote add loco git@yourhost:user/app.git
+   ```
 
 2. Push your code:
 
-    ```bash
-    git push loco main
-    ```
+   ```bash
+   git push loco main
+   ```
 
 Its also possible to have the loco CLI handle some of the loco onboarding required for git integration.
 
 3. The Loco platform will:
 
-    - Clone the repo
-    - Build the Docker image
-    - Apply settings from loco.toml
-    - Deploy to K8s with autoscaling
-    - Setup HTTPS at https://appname.loco.dev
+   - Clone the repo
+   - Build the Docker image
+   - Apply settings from loco.toml
+   - Deploy to K8s with autoscaling
+   - Setup HTTPS at https://appname.loco.dev
 
 ---
 
@@ -78,58 +78,74 @@ memory_target = 50
 structured = true
 retention_period = "7d"
 
+dockerfile_path = "."
+
 
 ```
+
 This will create the following Kubernetes resources:
+
 - Deployment
 - HPA (Horizontal Pod Autoscaler)
 - Service
 - Ingress (via Traefik or NGINX)
-    - Traefik is in Go, and surprisingly fast. Can handle load balancing, SSL termination, and routing quite well with minimal config.
-    - Can 'upgrade' to envoy later for even more speed, at the cost of decent bit more configuration and work.
+  - Traefik is in Go, and surprisingly fast. Can handle load balancing, SSL termination, and routing quite well with minimal config.
+  - Can 'upgrade' to envoy later for even more speed, at the cost of decent bit more configuration and work.
 - RBAC?
-    - might not need for Kubernetes for the MVP, unless we are letting ppl have direct access to underlying. def have application RBAC
+  - might not need for Kubernetes for the MVP, unless we are letting ppl have direct access to underlying. def have application RBAC
+
 ### 4. CLI
+
 CLI that can help with loco integrations
+
 - Can generate loco.toml file, or validate it.
 - Can generate suggestions to better improve your loco experience by suggesting improvements to loco.toml.
 - Can link to a deployed project to get logs and app health. As well as metrics for CPU, memory, and health.
 - These likely need to be built onto some sort of API that the CLI is just calling.
 - So CLI likely needs to generate temp credentials and store under ~/.loco/credentials.
 
-
-
 ### Likely MSVCs or just APIs we will need
+
 1. Deployment Engine
+
 - will listen to git pushes via webhook, and build container images.
 - Push container images onto a registry
 
 2. User Front APIs
-- handles users
-    - adding new users to platform
-    - removing them and their relevant projects
-- handles projects
-    - adding new projects, need to make sure names or subdomains atleast are unique. so thats gonna need a DB to validate
-    - on new project, need to update the kubernetes configurations to add new ingress and underlying kubernetes deployment by using the commands.
-    - stream deployment progress in near real-time
-- handles project logs
-    - stream logs in near real-time
-    - eventually playback but prolly not
-    - query logs super fast with filters (use managed like clickhouse?)
-- handles project billing
-    - users should only be billed for what they use.
-    - we will have some default network ingress/egress costs.
-    - can be later.
-3. Resources handler
-    - might need a way of watching our own resources and making sure they are healthy.
 
+- handles users
+  - adding new users to platform
+  - removing them and their relevant projects
+- handles projects
+  - adding new projects, need to make sure names or subdomains atleast are unique. so thats gonna need a DB to validate
+  - on new project, need to update the kubernetes configurations to add new ingress and underlying kubernetes deployment by using the commands.
+  - stream deployment progress in near real-time
+- handles project logs
+  - stream logs in near real-time
+  - eventually playback but prolly not
+  - query logs super fast with filters (use managed like clickhouse?)
+- handles project billing
+  - users should only be billed for what they use.
+  - we will have some default network ingress/egress costs.
+  - can be later.
+
+3. Resources handler
+   - might need a way of watching our own resources and making sure they are healthy.
 
 #### Things to Think About
+
 - Simple, but super effective abusive stopper.
 - Only whitelisted repos should be buildable, by certain users.
 - Users should only be able to access logs for their projects. Nothing more, nothing less
 - All unhappy paths are clearly reflected back to user, with obvious next steps on how to fix.
 - Need to do things the kubernetes way with stuff like RBAC and whatnot.
 - whatever we do, it needs to be extendible to the following deployments:
-    - UI, cache (redis), database, blob
-    - this covers like 90% of all possible deployments.
+  - UI, cache (redis), database, blob
+  - this covers like 90% of all possible deployments.
+
+#### Notes
+
+- dont deploy the image if docker scout or vulnerabilities are detected
+- make sure all of the TOML makes sense and is 100% validated against.
+- docker layers should be cached by project or something. maybe docker will automatically do this
+- Docker building must follow .Dockerignore or .gitignore
