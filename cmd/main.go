@@ -27,10 +27,11 @@ func main() {
 					// create a loco.toml file if not already exists
 					err := createConfig()
 					if err != nil {
+						// Error returned here will be handled by urfave/cli or the main app.Run() handler
 						return fmt.Errorf("failed to create loco.toml: %w", err)
 					}
 
-					fmt.Println("Loco project initialized")
+					locoOut(LOCO__OK_PREFIX, "Loco project initialized") // Already correct
 					return nil
 				},
 			},
@@ -50,24 +51,25 @@ func main() {
 					},
 				},
 				Action: func(c context.Context, cmd *cli.Command) error {
-					locoOut(LOCO__OK_PREFIX, "Building Docker Image...")
-					cli, err := createDockerClient()
+					locoOut(LOCO__OK_PREFIX, "Building Docker Image...") // Already correct
+					dockerCli, err := createDockerClient() // Renamed cli to dockerCli for clarity
 					if err != nil {
 						return fmt.Errorf("failed to create Docker client: %w", err)
 					}
-					defer cli.Close()
+					defer dockerCli.Close()
 
 					tokenResponse, err := getDeployToken()
 					if err != nil {
 						return fmt.Errorf("failed to get deploy token: %w", err)
 					}
-					fmt.Println("get token response: ", tokenResponse)
+					// Changed fmt.Println to locoOut with Sprintf
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("Get token response: %+v", tokenResponse))
 
-					if err := buildDockerImage(context.Background(), cli, tokenResponse.Image); err != nil {
+					if err := buildDockerImage(context.Background(), dockerCli, tokenResponse.Image); err != nil {
 						return fmt.Errorf("failed to build Docker image: %w", err)
 					}
 
-					err = dockerPush(cli, tokenResponse.Username, tokenResponse.Password, "registry.gitlab.com", tokenResponse.Image)
+					err = dockerPush(dockerCli, tokenResponse.Username, tokenResponse.Password, "registry.gitlab.com", tokenResponse.Image)
 					if err != nil {
 						return fmt.Errorf("failed to push Docker image: %w", err)
 					}
@@ -96,10 +98,10 @@ func main() {
 					},
 				},
 				Action: func(c context.Context, cmd *cli.Command) error {
-					fmt.Println("logs command called")
-					fmt.Printf("file: %s\n", "file")
-					fmt.Printf("follow: %t\n", "follow")
-					fmt.Printf("lines: %d\n", "lines")
+					locoOut(LOCO__OK_PREFIX, "logs command called")
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("file: %s", cmd.String("file")))
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("follow: %t", cmd.Bool("follow")))
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("lines: %d", cmd.Int("lines")))
 					return nil
 				},
 			},
@@ -114,8 +116,8 @@ func main() {
 					},
 				},
 				Action: func(c context.Context, cmd *cli.Command) error {
-					fmt.Println("status command called")
-					fmt.Printf("file: %s\n", "file")
+					locoOut(LOCO__OK_PREFIX, "status command called")
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("file: %s", cmd.String("file")))
 					return nil
 				},
 			},
@@ -135,9 +137,9 @@ func main() {
 					},
 				},
 				Action: func(c context.Context, cmd *cli.Command) error {
-					fmt.Println("destroy command called")
-					fmt.Printf("file: %s\n", "file")
-					fmt.Print("yes: %t\n", "yes")
+					locoOut(LOCO__OK_PREFIX, "destroy command called")
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("file: %s", cmd.String("file")))
+					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("yes: %t", cmd.Bool("yes")))
 					return nil
 				},
 			},
@@ -146,7 +148,8 @@ func main() {
 
 	err := app.Run(context.Background(), os.Args)
 	if err != nil {
-		fmt.Printf("Error running loco\n%v\n", err)
+		// Changed main error printing to use locoErr
+		locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Error running loco: %v", err))
 		os.Exit(1)
 	}
 }

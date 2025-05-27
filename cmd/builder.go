@@ -17,7 +17,12 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/nikumar1206/loco/internal/color"
+	"github.com/nikumar1206/loco/internal/color" // Ensure this import is present
+)
+
+var (
+	LOCO__OK_PREFIX    = color.Colorize("LOCO: ", color.FgGreen)
+	LOCO__ERROR_PREFIX = color.Colorize("LOCO: ", color.FgRed)
 )
 
 type dockerMessage struct {
@@ -32,9 +37,10 @@ type dockerMessage struct {
 func createDockerClient() (*client.Client, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
+		// This error is returned, so the caller (e.g., main.go) should handle printing it.
+		// No locoErr here needed unless we also want to log it before returning.
 		return nil, err
 	}
-
 	return cli, nil
 }
 
@@ -84,7 +90,8 @@ func tarDirectory(srcDir string) (io.ReadCloser, error) {
 }
 
 func printColoredStream(s string) {
-	// fmt.Println("what are we getting to print", s)
+	// This function prints parts of Docker's output with specific coloring.
+	// It does not use locoOut/locoErr to avoid double-prefixing.
 	switch {
 	case len(s) > 1 && s[:4] == "Step":
 		fmt.Print(color.Colorize(s, color.FgYellow))
@@ -104,14 +111,17 @@ func printDockerOutput(r io.Reader) error {
 		line := scanner.Text()
 
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			fmt.Println(color.Colorize(line, color.FgRed)) // unparseable JSON
+			// Changed to locoErr for unparseable JSON
+			locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Error parsing Docker output line: %s", line))
 			continue
 		}
 
 		switch {
 		case msg.Stream != "":
-			printColoredStream(msg.Stream)
+			printColoredStream(msg.Stream) // Relies on its own coloring, no prefix
 		case msg.Status != "":
+			// This prints Docker's status messages with specific formatting.
+			// Avoid double-prefixing.
 			fmt.Println(
 				color.ColorizeBold("» ", color.FgCyan) +
 					color.Colorize(msg.Status, color.FgGreen) +
@@ -122,21 +132,27 @@ func printDockerOutput(r io.Reader) error {
 						return ""
 					}())
 		case msg.Aux.ID != "":
+			// This prints the image ID with specific formatting. Avoid double-prefixing.
 			fmt.Println(color.Colorize("Image ID: "+msg.Aux.ID, color.FgBrightBlue))
 		default:
-			fmt.Println(line)
+			// Changed to locoOut for general Docker messages not caught by other cases
+			locoOut(LOCO__OK_PREFIX, line)
 		}
 	}
 	return scanner.Err()
 }
 
 func buildDockerImage(ctx context.Context, c *client.Client, imageName string) error {
-	defer c.Close()
+	// Note: No c.Close() here, it should be managed by the caller (main.go)
+	// as the client might be reused or closed in a defer there.
 
 	contextDir := "." // directory containing Dockerfile and app
 
+	// Potentially add locoOut here for "Starting to tar directory..."
 	buildContext, err := tarDirectory(contextDir)
 	if err != nil {
+		// Errors from tarDirectory are returned and should be handled by the caller.
+		// locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Error creating tar directory: %v", err))
 		return err
 	}
 	defer buildContext.Close()
@@ -144,16 +160,19 @@ func buildDockerImage(ctx context.Context, c *client.Client, imageName string) e
 	options := types.ImageBuildOptions{
 		Tags:       []string{imageName},
 		Dockerfile: "Dockerfile",
-		Remove:     true,
+		Remove:     true, // Remove intermediate containers
 	}
 
+	// Potentially add locoOut here for "Starting image build..."
 	response, err := c.ImageBuild(ctx, buildContext, options)
 	if err != nil {
-		fmt.Println("Build error:", err)
+		// Changed to locoErr
+		locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Build error: %v", err))
 		return err
 	}
 	defer response.Body.Close()
 
+	// Potentially add locoOut here for "Processing build output..."
 	return printDockerOutput(response.Body)
 }
 
@@ -166,10 +185,12 @@ func buildDockerImage(ctx context.Context, c *client.Client, imageName string) e
 
 // 	resp, err := c.RegistryLogin(context.Background(), authConfig)
 // 	if err != nil {
-// 		fmt.Println("Login error:", err)
+// 		// Original: fmt.Println("Login error:", err)
+// 		// Would become: locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Login error: %v", err))
 // 		return "", err
 // 	}
-// 	fmt.Println("")
+// 	// Original: fmt.Println("")
+// 	// Would become: locoOut(LOCO__OK_PREFIX, "") or just be removed if only for spacing
 // 	base64 := base64.StdEncoding.EncodeToString([]byte(resp.IdentityToken))
 // 	return base64, nil
 // }
@@ -179,7 +200,8 @@ func buildDockerImage(ctx context.Context, c *client.Client, imageName string) e
 // 	if err := c.ImageTag(context.Background(), imageName, tag); err != nil {
 // 		return fmt.Errorf("error when tagging image %s with tag %s. err: %v", imageName, tag, err)
 // 	}
-// 	fmt.Printf("Image %s tagged with %s\n", imageName, tag)
+// 	// Original: fmt.Printf("Image %s tagged with %s\n", imageName, tag)
+// 	// Would become: locoOut(LOCO__OK_PREFIX, fmt.Sprintf("Image %s tagged with %s", imageName, tag))
 // 	return nil
 // }
 
@@ -192,6 +214,7 @@ func dockerPush(c *client.Client, username, password, serverAddress, imageName s
 
 	encodedJSON, err := json.Marshal(authConfig)
 	if err != nil {
+		// This error is returned, handled by caller.
 		return fmt.Errorf("error when encoding authConfig. err: %v", err)
 	}
 
@@ -201,10 +224,15 @@ func dockerPush(c *client.Client, username, password, serverAddress, imageName s
 		RegistryAuth: authStr,
 	}
 
+	// Potentially add locoOut for "Pushing image..."
 	rc, err := c.ImagePush(context.Background(), imageName, pushOptions)
 	if err != nil {
+		// This error is returned, handled by caller.
+		// locoErr(LOCO__ERROR_PREFIX, fmt.Sprintf("Error when pushing image: %v", err))
 		return fmt.Errorf("error when pushing image. err: %v", err)
 	}
+	defer rc.Close() // Ensure the response body is closed for push
 
+	// Potentially add locoOut for "Processing push output..."
 	return printDockerOutput(rc)
 }
