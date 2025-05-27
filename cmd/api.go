@@ -23,7 +23,6 @@ func getDeployToken() (DeployTokenResponse, error) {
 	c := api.Client{
 		BaseURL: "http://localhost:8000",
 	}
-	fmt.Print("calling the get ")
 	resp, err := c.Get("/api/v1/registry/token", nil)
 	if err != nil {
 		fmt.Println("failed to get deploy token")
