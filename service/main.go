@@ -1,55 +1,100 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
-	"os/exec"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/nikumar1206/loco/internal/api"
 )
 
-type DeployRequest struct {
-	Repo   string `json:"repo"`    // e.g. "someuser/myapp"
-	GitURL string `json:"git_url"` // e.g. "https://github.com/someuser/myapp.git"`
-	Ref    string `json:"ref"`     // optional: "refs/heads/main"
+var gitlabPAT = os.Getenv("GITLAB_PAT")
+
+// Response to CLI
+type DeployTokenResponse struct {
+	Username  string   `json:"username"`
+	Password  string   `json:"password"`
+	Registry  string   `json:"registry"`
+	Image     string   `json:"image"`
+	ExpiresAt string   `json:"expiresAt"`
+	Revoked   bool     `json:"revoked"`
+	Expired   bool     `json:"expired"`
+	Scopes    []string `json:"scopes"`
 }
 
 func main() {
 	app := fiber.New()
 
-	app.Post("/api/deploy", func(c *fiber.Ctx) error {
-		var payload DeployRequest
-		if err := c.BodyParser(&payload); err != nil {
-			log.Println("invalid payload:", err)
-			return c.Status(fiber.StatusBadRequest).SendString("invalid payload")
-		}
-
-		if payload.Ref != "" && payload.Ref != "refs/heads/main" {
-			log.Println("not main branch, skipping")
-			return c.SendStatus(fiber.StatusOK)
-		}
-
-		log.Printf("Triggering deploy for %s (%s)", payload.Repo, payload.GitURL)
-
-		// Kick off deploy in background
-		go runPipeline(payload.GitURL, payload.Repo)
-
-		return c.SendStatus(fiber.StatusAccepted)
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Loco Deploy Token Service is running")
 	})
 
-	log.Fatal(app.Listen(":8080"))
-}
+	app.Get("/api/v1/registry/token", func(c *fiber.Ctx) error {
+		projectId := "70221423"
+		tokenName := "loco-ecr-deploy-token"
+		expiresInMin := 5
+		expiry := time.Now().Add(time.Duration(expiresInMin) * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 
-func runPipeline(gitURL, repo string) {
-	log.Printf("[BUILD] Cloning %s", gitURL)
+		// Create payload for GitLab API
+		payload := map[string]any{
+			"name":       tokenName,
+			"scopes":     []string{"read_registry", "write_registry"},
+			"expires_at": expiry,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			log.Printf("Error marshalling payload: %v", err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to create deploy token payload",
+			})
+		}
 
-	// Clone into a temp dir
-	tmpDir := "/tmp/" + repo
-	cmd := exec.Command("git", "clone", gitURL, tmpDir)
-	if err := cmd.Run(); err != nil {
-		log.Printf("[ERROR] git clone failed: %v", err)
-		return
-	}
+		// Call GitLab API
 
-	// TODO: parse loco.toml, build Docker image, deploy to K8s
-	log.Printf("[DONE] Cloned repo to %s", tmpDir)
+		apiClient := api.NewClient("https://gitlab.com")
+
+		resp, err := apiClient.Post(fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId), payloadBytes, map[string]string{
+			"Content-Type":  "application/json",
+			"PRIVATE-TOKEN": gitlabPAT,
+		})
+		if err != nil {
+			log.Printf("Error creating deploy token: %v", err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to create deploy token",
+			})
+		}
+
+		var gitlabResp struct {
+			Username  string   `json:"username"`
+			Token     string   `json:"token"`
+			ExpiresAt string   `json:"expires_at"`
+			Revoked   bool     `json:"revoked"`
+			Expired   bool     `json:"expired"`
+			Scopes    []string `json:"scopes"`
+		}
+		if err := json.Unmarshal(resp, &gitlabResp); err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to parse GitLab response",
+			})
+		}
+
+		// Compose response
+		res := DeployTokenResponse{
+			Username:  gitlabResp.Username,
+			Password:  gitlabResp.Token,
+			Registry:  "registry.gitlab.com",
+			Image:     "registry.gitlab.com/locomotive-group/loco-ecr",
+			ExpiresAt: gitlabResp.ExpiresAt,
+			Revoked:   gitlabResp.Revoked,
+			Expired:   gitlabResp.Expired,
+			Scopes:    gitlabResp.Scopes,
+		}
+		return c.JSON(res)
+	})
+
+	log.Fatal(app.Listen(":8000"))
 }

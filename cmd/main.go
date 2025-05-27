@@ -57,8 +57,19 @@ func main() {
 					}
 					defer cli.Close()
 
-					if err := buildDockerImage(context.Background(), cli); err != nil {
+					tokenResponse, err := getDeployToken()
+					if err != nil {
+						return fmt.Errorf("failed to get deploy token: %w", err)
+					}
+					fmt.Println("get token response: ", tokenResponse)
+
+					if err := buildDockerImage(context.Background(), cli, tokenResponse.Image); err != nil {
 						return fmt.Errorf("failed to build Docker image: %w", err)
+					}
+
+					err = dockerPush(cli, tokenResponse.Username, tokenResponse.Password, "registry.gitlab.com", tokenResponse.Image)
+					if err != nil {
+						return fmt.Errorf("failed to push Docker image: %w", err)
 					}
 
 					return nil

@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/nikumar1206/loco/internal/color"
 )
@@ -127,10 +130,9 @@ func printDockerOutput(r io.Reader) error {
 	return scanner.Err()
 }
 
-func buildDockerImage(ctx context.Context, c *client.Client) error {
+func buildDockerImage(ctx context.Context, c *client.Client, imageName string) error {
 	defer c.Close()
 
-	imageName := "myapp:latest"
 	contextDir := "." // directory containing Dockerfile and app
 
 	buildContext, err := tarDirectory(contextDir)
@@ -153,4 +155,56 @@ func buildDockerImage(ctx context.Context, c *client.Client) error {
 	defer response.Body.Close()
 
 	return printDockerOutput(response.Body)
+}
+
+// func dockerLogin(c *client.Client, username, password, serverAddress string) (string, error) {
+// 	authConfig := registry.AuthConfig{
+// 		Username:      username,
+// 		Password:      password,
+// 		ServerAddress: serverAddress,
+// 	}
+
+// 	resp, err := c.RegistryLogin(context.Background(), authConfig)
+// 	if err != nil {
+// 		fmt.Println("Login error:", err)
+// 		return "", err
+// 	}
+// 	fmt.Println("")
+// 	base64 := base64.StdEncoding.EncodeToString([]byte(resp.IdentityToken))
+// 	return base64, nil
+// }
+
+// func tagImage(c *client.Client, imageName, tag string) error {
+// 	// Tag the image with the specified tag
+// 	if err := c.ImageTag(context.Background(), imageName, tag); err != nil {
+// 		return fmt.Errorf("error when tagging image %s with tag %s. err: %v", imageName, tag, err)
+// 	}
+// 	fmt.Printf("Image %s tagged with %s\n", imageName, tag)
+// 	return nil
+// }
+
+func dockerPush(c *client.Client, username, password, serverAddress, imageName string) error {
+	authConfig := registry.AuthConfig{
+		Username:      username,
+		Password:      password,
+		ServerAddress: serverAddress,
+	}
+
+	encodedJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		return fmt.Errorf("error when encoding authConfig. err: %v", err)
+	}
+
+	authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+
+	pushOptions := image.PushOptions{
+		RegistryAuth: authStr,
+	}
+
+	rc, err := c.ImagePush(context.Background(), imageName, pushOptions)
+	if err != nil {
+		return fmt.Errorf("error when pushing image. err: %v", err)
+	}
+
+	return printDockerOutput(rc)
 }

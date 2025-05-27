@@ -149,3 +149,10 @@ CLI that can help with loco integrations
 - make sure all of the TOML makes sense and is 100% validated against.
 - docker layers should be cached by project or something. maybe docker will automatically do this
 - Docker building must follow .Dockerignore or .gitignore
+- maybe use gitlabs free account for Docker image hosting
+  - only hold maybe the last 2 images per project, for rollback purposes
+  - switch to Harbor eventually to overcome these limits
+- what do i need to do to support podman/oci-based images
+- implement lifecycle policy on registry? maybe 6 mths to start
+- think more about security. gotta make sure other users cannot pull down other images. Images must be prefixed or something man and have some sort of random hash to avoid collisions.
+- we have read/write on registry. should just be write tbh.
