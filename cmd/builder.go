@@ -17,12 +17,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/nikumar1206/loco/internal/color" // Ensure this import is present
-)
-
-var (
-	LOCO__OK_PREFIX    = color.Colorize("LOCO: ", color.FgGreen)
-	LOCO__ERROR_PREFIX = color.Colorize("LOCO: ", color.FgRed)
+	"github.com/nikumar1206/loco/internal/color"
 )
 
 type dockerMessage struct {

@@ -5,12 +5,6 @@ import (
 	"fmt"
 
 	"github.com/nikumar1206/loco/internal/api"
-	"github.com/nikumar1206/loco/internal/color" // Ensure this import is present
-)
-
-var (
-	LOCO__OK_PREFIX    = color.Colorize("LOCO: ", color.FgGreen)
-	LOCO__ERROR_PREFIX = color.Colorize("LOCO: ", color.FgRed)
 )
 
 type DeployTokenResponse struct {
@@ -29,7 +23,6 @@ func getDeployToken() (DeployTokenResponse, error) {
 	c := api.Client{
 		BaseURL: "http://localhost:8000",
 	}
-	locoOut(LOCO__OK_PREFIX, "calling the get") // Changed from fmt.Print
 	resp, err := c.Get("/api/v1/registry/token", nil)
 	if err != nil {
 		locoErr(LOCO__ERROR_PREFIX, "failed to get deploy token")

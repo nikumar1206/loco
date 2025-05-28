@@ -52,7 +52,7 @@ func main() {
 				},
 				Action: func(c context.Context, cmd *cli.Command) error {
 					locoOut(LOCO__OK_PREFIX, "Building Docker Image...") // Already correct
-					dockerCli, err := createDockerClient() // Renamed cli to dockerCli for clarity
+					dockerCli, err := createDockerClient()               // Renamed cli to dockerCli for clarity
 					if err != nil {
 						return fmt.Errorf("failed to create Docker client: %w", err)
 					}
@@ -62,17 +62,19 @@ func main() {
 					if err != nil {
 						return fmt.Errorf("failed to get deploy token: %w", err)
 					}
-					// Changed fmt.Println to locoOut with Sprintf
-					locoOut(LOCO__OK_PREFIX, fmt.Sprintf("Get token response: %+v", tokenResponse))
 
 					if err := buildDockerImage(context.Background(), dockerCli, tokenResponse.Image); err != nil {
 						return fmt.Errorf("failed to build Docker image: %w", err)
 					}
 
+					locoOut(LOCO__OK_PREFIX, "Docker image built successfully")
+
 					err = dockerPush(dockerCli, tokenResponse.Username, tokenResponse.Password, "registry.gitlab.com", tokenResponse.Image)
 					if err != nil {
 						return fmt.Errorf("failed to push Docker image: %w", err)
 					}
+
+					locoOut(LOCO__OK_PREFIX, "Docker image pushed successfully")
 
 					return nil
 				},
