@@ -22,4 +22,12 @@ jobs:
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
-      - run: cd terraform && tofu init && tofu apply
+
+      - name: Initialize OpenTofu
+        run: tofu init
+
+      - name: Plan
+        run: tofu plan
+
+      - name: Apply
+        run: tofu apply -auto-approve
