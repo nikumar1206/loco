@@ -30,7 +30,6 @@ tmp/*
 
 
 # terraform
-.terraform.lock.hcl
 *.tfstate
 terraform/.terraform/*
 
