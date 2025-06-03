@@ -27,7 +27,7 @@ jobs:
         run: cd terraform && tofu init
 
       - name: Plan
-        run: tofu plan
+        run: cd terraform && tofu plan
 
       - name: Apply
-        run: tofu apply -auto-approve
+        run: cd terraform && tofu apply -auto-approve
