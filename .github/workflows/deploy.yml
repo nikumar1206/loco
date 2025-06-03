@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+env:
+  # TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,20 +18,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials from GitHub OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::094594576609:role/assumable-tfe-pave
-          aws-region: us-east-2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+      - name: Terraform Init
+        run: cd terraform && terraform init
 
-      - name: Initialize OpenTofu
-        run: cd terraform && tofu init
+      - name: Terraform Plan
+        run: cd terraform && terraform plan -out=tfplan
 
-      - name: Plan
-        run: cd terraform && tofu plan
-
-      - name: Apply
-        run: cd terraform && tofu apply -auto-approve
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
