@@ -20,5 +20,9 @@ jobs:
           role-to-assume: arn:aws:iam::094594576609:role/assumable-tfe-pave
           aws-region: us-east-2
 
-      - name: Terraform Plan
-        run: terraform plan
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+      - run: tofu init
+
+      - name: Tofu Plan
+        run: tofu plan
