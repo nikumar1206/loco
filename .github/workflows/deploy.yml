@@ -14,17 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Decode OIDC token claims
-        run: |
-          ID_TOKEN=$(echo "${ACTIONS_ID_TOKEN}")
-          echo "$ID_TOKEN" | cut -d "." -f2 | base64 -d | jq .
-        env:
-          ACTIONS_ID_TOKEN: ${{ steps.get_token.outputs.id_token }}
-
       - name: Configure AWS Credentials from GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::094594576609:role/assumable-tfe-role
+          role-to-assume: arn:aws:iam::094594576609:role/assumable-tfe-pave
           aws-region: us-east-2
 
       - name: Terraform Plan
