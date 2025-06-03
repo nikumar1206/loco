@@ -156,3 +156,4 @@ CLI that can help with loco integrations
 - implement lifecycle policy on registry? maybe 6 mths to start
 - think more about security. gotta make sure other users cannot pull down other images. Images must be prefixed or something man and have some sort of random hash to avoid collisions.
 - we have read/write on registry. should just be write tbh.
+- use terraform to create the necessary kubernetes cluster and related resources
