@@ -6,19 +6,16 @@ terraform {
     }
   }
 
-  backend "remote" {
-
-    hostname = "app.terraform.io"
+  cloud {
     organization = "loco-deploy"
     workspaces {
       name = "loco"
     }
-    
   }
 
   required_version = ">= 1.2.0"
 }
 
 provider "aws" {
-  region  = "us-east-2"
+  region = "us-east-2"
 }
