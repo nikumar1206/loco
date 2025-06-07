@@ -157,3 +157,13 @@ CLI that can help with loco integrations
 - think more about security. gotta make sure other users cannot pull down other images. Images must be prefixed or something man and have some sort of random hash to avoid collisions.
 - we have read/write on registry. should just be write tbh.
 - use terraform to create the necessary kubernetes cluster and related resources
+
+#### Kube Commands
+
+```bash
+
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
+
+# Install RBAC for Traefik:
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-rbac.yml
+```
