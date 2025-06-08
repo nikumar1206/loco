@@ -7,6 +7,10 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 
 spec:
+  tls:
+  - hosts:
+      - deploy-app.com
+    secretName: loco-tls
   rules:
   - host: deploy-app.com
     http:

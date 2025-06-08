@@ -33,3 +33,6 @@ tmp/*
 *.tfstate
 terraform/.terraform/*
 
+
+# local certs and keys
+*.pem   

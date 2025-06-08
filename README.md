@@ -166,4 +166,11 @@ kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/con
 
 # Install RBAC for Traefik:
 kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-rbac.yml
+
+
+# add tls as a secret
+kubectl create secret tls loco-tls \
+  --cert=deploy-app.com+1.pem \
+  --key=deploy-app.com-key+1.pem \
+  -n loco-setup
 ```
