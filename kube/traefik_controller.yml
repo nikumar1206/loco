@@ -30,8 +30,11 @@ spec:
           ports:
             - name: web
               containerPort: 80
+            - name: dashboard
+              containerPort: 8080
           args:
             - --api.insecure=true
+            - --api.dashboard=true
             - --log.level=DEBUG
             - --accesslog=true
             - --providers.kubernetesingress=true
@@ -49,4 +52,6 @@ spec:
     - protocol: TCP
       port: 80
       name: web
-      targetPort: 80
+    - protocol: TCP
+      port: 8080
+      name: dashboard
