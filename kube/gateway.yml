@@ -1,0 +1,29 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg
+  namespace: loco-setup
+spec:
+  gatewayClassName: eg
+  listeners:
+  - name: https
+    hostname: "deploy-app.com"
+    protocol: HTTPS
+    port: 443
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: loco-tls
+        kind: Secret
+        group: ""
+  - name: http
+    hostname: "deploy-app.com"
+    protocol: HTTP
+    port: 80
