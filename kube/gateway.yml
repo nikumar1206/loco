@@ -14,7 +14,7 @@ spec:
   gatewayClassName: eg
   listeners:
   - name: https
-    hostname: "deploy-app.com"
+    hostname: "*.deploy-app.com"
     protocol: HTTPS
     port: 443
     tls:
@@ -24,6 +24,6 @@ spec:
         kind: Secret
         group: ""
   - name: http
-    hostname: "deploy-app.com"
+    hostname: "*.deploy-app.com"
     protocol: HTTP
     port: 80
