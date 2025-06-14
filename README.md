@@ -158,6 +158,7 @@ CLI that can help with loco integrations
 - we have read/write on registry. should just be write tbh.
 - use terraform to create the necessary kubernetes cluster and related resources
 - need to restrict creation on certain namespaces
+- with current github action setup, we get errors for already exists, maybe we should ignore those somehow
 
 #### Kube Commands
 
