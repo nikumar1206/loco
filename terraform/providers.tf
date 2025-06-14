@@ -6,6 +6,14 @@ terraform {
     }
   }
 
+  cloud {
+    organization = "loco-deploy"
+
+    workspaces {
+      name = "loco"
+    }
+  }
+
 }
 
 provider "digitalocean" {
