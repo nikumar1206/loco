@@ -1,5 +1,5 @@
 resource "digitalocean_kubernetes_cluster" "loco" {
-  version = "latest"
+  version = "1.32.2-do.3"
 
   name   = "loco-cluster"
   region = "nyc1"
