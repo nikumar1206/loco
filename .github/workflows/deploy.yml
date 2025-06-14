@@ -64,7 +64,7 @@ jobs:
 
             - name: Create namespace if needed
               run: |
-                  kubectl apply -f ./kube/loco_namespace.yml
+                  kubectl apply -f ./kube/namespace.yml
                   kubectl apply -f ./kube/gateway.yml
                   kubectl apply -f ./kube/gateway_route.yml
                   kubectl apply -f ./kube/app_deployment.yml
