@@ -1,18 +1,39 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
+	"flag"
 	"log"
-	"net/http"
 	"os"
-	"time"
+	"path/filepath"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/nikumar1206/loco/internal/api"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 var gitlabPAT = os.Getenv("GITLAB_PAT")
+
+type AppConfig struct {
+	Env             string `json:"env"`             // Environment (e.g., dev, prod)
+	ProjectID       string `json:"projectId"`       // GitLab project ID
+	RegistryURL     string `json:"registryUrl"`     // Container registry URL
+	DeployTokenName string `json:"deployTokenName"` // Deploy token name
+	GitlabPAT       string `json:"gitlabPAT"`       // GitLab Personal Access Token
+}
+
+func newAppConfig() *AppConfig {
+	return &AppConfig{
+		Env:             os.Getenv("APP_ENV"),
+		ProjectID:       os.Getenv("GITLAB_PROJECT_ID"),
+		RegistryURL:     os.Getenv("GITLAB_REGISTRY_URL"),
+		DeployTokenName: os.Getenv("GITLAB_DEPLOY_TOKEN_NAME"),
+		GitlabPAT:       gitlabPAT,
+	}
+}
 
 // Response to CLI
 type DeployTokenResponse struct {
@@ -28,73 +49,62 @@ type DeployTokenResponse struct {
 
 func main() {
 	app := fiber.New()
+	ac := newAppConfig()
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Loco Deploy Token Service is running")
 	})
 
-	app.Get("/api/v1/registry/token", func(c *fiber.Ctx) error {
-		projectId := "70221423"
-		tokenName := "loco-ecr-deploy-token"
-		expiresInMin := 5
-		expiry := time.Now().Add(time.Duration(expiresInMin) * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+	clientSet := buildKubeClientSet(ac)
 
-		// Create payload for GitLab API
-		payload := map[string]any{
-			"name":       tokenName,
-			"scopes":     []string{"read_registry", "write_registry"},
-			"expires_at": expiry,
-		}
-		payloadBytes, err := json.Marshal(payload)
-		if err != nil {
-			log.Printf("Error marshalling payload: %v", err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create deploy token payload",
-			})
-		}
+	pods := clientSet.CoreV1().Pods("loco-setup")
 
-		// Call GitLab API
+	pl, err := pods.List(context.Background(), metaV1.ListOptions{})
+	if err != nil {
+		log.Fatalf("Failed to list pods: %v", err)
+	}
+	log.Printf("Pods in loco-setup namespace: %d", len(pl.Items))
 
-		apiClient := api.NewClient("https://gitlab.com")
+	for _, pod := range pl.Items {
+		log.Printf("Pod Name: %s, Status: %s", pod.Name, pod.Status.Phase)
+	}
 
-		resp, err := apiClient.Post(fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId), payloadBytes, map[string]string{
-			"Content-Type":  "application/json",
-			"PRIVATE-TOKEN": gitlabPAT,
-		})
-		if err != nil {
-			log.Printf("Error creating deploy token: %v", err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create deploy token",
-			})
-		}
-
-		var gitlabResp struct {
-			Username  string   `json:"username"`
-			Token     string   `json:"token"`
-			ExpiresAt string   `json:"expires_at"`
-			Revoked   bool     `json:"revoked"`
-			Expired   bool     `json:"expired"`
-			Scopes    []string `json:"scopes"`
-		}
-		if err := json.Unmarshal(resp, &gitlabResp); err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to parse GitLab response",
-			})
-		}
-
-		// Compose response
-		res := DeployTokenResponse{
-			Username:  gitlabResp.Username,
-			Password:  gitlabResp.Token,
-			Registry:  "registry.gitlab.com",
-			Image:     "registry.gitlab.com/locomotive-group/loco-ecr",
-			ExpiresAt: gitlabResp.ExpiresAt,
-			Revoked:   gitlabResp.Revoked,
-			Expired:   gitlabResp.Expired,
-			Scopes:    gitlabResp.Scopes,
-		}
-		return c.JSON(res)
-	})
+	buildRegistryRouter(app, ac)
+	buildKubeRouter(app, ac)
 
 	log.Fatal(app.Listen(":8000"))
+}
+
+func buildKubeClientSet(ac *AppConfig) *kubernetes.Clientset {
+	var config *rest.Config
+	var err error
+
+	if ac.Env == "production" {
+		// Use in-cluster config in production
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			log.Fatalf("Failed to create in-cluster config: %v", err)
+		}
+	} else {
+		// Use kubeconfig from file in other environments
+		var kubeconfig *string
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
+
+		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			log.Fatalf("Failed to build kubeconfig: %v", err)
+		}
+	}
+	// Initialize Kubernetes client
+
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("Failed to create Kubernetes client: %v", err)
+	}
+	return clientSet
 }

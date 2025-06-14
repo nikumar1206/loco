@@ -5,6 +5,7 @@ on:
       - main
 env:
   TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+  DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_PAT }}
 
 jobs:
   deploy:

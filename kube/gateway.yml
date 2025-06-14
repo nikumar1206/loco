@@ -23,7 +23,15 @@ spec:
       - name: loco-tls
         kind: Secret
         group: ""
-  - name: http
-    hostname: "*.deploy-app.com"
-    protocol: HTTP
-    port: 80
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: enable-http3
+  namespace: loco-setup
+spec:
+  http3: {}
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: eg
