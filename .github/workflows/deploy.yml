@@ -59,8 +59,8 @@ jobs:
 
             - name: Apply app manifests
               run: |
-                  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-                  kubectl create -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml
+                  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
+                  kubectl create -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml || true
 
             - name: Create namespace if needed
               run: |
