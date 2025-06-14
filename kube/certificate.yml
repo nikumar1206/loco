@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: loco-cert
+  namespace: loco-setup
+spec:
+  secretName: loco-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: '*.deploy-app.com'
+  dnsNames:
+    - '*.deploy-app.com'

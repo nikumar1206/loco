@@ -162,7 +162,7 @@ CLI that can help with loco integrations
 
 #### Kube Commands
 
-```bash
+````bash
 
 kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
 
@@ -186,4 +186,6 @@ kubectl create configmap envoy-config \
 
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
 kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml
+kubectl create secret generic do-dns-token -n cert-manager
 ```
+````
