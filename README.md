@@ -157,6 +157,7 @@ CLI that can help with loco integrations
 - think more about security. gotta make sure other users cannot pull down other images. Images must be prefixed or something man and have some sort of random hash to avoid collisions.
 - we have read/write on registry. should just be write tbh.
 - use terraform to create the necessary kubernetes cluster and related resources
+- need to restrict creation on certain namespaces
 
 #### Kube Commands
 
@@ -183,8 +184,5 @@ kubectl create configmap envoy-config \
 # envoy -gateway
 
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-k apply -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml
-
-
-
+kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml
 ```
