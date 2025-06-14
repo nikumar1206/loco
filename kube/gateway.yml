@@ -10,6 +10,8 @@ kind: Gateway
 metadata:
   name: eg
   namespace: loco-setup
+  annotations:
+    service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
 spec:
   gatewayClassName: eg
   listeners:
