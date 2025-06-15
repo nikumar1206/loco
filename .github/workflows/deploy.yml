@@ -42,7 +42,6 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            # Optional: Set up DigitalOcean CLI or extract kubeconfig from Terraform outputs
             - name: Install doctl
               uses: digitalocean/action-doctl@v2
               with:

@@ -10,9 +10,10 @@ kind: Gateway
 metadata:
   name: eg
   namespace: loco-setup
-  annotations:
-    service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
 spec:
+  infrastructure:
+    annotations:
+      service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
   gatewayClassName: eg
   listeners:
   - name: https
@@ -37,3 +38,20 @@ spec:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: eg
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyPatchPolicy
+metadata:
+  name: include-envoy-headers
+  namespace: loco-setup
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eg
+  jsonPatches:
+  - type: MERGE
+    path: /typedPerFilterConfig/envoy.filters.http.router
+    value:
+      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+      suppress_envoy_headers: false
