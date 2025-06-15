@@ -9,3 +9,5 @@
   and then apply similar logic for handling the user side of things
 
 - tracing will be far into the future. but as much as possible we stick with open standards via prometheus/grafana/opentelem
+
+- likely will need a ServiceAccount for loco-api since it interacts with the rest of the cluster

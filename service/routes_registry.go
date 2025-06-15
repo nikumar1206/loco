@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/nikumar1206/loco/internal/api"
 )
 
@@ -19,7 +19,7 @@ func buildRegistryRouter(app *fiber.App, appConfig *AppConfig) {
 }
 
 func createGetTokenHandler(appConfig *AppConfig) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		projectId := appConfig.ProjectID
 		tokenName := appConfig.DeployTokenName
 		expiresInMin := 5
