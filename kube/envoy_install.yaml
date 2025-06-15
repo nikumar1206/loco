@@ -43522,6 +43522,8 @@ data:
     extensionApis: {}
     gateway:
       controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    # extensionApis:
+    #   enableEnvoyPatchPolicy: true
     logging:
       level:
         default: info

@@ -1,0 +1,11 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "lsof -ti:8000 | xargs -r kill -9; go build -o ./service/loco ./service"
+bin = "./service/loco"
+full_bin = "true"
+exclude_dir = ["tmp", "kube", "terraform"]
+
+[log]
+time = true

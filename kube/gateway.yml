@@ -26,6 +26,10 @@ spec:
       - name: loco-tls
         kind: Secret
         group: ""
+  - name: http
+    hostname: "*.deploy-app.com"
+    protocol: HTTP
+    port: 80
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy
@@ -39,19 +43,22 @@ spec:
       kind: Gateway
       name: eg
 ---
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: EnvoyPatchPolicy
-metadata:
-  name: include-envoy-headers
-  namespace: loco-setup
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: Gateway
-    name: eg
-  jsonPatches:
-  - type: MERGE
-    path: /typedPerFilterConfig/envoy.filters.http.router
-    value:
-      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-      suppress_envoy_headers: false
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyPatchPolicy
+# metadata:
+#   name: include-envoy-headers
+#   namespace: loco-setup
+# spec:
+#   targetRef:
+#     group: gateway.networking.k8s.io
+#     kind: Gateway
+#     name: eg
+#   type: JSONPatch
+#   jsonPatches:
+#   - type: "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+#     name: header-patch
+#     operation:
+#       op: replace
+#       path: /typedPerFilterConfig/envoy.filters.http.router
+#       value:
+#         suppress_envoy_headers: false
