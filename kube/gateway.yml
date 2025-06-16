@@ -20,6 +20,9 @@ spec:
     hostname: "*.deploy-app.com"
     protocol: HTTPS
     port: 443
+    allowedRoutes:
+        namespaces:
+          from: All
     tls:
       mode: Terminate
       certificateRefs:
@@ -30,6 +33,9 @@ spec:
     hostname: "*.deploy-app.com"
     protocol: HTTP
     port: 80
+    allowedRoutes:
+        namespaces:
+          from: All
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy

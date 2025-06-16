@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/gofiber/fiber/v3"
 
 	c "github.com/nikumar1206/loco/service/clients"
@@ -36,10 +38,18 @@ func deployApp(appConfig *AppConfig, kc *c.KubernetesClient) fiber.Handler {
 			})
 		}
 
-		_, err = kc.CreateService(c.Context(), "test-deploy-1", "test-deploy-1-service")
+		_, err = kc.CreateService(c.Context(), "test-deploy-1", "test-deploy-1-service", "test-deploy-1-deployment")
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failed to create service",
+			})
+		}
+
+		_, err = kc.CreateHTTPRoute(c.Context(), "test-deploy-1", "programmatic", "test-deploy-1-service")
+		if err != nil {
+			slog.Error("oops something wrong", err.Error())
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to create http route",
 			})
 		}
 

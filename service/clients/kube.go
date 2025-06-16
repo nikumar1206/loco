@@ -17,20 +17,28 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	v1Gateway "sigs.k8s.io/gateway-api/apis/v1"
+	gatewayCs "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
 var ErrDeploymentNotFound = errors.New("deployment Not Found")
 
 type KubernetesClient struct {
-	ClientSet *kubernetes.Clientset
+	ClientSet  *kubernetes.Clientset
+	GatewaySet gatewayCs.Interface
 }
 
 // NewKubernetesClient initializes a new Kubernetes client based on the application environment.
 func NewKubernetesClient(appEnv string) *KubernetesClient {
 	slog.Info("Initializing Kubernetes client", "env", appEnv)
-	clientSet := buildKubeClientSet(appEnv)
+	config := buildConfig(appEnv)
+
+	clientSet := buildKubeClientSet(config)
+	gatewaySet := buildGatewayClient(config)
+
 	return &KubernetesClient{
-		ClientSet: clientSet,
+		ClientSet:  clientSet,
+		GatewaySet: gatewaySet,
 	}
 }
 
@@ -184,7 +192,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 }
 
 // CreateService creates a Service for the specified deployment in the given namespace.
-func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name string) (*v1.Service, error) {
+func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name string, deploymentName string) (*v1.Service, error) {
 	slog.Info("Creating service", "namespace", namespace, "name", name)
 	existing, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err == nil {
@@ -202,7 +210,7 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name s
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeClusterIP,
 			Selector: map[string]string{
-				"app": name,
+				"app": deploymentName,
 			},
 			SessionAffinity: v1.ServiceAffinityNone,
 			SessionAffinityConfig: &v1.SessionAffinityConfig{
@@ -231,6 +239,54 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name s
 	return result, nil
 }
 
+// Creates an HTTPRoute equivalent to your YAML manifest
+func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, namespace string, subDomain string, serviceName string) (*v1Gateway.HTTPRoute, error) {
+	hostname := fmt.Sprintf("%s.deploy-app.com", subDomain)
+	pathType := v1Gateway.PathMatchPathPrefix
+	route := &v1Gateway.HTTPRoute{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      "default-gw-route",
+			Namespace: namespace,
+		},
+		Spec: v1Gateway.HTTPRouteSpec{
+			CommonRouteSpec: v1Gateway.CommonRouteSpec{
+				ParentRefs: []v1Gateway.ParentReference{
+					{
+						Name:      v1Gateway.ObjectName("eg"),
+						Namespace: ptrToNamespace("loco-setup"),
+					},
+				},
+			},
+			Hostnames: []v1Gateway.Hostname{v1Gateway.Hostname(hostname)},
+			Rules: []v1Gateway.HTTPRouteRule{
+				{
+					Matches: []v1Gateway.HTTPRouteMatch{
+						{
+							Path: &v1Gateway.HTTPPathMatch{
+								Type:  &pathType,
+								Value: ptrToString("/"),
+							},
+						},
+					},
+					BackendRefs: []v1Gateway.HTTPBackendRef{
+						{
+							BackendRef: v1Gateway.BackendRef{
+								BackendObjectReference: v1Gateway.BackendObjectReference{
+									Name: v1Gateway.ObjectName(serviceName),
+									Port: ptrToPortNumber(80),
+									Kind: ptrToKind("Service"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return kc.GatewaySet.GatewayV1().HTTPRoutes(route.Namespace).Create(ctx, route, metaV1.CreateOptions{})
+}
+
 // GetPods retrieves a list of pod names in the specified namespace.
 func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
 	slog.Debug("Fetching pods", "namespace", namespace)
@@ -249,7 +305,7 @@ func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
 	return podNames, nil
 }
 
-func buildKubeClientSet(appEnv string) *kubernetes.Clientset {
+func buildConfig(appEnv string) *rest.Config {
 	var config *rest.Config
 	var err error
 
@@ -277,6 +333,10 @@ func buildKubeClientSet(appEnv string) *kubernetes.Clientset {
 		}
 	}
 
+	return config
+}
+
+func buildKubeClientSet(config *rest.Config) *kubernetes.Clientset {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		slog.Error("Failed to create Kubernetes client", "error", err)
@@ -285,4 +345,15 @@ func buildKubeClientSet(appEnv string) *kubernetes.Clientset {
 
 	slog.Info("Kubernetes client initialized")
 	return clientSet
+}
+
+func buildGatewayClient(config *rest.Config) *gatewayCs.Clientset {
+	gwcs, err := gatewayCs.NewForConfig(config)
+	if err != nil {
+		slog.Error("Failed to create Kubernetes client", "error", err)
+		log.Fatalf("Failed to create Kubernetes client: %v", err)
+	}
+
+	slog.Info("Kubernetes client initialized")
+	return gwcs
 }
