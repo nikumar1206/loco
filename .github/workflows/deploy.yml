@@ -59,8 +59,8 @@ jobs:
             - name: Apply app manifests
               run: |
                   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
-                  kubectl apply -f ./kube/cert_manager_install.yaml || true
-                  kubectl apply -f ./kube/envoy_install.yaml || true
+                  kubectl apply -f ./kube/base/cert_manager_install.yaml || true
+                  kubectl apply -f ./kube/base/envoy_install.yaml || true
 
             - name: Create namespace if needed
               run: |

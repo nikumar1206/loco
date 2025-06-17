@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/service/clients"
 )
 
 // buildRegistryRouter houses APIs for interacting with container registry service (gitlab)
@@ -40,7 +40,7 @@ func createGetTokenHandler(appConfig *AppConfig) fiber.Handler {
 
 		// Call GitLab API
 
-		apiClient := api.NewClient(appConfig.RegistryURL)
+		apiClient := clients.NewAPIClient(appConfig.RegistryURL)
 
 		resp, err := apiClient.Post(fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId), payloadBytes, map[string]string{
 			"Content-Type":  "application/json",

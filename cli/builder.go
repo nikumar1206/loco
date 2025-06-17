@@ -17,7 +17,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/nikumar1206/loco/internal/color"
+	"github.com/nikumar1206/loco/cli/internal/color"
 )
 
 type dockerMessage struct {

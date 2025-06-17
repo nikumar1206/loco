@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nikumar1206/loco/internal/color"
+	"github.com/nikumar1206/loco/cli/internal/color"
 	"github.com/urfave/cli/v3"
 )
 
