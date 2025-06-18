@@ -37,8 +37,8 @@ clean: ## Clean up the project directory and tidy modules
 build-linux: clean ## Build the application for Linux
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v
 
-reload: clean ## Run app with reload enabled. Requires Air
-	@(air --build.cmd "lsof -ti:8000 | xargs -r kill -9; $(GOBUILD) -o $(BINARY_NAME) ./service" --build.bin "./$(BINARY_NAME)")
+reload-service:
+	@(cd service && air --build.cmd "lsof -ti:8000 | xargs -r kill -9; go build -o loco ." --build.bin "./loco")
 
 deploy: clean ## trigger loco deploy.
 	@(go run cmd/* deploy)

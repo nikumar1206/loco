@@ -12,3 +12,5 @@
 
 - likely will need a ServiceAccount for loco-api since it interacts with the rest of the cluster
 - add label onto gateway and namespace
+
+- privileged: true, runAsNonRoot: true must be set when pulling in a user's docker image

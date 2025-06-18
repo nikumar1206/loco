@@ -25,9 +25,10 @@ go.work.sum
 .env
 
 loco
+loco-api
 
+*/tmp/*
 tmp/*
-
 
 # terraform
 *.tfstate
