@@ -162,30 +162,8 @@ CLI that can help with loco integrations
 
 #### Kube Commands
 
-````bash
+Can be determined from the deploy.yml to reproduce the cluster.
 
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
-
-# Install RBAC for Traefik:
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-rbac.yml
-
-
-# add tls as a secret
-kubectl create secret tls loco-tls \
-  --cert=deploy-app.com+1.pem \
-  --key=deploy-app.com-key+1.pem \
-  -n loco-setup
-
-
-kubectl create configmap envoy-config \
-  --from-file=envoy.yaml=./kube/envoy.yaml \
-  --namespace=loco-setup
-
-
-# envoy -gateway
-
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.4.1/envoy-gateway-crds.yaml
-kubectl create secret generic do-dns-token -n cert-manager
 ```
-````
+
+```

@@ -36,4 +36,7 @@ terraform/.terraform/*
 
 
 # local certs and keys
-*.pem   
+*.pem
+
+# IDE specific files
+settings.json
