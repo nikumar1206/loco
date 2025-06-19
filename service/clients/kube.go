@@ -350,10 +350,10 @@ func buildKubeClientSet(config *rest.Config) *kubernetes.Clientset {
 func buildGatewayClient(config *rest.Config) *gatewayCs.Clientset {
 	gwcs, err := gatewayCs.NewForConfig(config)
 	if err != nil {
-		slog.Error("Failed to create Kubernetes client", "error", err)
-		log.Fatalf("Failed to create Kubernetes client: %v", err)
+		slog.Error("Failed to create gateway client", "error", err)
+		log.Fatalf("Failed to create gateway client: %v", err)
 	}
 
-	slog.Info("Kubernetes client initialized")
+	slog.Info("Gateway client initialized")
 	return gwcs
 }

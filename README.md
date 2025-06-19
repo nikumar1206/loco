@@ -1,169 +1,76 @@
-# 🚂 Loco — Minimal Container Orchestrator
+# 🚂 Loco
 
-Loco is a lightweight service that lets you deploy apps with a simple git push. Think of it as a minimal alternative to Heroku or Render, for containerized apps on Kubernetes.
+> Deploy containerized apps to Kubernetes with a simple git push
 
-This is mostly for educational purposes to learn more about container orchestration and deployment workflows.
+Loco is a lightweight container orchestration platform that simplifies application deployment. Push your code, and Loco handles the rest - building, deploying, and scaling your applications on Kubernetes.
 
----
+## ✨ Features
 
-## 🎯 MVP Features
+- **Git Push Deployments** - Deploy with `git push loco main`
+- **Automatic Builds** - Dockerfile-based container builds
+- **Auto-scaling** - CPU and memory-based horizontal scaling
+- **HTTPS by default** - Automatic SSL certificate management
+- **Simple Configuration** - Easy setup via `loco.toml`
 
-- ✅ Git Push Deployment
-- ✅ Dockerfile-based Build
-- ✅ Pod Deployment to Kubernetes
-- ✅ Simple Autoscaling (CPU/Memory)
-- ✅ App Configuration via loco.toml
-- ✅ Reverse Proxy with TLS & Load Balancing
+## 🚀 Quick Start
 
----
-
-## 📁 User Flow
-
-1. Add a Git remote:
-
+1. **Add Loco as a git remote:**
    ```bash
-   git remote add loco git@yourhost:user/app.git
+   git remote add loco git@your-loco-host:username/app.git
    ```
 
-2. Push your code:
+2. **Create a `loco.toml` configuration:**
+   ```toml
+   name = "myapp"
+   port = 3000
+   
+   [replicas]
+   min = 1
+   max = 5
+   ```
 
+3. **Deploy your app:**
    ```bash
    git push loco main
    ```
 
-Its also possible to have the loco CLI handle some of the loco onboarding required for git integration.
+Your app will be available at `https://myapp.loco.dev`
 
-3. The Loco platform will:
+## 📦 Installation
 
-   - Clone the repo
-   - Build the Docker image
-   - Apply settings from loco.toml
-   - Deploy to K8s with autoscaling
-   - Setup HTTPS at https://appname.loco.dev
+### CLI Installation
+```bash
+# Install via Go
+go install github.com/your-username/loco/cli@latest
+
+# Or download binary from releases
+curl -sSL https://github.com/your-username/loco/releases/latest/download/loco-linux-amd64 -o loco
+chmod +x loco && sudo mv loco /usr/local/bin/
+```
+
+### Platform Setup
+See [IMPLEMENTATION.md](./IMPLEMENTATION.md) for detailed setup instructions.
+
+## 📚 Documentation
+
+- [Implementation Details](./IMPLEMENTATION.md) - Architecture and technical details
+- [Configuration Reference](./docs/configuration.md) - Complete loco.toml reference
+- [Examples](./examples/) - Sample applications
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+
+## 📧 Support
+
+- **Issues:** [GitHub Issues](https://github.com/your-username/loco/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/your-username/loco/discussions)
+- **Email:** loco-support@your-domain.com
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-## 🧱 Components
-
-### 1. Build Server
-
-- Accepts Git pushes (via Gitea or raw git-receive-pack)
-- Writes repo to disk
-- Triggers build pipeline
-
-### 2. Builder
-
-- Uses Buildkit to build the Docker images.
-- Pushes image to a registry (local or remote) ~ (ECR for now maybe?)
-
-### 3. Deployment Engine
-
-Parses loco.toml like:
-
-```toml
-name = "myapp"
-port = 3000
-cpu = "200m"
-memory = "512Mi"
-
-[replicas]
-min = 1
-max = 5
-
-[scalers]
-cpu_target = 80
-memory_target = 50
-
-[logs]
-structured = true
-retention_period = "7d"
-
-dockerfile_path = "."
-
-
-```
-
-This will create the following Kubernetes resources:
-
-- Deployment
-- HPA (Horizontal Pod Autoscaler)
-- Service
-- Ingress (via Traefik or NGINX)
-  - Traefik is in Go, and surprisingly fast. Can handle load balancing, SSL termination, and routing quite well with minimal config.
-  - Can 'upgrade' to envoy later for even more speed, at the cost of decent bit more configuration and work.
-- RBAC?
-  - might not need for Kubernetes for the MVP, unless we are letting ppl have direct access to underlying. def have application RBAC
-
-### 4. CLI
-
-CLI that can help with loco integrations
-
-- Can generate loco.toml file, or validate it.
-- Can generate suggestions to better improve your loco experience by suggesting improvements to loco.toml.
-- Can link to a deployed project to get logs and app health. As well as metrics for CPU, memory, and health.
-- These likely need to be built onto some sort of API that the CLI is just calling.
-- So CLI likely needs to generate temp credentials and store under ~/.loco/credentials.
-
-### Likely MSVCs or just APIs we will need
-
-1. Deployment Engine
-
-- will listen to git pushes via webhook, and build container images.
-- Push container images onto a registry
-
-2. User Front APIs
-
-- handles users
-  - adding new users to platform
-  - removing them and their relevant projects
-- handles projects
-  - adding new projects, need to make sure names or subdomains atleast are unique. so thats gonna need a DB to validate
-  - on new project, need to update the kubernetes configurations to add new ingress and underlying kubernetes deployment by using the commands.
-  - stream deployment progress in near real-time
-- handles project logs
-  - stream logs in near real-time
-  - eventually playback but prolly not
-  - query logs super fast with filters (use managed like clickhouse?)
-- handles project billing
-  - users should only be billed for what they use.
-  - we will have some default network ingress/egress costs.
-  - can be later.
-
-3. Resources handler
-   - might need a way of watching our own resources and making sure they are healthy.
-
-#### Things to Think About
-
-- Simple, but super effective abusive stopper.
-- Only whitelisted repos should be buildable, by certain users.
-- Users should only be able to access logs for their projects. Nothing more, nothing less
-- All unhappy paths are clearly reflected back to user, with obvious next steps on how to fix.
-- Need to do things the kubernetes way with stuff like RBAC and whatnot.
-- whatever we do, it needs to be extendible to the following deployments:
-  - UI, cache (redis), database, blob
-  - this covers like 90% of all possible deployments.
-
-#### Notes
-
-- dont deploy the image if docker scout or vulnerabilities are detected
-- make sure all of the TOML makes sense and is 100% validated against.
-- docker layers should be cached by project or something. maybe docker will automatically do this
-- Docker building must follow .Dockerignore or .gitignore
-- maybe use gitlabs free account for Docker image hosting
-  - only hold maybe the last 2 images per project, for rollback purposes
-  - switch to Harbor eventually to overcome these limits
-- what do i need to do to support podman/oci-based images
-- implement lifecycle policy on registry? maybe 6 mths to start
-- think more about security. gotta make sure other users cannot pull down other images. Images must be prefixed or something man and have some sort of random hash to avoid collisions.
-- we have read/write on registry. should just be write tbh.
-- use terraform to create the necessary kubernetes cluster and related resources
-- need to restrict creation on certain namespaces
-- with current github action setup, we get errors for already exists, maybe we should ignore those somehow
-
-#### Kube Commands
-
-Can be determined from the deploy.yml to reproduce the cluster.
-
-```
-
-```
+**Note:** This project is primarily educational, designed to explore container orchestration and deployment workflows.
