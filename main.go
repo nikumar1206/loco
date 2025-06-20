@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/charmbracelet/fang"
-	"github.com/nikumar1206/loco/cli/cmd"
+	"github.com/nikumar1206/loco/cmd"
 )
 
 func main() {

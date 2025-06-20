@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/nikumar1206/loco/cli/pkg/config"
+	"github.com/nikumar1206/loco/cmd/pkg/config"
 	"github.com/spf13/cobra"
 )
 

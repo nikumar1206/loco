@@ -1,4 +1,4 @@
-module github.com/nikumar1206/loco/cli
+module github.com/nikumar1206/loco
 
 go 1.24.0
 

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/cli/pkg/api"
-	"github.com/nikumar1206/loco/cli/pkg/config"
-	"github.com/nikumar1206/loco/cli/pkg/docker"
-	"github.com/nikumar1206/loco/cli/progress"
+	"github.com/nikumar1206/loco/cmd/pkg/api"
+	"github.com/nikumar1206/loco/cmd/pkg/config"
+	"github.com/nikumar1206/loco/cmd/pkg/docker"
+	"github.com/nikumar1206/loco/cmd/pkg/progress"
 	"github.com/spf13/cobra"
 )
 

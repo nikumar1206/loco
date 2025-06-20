@@ -19,8 +19,8 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/nikumar1206/loco/cli/internal/color"
-	"github.com/nikumar1206/loco/cli/pkg/config"
+	"github.com/nikumar1206/loco/cmd/internal/color"
+	"github.com/nikumar1206/loco/cmd/pkg/config"
 )
 
 type DockerClient struct {

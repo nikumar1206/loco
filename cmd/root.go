@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/nikumar1206/loco/cli/internal/color"
+	"github.com/nikumar1206/loco/cmd/internal/color"
 	"github.com/spf13/cobra"
 )
 

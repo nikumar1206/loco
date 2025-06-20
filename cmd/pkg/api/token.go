@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/nikumar1206/loco/cli/internal/api"
+	"github.com/nikumar1206/loco/cmd/internal/api"
 )
 
 type DeployTokenResponse struct {
