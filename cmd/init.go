@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/cmd/pkg/config"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,8 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("failed to create loco.toml: %w", err)
 		}
 
-		cmd.Println("Loco project initialized successfully.")
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Bold(true)
+		cmd.Printf("Created a %s in the working directory.\n", style.Render("`loco.toml`"))
 		return nil
 	},
 }

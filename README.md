@@ -15,15 +15,17 @@ Loco is a lightweight container orchestration platform that simplifies applicati
 ## 🚀 Quick Start
 
 1. **Add Loco as a git remote:**
+
    ```bash
    git remote add loco git@your-loco-host:username/app.git
    ```
 
 2. **Create a `loco.toml` configuration:**
+
    ```toml
    name = "myapp"
    port = 3000
-   
+
    [replicas]
    min = 1
    max = 5
@@ -39,6 +41,7 @@ Your app will be available at `https://myapp.loco.dev`
 ## 📦 Installation
 
 ### CLI Installation
+
 ```bash
 # Install via Go
 go install github.com/your-username/loco/cli@latest
@@ -49,6 +52,7 @@ chmod +x loco && sudo mv loco /usr/local/bin/
 ```
 
 ### Platform Setup
+
 See [IMPLEMENTATION.md](./IMPLEMENTATION.md) for detailed setup instructions.
 
 ## 📚 Documentation
@@ -74,3 +78,13 @@ MIT License - see [LICENSE](./LICENSE) for details.
 ---
 
 **Note:** This project is primarily educational, designed to explore container orchestration and deployment workflows.
+
+`
+“Engines warming up…”
+
+“Switching tracks…”
+
+“Pushing to the mainline…”
+
+“Pods aligned. Ready for departure.”
+`

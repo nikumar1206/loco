@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -10,12 +11,17 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy an application deployment",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		file, _ := cmd.Flags().GetString("file")
+		// file, _ := cmd.Flags().GetString("file")
 		yes, _ := cmd.Flags().GetBool("yes")
 
-		locoOut(LOCO__OK_PREFIX, "destroy command called")
-		locoOut(LOCO__OK_PREFIX, fmt.Sprintf("file: %s", file))
-		locoOut(LOCO__OK_PREFIX, fmt.Sprintf("yes: %t", yes))
+		// Lipgloss styles
+		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF5F5F"))
+		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
+		valueStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00D7AF"))
+
+		fmt.Println(titleStyle.Render("🔥 Destroy Command Called"))
+		// fmt.Println(labelStyle.Render("File: ") + valueStyle.Render(file))
+		fmt.Println(labelStyle.Render("Assume Yes: ") + valueStyle.Render(fmt.Sprintf("%t", yes)))
 		return nil
 	},
 }

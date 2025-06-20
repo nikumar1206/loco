@@ -1,34 +1,25 @@
-# Application Configuration
-Name = "myapp" 
-Port = 8000 
-Subdomain = "myapp" # Will be deployed to myapp.deploy-app.com
+Name = "myapp"
+Port = 8000
+Subdomain = "myapp"
+DockerfilePath = "Dockerfile"
+EnvFile = ".env"
+ProjectPath = "."
+CPU = "100Mi"
+Memory = "512Mi"
 
-# Project Configuration
-DockerfilePath = "Dockerfile" # Relative to ProjectPath
-EnvFile = ".env" # Relative to ProjectPath
-ProjectPath = "/path/to/your/project" 
-
-# Resource Allocation
-CPU = "0.25" # CPU cores (e.g., "0.5", "1", "2")
-Memory = "512Mi" # Memory allocation (e.g., "256Mi", "1Gi", "2Gi")
-
-# Scaling Configuration
 [Replicas]
-Max = 5 # Maximum number of replicas
-Min = 1 # Minimum number of replicas
+  Max = 1
+  Min = 1
 
-# Autoscaling Triggers
 [Scalers]
-CPUTarget = 70 # CPU utilization target percentage
-MemoryTarget = 80 # Memory utilization target percentage
+  CPUTarget = 70
+  MemoryTarget = 0
 
-# Health Checks
 [Health]
-Interval = 30 # Check interval in seconds
-Path = "/health" # Health check endpoint
-Timeout = 5 # Timeout in seconds
+  Interval = 30
+  Path = "/health"
+  Timeout = 5
 
-# Logging Configuration
 [Logs]
-RetentionPeriod = "7d" # Log retention period
-Structured = true # Enable structured JSON logging
+  RetentionPeriod = "7d"
+  Structured = true

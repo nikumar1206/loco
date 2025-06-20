@@ -15,7 +15,9 @@ import (
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploy a new application to Loco.\nThis builds and pushes a Docker image to the Loco registry and deploys it onto the Loco platform under the specified subdomain.",
+	Short: "Deploy a new application to Loco.",
+	Long:  "Deploy a new application to Loco.\nThis builds and pushes a Docker image to the Loco registry and deploys it onto the Loco platform under the specified subdomain.",
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return deployCmdFunc(cmd, args)
 	},

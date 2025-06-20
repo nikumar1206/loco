@@ -51,12 +51,11 @@ type logMsg struct {
 
 // Styling
 var (
-	stylePending = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")) // orange
-	styleRunning = lipgloss.NewStyle().Foreground(lipgloss.Color("#00BFFF")) // blue
-	styleSuccess = lipgloss.NewStyle().Foreground(lipgloss.Color("#32CD32")) // green
-	styleError   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4500")) // red
-	styleLog     = lipgloss.NewStyle().Foreground(lipgloss.Color("#999999")).Italic(true)
-	// stepLineStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
+	stylePending = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#FFA500", Dark: "#FFA500"}) // orange
+	styleRunning = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0074D9", Dark: "#00BFFF"}) // blue
+	styleSuccess = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#2ECC40", Dark: "#32CD32"}) // green
+	styleError   = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#FF4136", Dark: "#FF4500"}) // red
+	styleLog     = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666", Dark: "#999999"}).Italic(true)
 )
 
 func NewModel(steps []Step) *model {
