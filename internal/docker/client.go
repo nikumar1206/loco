@@ -19,8 +19,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/nikumar1206/loco/cmd/internal/color"
-	"github.com/nikumar1206/loco/cmd/pkg/config"
+	"github.com/nikumar1206/loco/internal/config"
 )
 
 type DockerClient struct {
@@ -103,72 +102,47 @@ func tarDirectory(srcDir string) (io.ReadCloser, error) {
 	return io.NopCloser(buf), nil
 }
 
-// Format stream output for the TUI instead of printing directly
-func formatColoredStream(s string) string {
-	// Remove trailing newlines since logf will add them
-	s = strings.TrimSuffix(s, "\n")
-
-	switch {
-	case len(s) > 4 && s[:4] == "Step":
-		return color.Colorize(s, color.FgYellow)
-	case len(s) > 12 && s[:12] == "Successfully":
-		return color.Colorize(s, color.FgGreen)
-	case len(s) > 6 && s[:6] == " ---> ":
-		return color.Colorize(s, color.FgCyan)
-	default:
-		return s
-	}
-}
-
 func printDockerOutput(r io.Reader, logf func(string)) error {
 	scanner := bufio.NewScanner(r)
-	seenStatuses := make(map[string]string) // track layer ID -> last status
+	seenStatuses := make(map[string]string)
 
 	for scanner.Scan() {
 		var msg Message
 		line := scanner.Text()
 
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			logf(fmt.Sprintf("Failed to parse Docker output: %v — line: %s", err, line))
-			continue
+			continue // skip unparseable lines
 		}
 
 		switch {
 		case msg.Status != "":
-			// Skip duplicate status for the same ID
+			// Only log new, meaningful status changes (skip "Waiting", "Downloading", etc.)
 			if msg.ID != "" {
 				if prev, ok := seenStatuses[msg.ID]; ok && prev == msg.Status {
-					continue // skip redundant
+					continue
 				}
 				seenStatuses[msg.ID] = msg.Status
 			}
-
-			statusMsg := color.ColorizeBold("» ", color.FgCyan) +
-				color.Colorize(msg.Status, color.FgGreen)
-			if msg.ID != "" {
-				statusMsg += " " + color.Colorize("["+msg.ID+"]", color.FgYellow)
+			// only log certain messages, to reduce noise
+			if strings.Contains(msg.Status, "Built") ||
+				strings.Contains(msg.Status, "Pushed") ||
+				strings.Contains(msg.Status, "Successfully") ||
+				strings.Contains(msg.Status, "latest") {
+				logf(msg.Status)
 			}
-			logf(statusMsg)
-
 		case msg.Stream != "":
-			formattedStream := formatColoredStream(msg.Stream)
-			if formattedStream != "" {
-				logf(formattedStream)
+			if strings.HasPrefix(msg.Stream, "Step") ||
+				strings.HasPrefix(msg.Stream, "Successfully") {
+				logf(strings.TrimSpace(msg.Stream))
 			}
 		case msg.Aux.ID != "":
-			logf(color.Colorize("Image ID: "+msg.Aux.ID, color.FgBrightBlue))
-		default:
-			if line != "" {
-				logf(line)
-			}
+			logf("Image ID: " + msg.Aux.ID)
 		}
 	}
 	return scanner.Err()
 }
 
 func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error {
-	fmt.Println("what is the imagename", c.ImageName)
-	time.Sleep(5 * time.Second)
 	buildContext, err := tarDirectory(c.cfg.ProjectPath)
 	if err != nil {
 		return err

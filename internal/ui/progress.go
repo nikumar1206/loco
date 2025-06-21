@@ -1,8 +1,9 @@
-package progress
+package ui
 
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -58,9 +59,19 @@ var (
 	styleLog     = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666", Dark: "#999999"}).Italic(true)
 )
 
+var LocoSpinner = spinner.Spinner{
+	Frames: []string{
+		"🚄",
+		"🚂",
+		"🚃",
+		"🚋",
+	},
+	FPS: time.Second / 2,
+}
+
 func NewModel(steps []Step) *model {
 	for i := range steps {
-		steps[i].Spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+		steps[i].Spinner = spinner.New(spinner.WithSpinner(LocoSpinner))
 		steps[i].Bar = progress.New(progress.WithGradient("#00BFFF", "#32CD32"))
 	}
 	return &model{

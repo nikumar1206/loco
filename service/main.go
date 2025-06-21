@@ -9,23 +9,16 @@ import (
 
 	"github.com/dusted-go/logging/prettylog"
 	"github.com/gofiber/fiber/v3"
-	"github.com/nikumar1206/loco/service/clients"
-	"github.com/nikumar1206/loco/service/middlewares"
+	"github.com/nikumar1206/loco/service/internal/client"
+	"github.com/nikumar1206/loco/service/internal/handlers"
+	"github.com/nikumar1206/loco/service/internal/middlewares"
+	"github.com/nikumar1206/loco/service/internal/models"
+	"github.com/nikumar1206/loco/service/internal/utils"
 )
 
-type AppConfig struct {
-	Env             string `json:"env"`             // Environment (e.g., dev, prod)
-	ProjectID       string `json:"projectId"`       // GitLab project ID
-	RegistryURL     string `json:"registryUrl"`     // Container registry URL
-	DeployTokenName string `json:"deployTokenName"` // Deploy token name
-	GitlabPAT       string `json:"gitlabPAT"`       // GitLab Personal Access Token
-	LogLevel        slog.Level
-	PORT            string
-}
-
-func newAppConfig() *AppConfig {
-	logLevel := Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
-	return &AppConfig{
+func newAppConfig() *models.AppConfig {
+	logLevel := utils.Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
+	return &models.AppConfig{
 		Env:             os.Getenv("APP_ENV"),
 		ProjectID:       os.Getenv("GITLAB_PROJECT_ID"),
 		RegistryURL:     os.Getenv("GITLAB_REGISTRY_URL"),
@@ -34,18 +27,6 @@ func newAppConfig() *AppConfig {
 		LogLevel:        slog.Level(logLevel),
 		PORT:            os.Getenv("PORT"),
 	}
-}
-
-// Response to CLI
-type DeployTokenResponse struct {
-	Username  string   `json:"username"`
-	Password  string   `json:"password"`
-	Registry  string   `json:"registry"`
-	Image     string   `json:"image"`
-	ExpiresAt string   `json:"expiresAt"`
-	Revoked   bool     `json:"revoked"`
-	Expired   bool     `json:"expired"`
-	Scopes    []string `json:"scopes"`
 }
 
 func main() {
@@ -62,10 +43,10 @@ func main() {
 	app.Use(middlewares.SetContext())
 	app.Use(middlewares.Timing())
 
-	kubernetesClient := clients.NewKubernetesClient(ac.Env)
+	kubernetesClient := client.NewKubernetesClient(ac.Env)
 
-	buildRegistryRouter(app, ac)
-	buildAppRouter(app, ac, kubernetesClient)
+	handlers.BuildRegistryRouter(app, ac)
+	handlers.BuildAppRouter(app, ac, kubernetesClient)
 
 	routes := app.GetRoutes(true)
 
@@ -73,10 +54,10 @@ func main() {
 		fmt.Printf("%s %s\n", route.Method, route.Path)
 	}
 
-	log.Fatal(app.Listen(ac.PORT))
+	log.Fatal(app.Listen(ac.PORT, fiber.ListenConfig{DisableStartupMessage: true}))
 }
 
-func getLoggerHandler(ac *AppConfig) slog.Handler {
+func getLoggerHandler(ac *models.AppConfig) slog.Handler {
 	if ac.Env == "PRODUCTION" {
 		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     ac.LogLevel,

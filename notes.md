@@ -76,6 +76,7 @@
 - 🎯 Enable deployment to **path prefixes** (`/api`, `/`, etc.)
 - 📦 Add **multi-port** container support
 - 💡 Auto-fill **default `loco.toml`** values if omitted
+- Centralize all the different timestamps we use.
 
 ### 🔐 Tokens & Auth
 
@@ -90,3 +91,6 @@
 ### 🔢 Namespacing
 
 - Generate namespace from **user-app hash** to avoid conflicts
+
+- need to ensure nodes are ready before allowing loco deploy to occur?
+- SSE based endpoint for deploying?

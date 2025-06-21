@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -8,17 +8,29 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/nikumar1206/loco/service/clients"
+	"github.com/nikumar1206/loco/service/internal/client"
+	"github.com/nikumar1206/loco/service/internal/models"
 )
 
+type DeployTokenResponse struct {
+	Username  string   `json:"username"`
+	Password  string   `json:"password"`
+	Registry  string   `json:"registry"`
+	Image     string   `json:"image"`
+	ExpiresAt string   `json:"expiresAt"`
+	Revoked   bool     `json:"revoked"`
+	Expired   bool     `json:"expired"`
+	Scopes    []string `json:"scopes"`
+}
+
 // buildRegistryRouter houses APIs for interacting with container registry service (gitlab)
-func buildRegistryRouter(app *fiber.App, appConfig *AppConfig) {
+func BuildRegistryRouter(app *fiber.App, appConfig *models.AppConfig) {
 	api := app.Group("/api/v1/registry")
 
 	api.Get("/token", createGetTokenHandler(appConfig))
 }
 
-func createGetTokenHandler(appConfig *AppConfig) fiber.Handler {
+func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		projectId := appConfig.ProjectID
 		tokenName := appConfig.DeployTokenName
@@ -40,7 +52,7 @@ func createGetTokenHandler(appConfig *AppConfig) fiber.Handler {
 
 		// Call GitLab API
 
-		apiClient := clients.NewAPIClient(appConfig.RegistryURL)
+		apiClient := client.NewAPIClient(appConfig.RegistryURL)
 
 		resp, err := apiClient.Post(fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId), payloadBytes, map[string]string{
 			"Content-Type":  "application/json",

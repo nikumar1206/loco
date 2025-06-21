@@ -3,13 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/cmd/pkg/api"
-	"github.com/nikumar1206/loco/cmd/pkg/config"
-	"github.com/nikumar1206/loco/cmd/pkg/docker"
-	"github.com/nikumar1206/loco/cmd/pkg/progress"
+	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/internal/docker"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -57,57 +58,66 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	}
 	defer dockerCli.Close()
 
+	// TODO: looks wrong
+	appEnv := os.Getenv("APP_ENV")
+	host := ""
+	if appEnv == "LOCAL" {
+		host = "http://localhost:8000"
+	} else {
+		host = "https://api.deploy-app.com"
+	}
+
+	apiClient := api.NewClient(host)
+
 	cfgValid := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#00CC66")).
 		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
+
 	fmt.Print(cfgValid)
 
-	steps := []progress.Step{
+	steps := []ui.Step{
 		{
-			Title: "Fetching deploy token",
+			Title: "Fetch deploy token",
 			Run: func(logf func(string)) error {
-				// TODO: remove this sleep
-				time.Sleep(1 * time.Second)
-				tokenResponse, err = api.GetDeployToken()
+				time.Sleep(5 * time.Second)
+				tokenResponse, err = apiClient.GetDeployToken()
 				dockerCli.GenerateImageTag(tokenResponse.Image)
 				if err != nil {
-					return fmt.Errorf("failed to get deploy token: %w", err)
+					return err
 				}
 				return nil
 			},
 		},
 		{
-			Title: "Building Docker image",
+			Title: "Build Docker image",
 			Run: func(logf func(string)) error {
 				// todo: have this function output logs to the progress bar
 				if err := dockerCli.BuildImage(context.Background(), logf); err != nil {
-					return fmt.Errorf("failed to build Docker image: %w", err)
+					return err
 				}
 				return nil
 			},
 		},
 		{
-			Title: "Pushing image to registry",
+			Title: "Push image to registry",
 			Run: func(logf func(string)) error {
-				if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Username, tokenResponse.Password); err != nil {
-					return fmt.Errorf("failed to push Docker image: %w", err)
-				}
+				// todo: comment this back in
 				return nil
+				// if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Username, tokenResponse.Password); err != nil {
+				// 	return fmt.Errorf("failed to push Docker image: %w", err)
+				// }
+				// return nil
 			},
 		},
-		// {
-		// 	Title: "Creating Kubernetes deployment",
-		// 	Run: func() error {
-		// 		err = docker.PushImage(dockerCli, tokenResponse.Username, tokenResponse.Password, "registry.gitlab.com", tokenResponse.Image)
-		// 		if err != nil {
-		// 			return fmt.Errorf("failed to push Docker image: %w", err)
-		// 		}
-		// 		return nil
-		// 	},
-		// },
+		{
+			Title: "Create Kubernetes deployment",
+			Run: func(logf func(string)) error {
+				return apiClient.DeployApp(cfg, dockerCli.ImageName)
+			},
+		},
 	}
-	if err := progress.RunSteps(steps); err != nil {
+	if err := ui.RunSteps(steps); err != nil {
 		return err
 	}
 

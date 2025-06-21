@@ -1,4 +1,4 @@
-package clients
+package client
 
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -20,10 +20,10 @@ func ptrToPortNumber(p int) *v1Gateway.PortNumber {
 	return &n
 }
 
-func ptrToGroup(g string) *v1Gateway.Group {
-	gwG := v1Gateway.Group(g)
-	return &gwG
-}
+// func ptrToGroup(g string) *v1Gateway.Group {
+// 	gwG := v1Gateway.Group(g)
+// 	return &gwG
+// }
 
 func ptrToNamespace(n string) *v1Gateway.Namespace {
 	ns := v1Gateway.Namespace(n)
@@ -34,5 +34,3 @@ func ptrToKind(k string) *v1Gateway.Kind {
 	t := v1Gateway.Kind(k)
 	return &t
 }
-
-func ptrToPtr[T any](v T) *T { return &v }

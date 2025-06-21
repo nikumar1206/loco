@@ -40,3 +40,6 @@ terraform/.terraform/*
 
 # IDE specific files
 settings.json
+
+
+*.log

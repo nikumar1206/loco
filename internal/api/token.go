@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/nikumar1206/loco/cmd/internal/api"
 )
 
 type DeployTokenResponse struct {
@@ -18,10 +16,7 @@ type DeployTokenResponse struct {
 	Scopes    []string `json:"scopes"`
 }
 
-func GetDeployToken() (DeployTokenResponse, error) {
-	c := api.Client{
-		BaseURL: "http://localhost:8000",
-	}
+func (c *Client) GetDeployToken() (DeployTokenResponse, error) {
 	resp, err := c.Get("/api/v1/registry/token", nil)
 	if err != nil {
 		return DeployTokenResponse{}, fmt.Errorf("failed to get deploy token: %v", err)

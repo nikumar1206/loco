@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/cmd/pkg/config"
+	"github.com/nikumar1206/loco/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -1,4 +1,4 @@
-package api
+package client
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ type Client struct {
 	HTTPClient http.Client
 }
 
-func NewClient(baseURL string) *Client {
+func NewAPIClient(baseURL string) *Client {
 	return &Client{
 		BaseURL: baseURL,
 		HTTPClient: http.Client{

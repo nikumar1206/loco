@@ -1,4 +1,4 @@
-package clients
+package client
 
 import (
 	"context"
@@ -22,6 +22,12 @@ import (
 )
 
 var ErrDeploymentNotFound = errors.New("deployment Not Found")
+
+// constants
+var (
+	LocoGatewayName = "eg"
+	LocoSetupNS     = "loco-setup"
+)
 
 type KubernetesClient struct {
 	ClientSet  *kubernetes.Clientset
@@ -63,27 +69,28 @@ func (kc *KubernetesClient) CheckNSExists(c context.Context, namespace string) (
 }
 
 // CreateNS creates a new namespace in the Kubernetes cluster if it does not already exist.
-func (kc *KubernetesClient) CreateNS(c context.Context, namespace string) (*v1.Namespace, error) {
-	slog.Info("Creating namespace", "namespace", namespace)
-	exists, err := kc.CheckNSExists(c, namespace)
+func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *LocoApp) (*v1.Namespace, error) {
+	slog.Info("Creating namespace", "namespace", locoApp.Namespace)
+	exists, err := kc.CheckNSExists(c, locoApp.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	if exists {
-		slog.Warn("Namespace already exists", "namespace", namespace)
+		slog.Warn("Namespace already exists", "namespace", locoApp.Namespace)
 		return nil, nil
 	}
 
-	nsName := &v1.Namespace{
+	nsConfig := &v1.Namespace{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name: namespace,
+			Name:   locoApp.Namespace,
+			Labels: locoApp.Labels,
 		},
 	}
 
-	ns, err := kc.ClientSet.CoreV1().Namespaces().Create(c, nsName, metaV1.CreateOptions{})
+	ns, err := kc.ClientSet.CoreV1().Namespaces().Create(c, nsConfig, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create namespace", "namespace", namespace, "error", err)
+		slog.Error("Failed to create namespace", "namespace", locoApp.Namespace, "error", err)
 		return nil, err
 	}
 
@@ -104,9 +111,9 @@ func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace s
 }
 
 // CreateDeployment creates a Deployment if it doesn't exist.
-func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace string, deploymentName string) (*appsV1.Deployment, error) {
-	slog.Info("Creating deployment", "namespace", namespace, "deployment", deploymentName)
-	existing, err := kc.CheckDeploymentExists(ctx, namespace, deploymentName)
+func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp) (*appsV1.Deployment, error) {
+	slog.Info("Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
+	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
 	if err != nil {
 		if errors.Is(err, ErrDeploymentNotFound) {
 			slog.Info("deployment doesnt exist")
@@ -116,7 +123,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 	}
 
 	if existing {
-		slog.Warn("Deployment already exists", "deployment", deploymentName)
+		slog.Warn("Deployment already exists", "deployment", locoApp.Name)
 		return nil, nil
 	}
 
@@ -124,17 +131,15 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 
 	deployment := &appsV1.Deployment{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name:      deploymentName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"app": deploymentName,
-			},
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
 		},
 		Spec: appsV1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metaV1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": deploymentName,
+					LabelAppName: locoApp.Name,
 				},
 			},
 			Strategy: appsV1.DeploymentStrategy{
@@ -146,18 +151,17 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metaV1.ObjectMeta{
-					Labels: map[string]string{
-						"app": deploymentName,
-					},
+					Labels: locoApp.Labels,
 				},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyAlways,
+					// eventually replace with actual container image
 					Containers: []v1.Container{
 						{
-							Name:  deploymentName,
+							Name:  locoApp.Name,
 							Image: "hashicorp/http-echo",
 							Args: []string{
-								fmt.Sprintf("-text=Hello from %s!", deploymentName),
+								fmt.Sprintf("-text=Hello from %s!", locoApp.Name),
 							},
 							Ports: []v1.ContainerPort{
 								{
@@ -181,9 +185,9 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 		},
 	}
 
-	result, err := kc.ClientSet.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
+	result, err := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace).Create(ctx, deployment, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create deployment", "deployment", deploymentName, "error", err)
+		slog.Error("Failed to create deployment", "deployment", locoApp.Name, "error", err)
 		return nil, err
 	}
 
@@ -191,26 +195,32 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, namespace stri
 	return result, nil
 }
 
-// CreateService creates a Service for the specified deployment in the given namespace.
-func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name string, deploymentName string) (*v1.Service, error) {
-	slog.Info("Creating service", "namespace", namespace, "name", name)
-	existing, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, name, metaV1.GetOptions{})
+func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, serviceName string) (bool, error) {
+	_, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
 	if err == nil {
-		slog.Warn("Service already exists", "name", name)
-		return existing, nil
+		slog.Warn("Service already exists", "name", serviceName)
+		return true, nil
 	}
+	return false, nil
+}
+
+// CreateService creates a Service for the specified deployment in the given namespace.
+func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp) (*v1.Service, error) {
+	slog.Info("Creating service", "namespace", locoApp.Namespace, "name", locoApp.Name)
+
+	kc.CheckServiceExists(ctx, locoApp.Namespace, locoApp.Name)
 
 	timeoutSeconds := int32(10800) // 3 hours
 
 	service := &v1.Service{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
 		},
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeClusterIP,
 			Selector: map[string]string{
-				"app": deploymentName,
+				LabelAppName: locoApp.Name,
 			},
 			SessionAffinity: v1.ServiceAffinityNone,
 			SessionAffinityConfig: &v1.SessionAffinityConfig{
@@ -220,7 +230,7 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name s
 			},
 			Ports: []v1.ServicePort{
 				{
-					Name:       name,
+					Name:       locoApp.Name,
 					Protocol:   v1.ProtocolTCP,
 					Port:       80,
 					TargetPort: intstr.FromInt(5678),
@@ -229,9 +239,9 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name s
 		},
 	}
 
-	result, err := kc.ClientSet.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
+	result, err := kc.ClientSet.CoreV1().Services(locoApp.Namespace).Create(ctx, service, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create service", "name", name, "error", err)
+		slog.Error("Failed to create service", "name", locoApp.Name, "error", err)
 		return nil, err
 	}
 
@@ -239,21 +249,23 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, namespace, name s
 	return result, nil
 }
 
-// Creates an HTTPRoute equivalent to your YAML manifest
-func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, namespace string, subDomain string, serviceName string) (*v1Gateway.HTTPRoute, error) {
-	hostname := fmt.Sprintf("%s.deploy-app.com", subDomain)
+// Creates an HTTPRoute given the prov
+func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *LocoApp) (*v1Gateway.HTTPRoute, error) {
+	hostname := fmt.Sprintf("%s.deploy-app.com", locoApp.Subdomain)
+
 	pathType := v1Gateway.PathMatchPathPrefix
 	route := &v1Gateway.HTTPRoute{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name:      "default-gw-route",
-			Namespace: namespace,
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
 		},
+
 		Spec: v1Gateway.HTTPRouteSpec{
 			CommonRouteSpec: v1Gateway.CommonRouteSpec{
 				ParentRefs: []v1Gateway.ParentReference{
 					{
-						Name:      v1Gateway.ObjectName("eg"),
-						Namespace: ptrToNamespace("loco-setup"),
+						Name:      v1Gateway.ObjectName(LocoGatewayName),
+						Namespace: ptrToNamespace(LocoSetupNS),
 					},
 				},
 			},
@@ -272,7 +284,7 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, namespace strin
 						{
 							BackendRef: v1Gateway.BackendRef{
 								BackendObjectReference: v1Gateway.BackendObjectReference{
-									Name: v1Gateway.ObjectName(serviceName),
+									Name: v1Gateway.ObjectName(locoApp.Name),
 									Port: ptrToPortNumber(80),
 									Kind: ptrToKind("Service"),
 								},
