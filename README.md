@@ -1,26 +1,26 @@
 # 🚂 Loco
 
-> Deploy containerized apps to Kubernetes with a simple git push
+> Deploy containerized apps right from your terminal.
 
-Loco is a lightweight container orchestration platform that simplifies application deployment. Push your code, and Loco handles the rest - building, deploying, and scaling your applications on Kubernetes.
+Loco is a lightweight container orchestration platform that simplifies application deployment. Run `loco deploy` and Loco handles the rest - building, deploying, and scaling your applications on Kubernetes.
 
 ## ✨ Features
 
-- **Git Push Deployments** - Deploy with `git push loco main`
+- **One click deployments** - Deploy with just `loco deploy`
 - **Automatic Builds** - Dockerfile-based container builds
 - **Auto-scaling** - CPU and memory-based horizontal scaling
-- **HTTPS by default** - Automatic SSL certificate management
+- **HTTPS by default** - Automatic SSL certificate management, powered by Envoy Gateway
 - **Simple Configuration** - Easy setup via `loco.toml`
 
 ## 🚀 Quick Start
 
-1. **Add Loco as a git remote:**
+1.  **Download the loco cli**
 
-   ```bash
-   git remote add loco git@your-loco-host:username/app.git
-   ```
+```bash
+go install github.com/nikumar1206/loco@latest
+```
 
-2. **Create a `loco.toml` configuration:**
+2. **Run `loco init` to create a `loco.toml` file.**
 
    ```toml
    name = "myapp"
@@ -33,7 +33,7 @@ Loco is a lightweight container orchestration platform that simplifies applicati
 
 3. **Deploy your app:**
    ```bash
-   git push loco main
+   loco deploy
    ```
 
 Your app will be available at `https://myapp.loco.dev`
@@ -44,40 +44,26 @@ Your app will be available at `https://myapp.loco.dev`
 
 ```bash
 # Install via Go
-go install github.com/your-username/loco/cli@latest
-
-# Or download binary from releases
-curl -sSL https://github.com/your-username/loco/releases/latest/download/loco-linux-amd64 -o loco
-chmod +x loco && sudo mv loco /usr/local/bin/
+go install github.com/nikumar1206/loco@latest
 ```
 
-### Platform Setup
+Loco also generates completions for shells such as bash and zshrc.
 
-See [IMPLEMENTATION.md](./IMPLEMENTATION.md) for detailed setup instructions.
+```bash
+loco completion zsh
+```
 
 ## 📚 Documentation
 
-- [Implementation Details](./IMPLEMENTATION.md) - Architecture and technical details
-- [Configuration Reference](./docs/configuration.md) - Complete loco.toml reference
-- [Examples](./examples/) - Sample applications
+To be added later.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
-
-## 📧 Support
-
-- **Issues:** [GitHub Issues](https://github.com/your-username/loco/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-username/loco/discussions)
-- **Email:** loco-support@your-domain.com
-
-## 📄 License
-
-MIT License - see [LICENSE](./LICENSE) for details.
+To be added later.
 
 ---
 
-**Note:** This project is primarily educational, designed to explore container orchestration and deployment workflows.
+**Note:** This project is primarily educational, created so I can learn more about Kubernetes, networking, and security.
 
 `
 “Engines warming up…”
