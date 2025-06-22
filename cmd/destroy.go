@@ -21,6 +21,7 @@ var destroyCmd = &cobra.Command{
 
 		fmt.Println(titleStyle.Render("🔥 Destroy Command Called"))
 		// fmt.Println(labelStyle.Render("File: ") + valueStyle.Render(file))
+
 		fmt.Println(labelStyle.Render("Assume Yes: ") + valueStyle.Render(fmt.Sprintf("%t", yes)))
 		return nil
 	},

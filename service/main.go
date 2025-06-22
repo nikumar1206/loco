@@ -21,7 +21,7 @@ func newAppConfig() *models.AppConfig {
 	return &models.AppConfig{
 		Env:             os.Getenv("APP_ENV"),
 		ProjectID:       os.Getenv("GITLAB_PROJECT_ID"),
-		RegistryURL:     os.Getenv("GITLAB_REGISTRY_URL"),
+		RegistryURL:     "https://gitlab.com",
 		DeployTokenName: os.Getenv("GITLAB_DEPLOY_TOKEN_NAME"),
 		GitlabPAT:       os.Getenv("GITLAB_PAT"),
 		LogLevel:        slog.Level(logLevel),

@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/fang v0.1.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/docker/docker v28.2.2+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.9.1
 )
 

@@ -50,7 +50,7 @@ var Default = Config{
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
 	ProjectPath:    ".",
-	CPU:            "100Mi",
+	CPU:            "100m",
 	Memory:         "512Mi",
 	Replicas: Replicas{
 		Min: 1,

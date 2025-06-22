@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type LocoConfig struct {
@@ -20,6 +21,11 @@ type LocoConfig struct {
 	Scalers        Scalers  `toml:"Scalers"`
 	Health         Health   `toml:"Health"`
 	Logs           Logs     `toml:"Logs"`
+}
+
+type EnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type Replicas struct {
@@ -50,7 +56,7 @@ var Default = LocoConfig{
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
 	ProjectPath:    ".",
-	CPU:            "100Mi",
+	CPU:            "100m",
 	Memory:         "512Mi",
 	Replicas: Replicas{
 		Min: 1,
@@ -105,7 +111,7 @@ func Load(path string) (LocoConfig, error) {
 	return config, nil
 }
 
-func FillSensibleDefaults(cfg LocoConfig) LocoConfig {
+func (cfg *LocoConfig) FillSensibleDefaults() {
 	if cfg.DockerfilePath == "" {
 		cfg.DockerfilePath = Default.DockerfilePath
 	}
@@ -125,11 +131,9 @@ func FillSensibleDefaults(cfg LocoConfig) LocoConfig {
 	if cfg.Memory == "" {
 		cfg.Memory = Default.Memory
 	}
-
-	return cfg
 }
 
-func (cfg LocoConfig) Validate() error {
+func (cfg *LocoConfig) Validate() error {
 	if cfg.Name == "" {
 		return fmt.Errorf("name must be set")
 	}
@@ -140,6 +144,31 @@ func (cfg LocoConfig) Validate() error {
 
 	if cfg.Subdomain == "" {
 		return fmt.Errorf("subdomain must be set")
+	}
+
+	return validateResources(cfg.CPU, cfg.Memory)
+}
+
+func validateResources(cpuStr, memStr string) error {
+	cpuQty, err := resource.ParseQuantity(cpuStr)
+	if err != nil {
+		return fmt.Errorf("invalid CPU quantity: %w", err)
+	}
+
+	memQty, err := resource.ParseQuantity(memStr)
+	if err != nil {
+		return fmt.Errorf("invalid memory quantity: %w", err)
+	}
+
+	maxCPU := resource.MustParse("500m")
+	maxMem := resource.MustParse("1Gi")
+
+	if cpuQty.Cmp(maxCPU) == 1 {
+		return fmt.Errorf("CPU exceeds 500m: got %s", cpuStr)
+	}
+
+	if memQty.Cmp(maxMem) == 1 {
+		return fmt.Errorf("memory exceeds 1Gi: got %s", memStr)
 	}
 
 	return nil

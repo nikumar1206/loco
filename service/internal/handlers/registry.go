@@ -1,15 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/models"
+	"github.com/nikumar1206/loco/service/internal/utils"
 )
 
 type DeployTokenResponse struct {
@@ -25,9 +22,9 @@ type DeployTokenResponse struct {
 
 // buildRegistryRouter houses APIs for interacting with container registry service (gitlab)
 func BuildRegistryRouter(app *fiber.App, appConfig *models.AppConfig) {
-	api := app.Group("/api/v1/registry")
+	// api := app.Group("/api/v1/registry")
 
-	api.Get("/token", createGetTokenHandler(appConfig))
+	// api.Get("/token", createGetTokenHandler(appConfig))
 }
 
 func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {
@@ -39,44 +36,17 @@ func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {
 
 		payload := map[string]any{
 			"name":       tokenName,
-			"scopes":     []string{"read_registry", "write_registry"},
+			"scopes":     []string{"write_registry"},
 			"expires_at": expiry,
-		}
-		payloadBytes, err := json.Marshal(payload)
-		if err != nil {
-			log.Printf("Error marshalling payload: %v", err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create deploy token payload",
-			})
 		}
 
 		// Call GitLab API
 
-		apiClient := client.NewAPIClient(appConfig.RegistryURL)
-
-		resp, err := apiClient.Post(fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId), payloadBytes, map[string]string{
-			"Content-Type":  "application/json",
-			"PRIVATE-TOKEN": appConfig.GitlabPAT,
-		})
+		gitlabResp, err := client.NewClient(appConfig.RegistryURL).GetDeployToken(c, appConfig.GitlabPAT, projectId, payload)
 		if err != nil {
-			log.Printf("Error creating deploy token: %v", err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create deploy token",
-			})
-		}
-
-		var gitlabResp struct {
-			Username  string   `json:"username"`
-			Token     string   `json:"token"`
-			ExpiresAt string   `json:"expires_at"`
-			Revoked   bool     `json:"revoked"`
-			Expired   bool     `json:"expired"`
-			Scopes    []string `json:"scopes"`
-		}
-		if err := json.Unmarshal(resp, &gitlabResp); err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to parse GitLab response",
-			})
+			return utils.SendErrorResponse(
+				c, fiber.StatusInternalServerError, err.Error(),
+			)
 		}
 
 		// Compose response

@@ -14,6 +14,7 @@ import (
 type DeployAppRequest struct {
 	LocoConfig     client.LocoConfig `json:"locoConfig"`
 	ContainerImage string            `json:"containerImage"`
+	EnvVars        []client.EnvVar
 }
 
 func BuildAppRouter(app *fiber.App, ac *models.AppConfig, kc *client.KubernetesClient) {
@@ -29,7 +30,7 @@ func deployApp(kc *client.KubernetesClient) fiber.Handler {
 		if err := c.Bind().JSON(&request); err != nil {
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Invalid Input")
 		}
-
+		request.LocoConfig.FillSensibleDefaults()
 		// validate the locoConfig
 		if err := request.LocoConfig.Validate(); err != nil {
 			slog.Error("Invalid locoConfig", "error", err.Error())
@@ -44,7 +45,7 @@ func deployApp(kc *client.KubernetesClient) fiber.Handler {
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Provided subdomain is not allowed. Please choose another")
 		}
 
-		app := client.NewLocoApp(request.LocoConfig.Name, request.LocoConfig.Subdomain, "nikhil", request.ContainerImage)
+		app := client.NewLocoApp(request.LocoConfig.Name, request.LocoConfig.Subdomain, "nikhil", request.ContainerImage, request.EnvVars, request.LocoConfig)
 		slog.Info("Creating new loco app", "appName", app.Name, "namespace", app.Namespace)
 
 		_, err := kc.CreateNS(c.Context(), app)

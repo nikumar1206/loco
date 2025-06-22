@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,7 @@ type Client struct {
 	HTTPClient http.Client
 }
 
-func NewAPIClient(baseURL string) *Client {
+func NewClient(baseURL string) *Client {
 	return &Client{
 		BaseURL: baseURL,
 		HTTPClient: http.Client{
@@ -28,18 +29,37 @@ type APIError struct {
 }
 
 func (e *APIError) Error() string {
-	return fmt.Sprintf("API error: status %d, body: %s", e.StatusCode, e.Body)
-}
-
-func (c *Client) doRequest(method, path string, body []byte, headers map[string]string) ([]byte, error) {
-	var bodyReader io.Reader
-	if body != nil {
-		bodyReader = bytes.NewReader(body)
+	// No status code → probably request construction or transport error
+	if e.StatusCode == 0 {
+		return e.Body
 	}
 
-	req, err := http.NewRequest(method, c.BaseURL+path, bodyReader)
+	var msg string
+	var payload map[string]string
+	if err := json.Unmarshal([]byte(e.Body), &payload); err == nil {
+		msg = payload["message"]
+	}
+	if msg == "" {
+		msg = e.Body
+	}
+
+	switch {
+	case e.StatusCode >= 400 && e.StatusCode < 500:
+		return fmt.Sprintf("client error: %s", msg)
+	case e.StatusCode >= 500:
+		return fmt.Sprintf("server error: %s", msg)
+	default:
+		return fmt.Sprintf("unexpected error: %s", msg)
+	}
+}
+
+func (c *Client) doRequest(method, path string, body io.Reader, headers map[string]string) ([]byte, error) {
+	req, err := http.NewRequest(method, c.BaseURL+path, body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, &APIError{
+			StatusCode: 0,
+			Body:       fmt.Sprintf("failed to create request: %v", err),
+		}
 	}
 
 	if headers == nil {
@@ -49,33 +69,52 @@ func (c *Client) doRequest(method, path string, body []byte, headers map[string]
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, &APIError{
+			StatusCode: 0,
+			Body:       fmt.Sprintf("request failed: %v", err),
+		}
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Body:       fmt.Sprintf("failed to read response body: %v", err),
+		}
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(respBody)}
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
 	}
 
 	return respBody, nil
 }
 
-// Example usage methods
 func (c *Client) Get(path string, headers map[string]string) ([]byte, error) {
 	return c.doRequest(http.MethodGet, path, nil, headers)
 }
 
-func (c *Client) Post(path string, body []byte, headers map[string]string) ([]byte, error) {
-	return c.doRequest(http.MethodPost, path, body, headers)
+func (c *Client) Post(path string, body any, headers map[string]string) ([]byte, error) {
+	buf, err := structToBuffer(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert request body to buffer: %v", err)
+	}
+	return c.doRequest(http.MethodPost, path, buf, headers)
+}
+
+func structToBuffer(s any) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return &buf, nil
 }

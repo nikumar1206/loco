@@ -20,24 +20,28 @@ spec:
             labels:
                 app: loco-api
         spec:
+            imagePullSecrets:
+                - name: pull-secret
             # initContainers:
             #   Init containers are exactly like regular containers, except:
             #     - Init containers always run to completion.
             #     - Each init container must complete successfully before the next one starts.
             containers:
                 - name: loco-api
-                  image: hashicorp/http-echo
-                  args:
-                      - "-text=Hello from Loco!"
+                  image: ghcr.io/nikumar1206/loco:latest
+                  envfrom:
+                      - secretRef:
+                        name: env-config
                   ports:
-                      - containerPort: 5678
+                      - containerPort: 8000
                   resources:
                       requests:
                           cpu: 100m
-                          memory: 100Mi
+                          memory: 100m
                       limits:
                           cpu: 100m
-                          memory: 100Mi
+                          memory: 100m
+                        
                   # livenessProbe:
                   #   tcpSocket:
                   #     port: 80
@@ -74,7 +78,7 @@ spec:
         - name: loco-api
           protocol: TCP
           port: 80
-          targetPort: 5678
+          targetPort: 8000
           # If you set the `spec.type` field to `NodePort` and you want a specific port number,
           # you can specify a value in the `spec.ports[*].nodePort` field.
           # nodePort:

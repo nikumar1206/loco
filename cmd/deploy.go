@@ -113,7 +113,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 		{
 			Title: "Create Kubernetes deployment",
 			Run: func(logf func(string)) error {
-				return apiClient.DeployApp(cfg, dockerCli.ImageName)
+				return apiClient.DeployApp(cfg, dockerCli.ImageName, logf)
 			},
 		},
 	}

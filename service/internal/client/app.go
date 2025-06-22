@@ -36,9 +36,11 @@ type LocoApp struct {
 	Labels         map[string]string
 	ContainerImage string
 	Subdomain      string
+	EnvVars        []EnvVar
+	Config         LocoConfig
 }
 
-func NewLocoApp(name, subdomain, createdBy string, containerImage string) *LocoApp {
+func NewLocoApp(name, subdomain, createdBy string, containerImage string, envVars []EnvVar, config LocoConfig) *LocoApp {
 	ns := GenerateNameSpace(name, createdBy)
 	return &LocoApp{
 		Name:      name,
@@ -47,6 +49,8 @@ func NewLocoApp(name, subdomain, createdBy string, containerImage string) *LocoA
 		CreatedBy: createdBy,
 		CreatedAt: time.Now(),
 		Labels:    GenerateLabels(name, ns, createdBy),
+		EnvVars:   envVars,
+		Config:    config,
 	}
 }
 

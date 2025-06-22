@@ -66,12 +66,22 @@ jobs:
                   kubectl apply -f ./kube/base/cert_manager_install.yaml || true
                   kubectl apply -f ./kube/base/envoy_install.yaml || true
 
+            - name: Build and Push Docker Image
+              uses: ./.github/workflows/build-push.yml
 
             - name: Apply resources
               run: |
                   kubectl apply -f ./kube/namespace.yml
                   kubectl apply -f ./kube/gateway.yml
                   kubectl apply -f ./kube/loco_route.yml
+                  kubectl create secret generic env-config \
+                    --from-literal=GITLAB_PAT=${{ secrets.GITLAB_PAT }} \
+                    --from-literal=GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }} \
+                    --from-literal=GITLAB_TOKEN_NAME=${{ secrets.GITLAB_TOKEN_NAME }} \
+                    --from-literal=APP_ENV=${{ secrets.APP_ENV }} \
+                    --from-literal=LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
+                    --from-literal=PORT=${{ secrets.PORT }} \
+                    --dry-run=client -o yaml | kubectl apply -f - || true
                   kubectl apply -f ./kube/app_deployment.yml
                   kubectl apply -f ./kube/cert_manager.yml
                   kubectl apply -f ./kube/certificate.yml

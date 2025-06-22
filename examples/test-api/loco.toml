@@ -9,7 +9,7 @@ EnvFile = ".env" # Relative to ProjectPath
 ProjectPath = "." 
 
 # Resource Allocation
-CPU = "100Mi" # CPU cores (e.g., "0.5", "1", "2")
+CPU = "100m" # CPU cores (e.g., this is 0.1 cores)
 Memory = "512Mi" # Memory allocation (e.g., "256Mi", "1Gi", "2Gi")
 
 # Scaling Configuration

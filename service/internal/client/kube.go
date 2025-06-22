@@ -155,27 +155,26 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 				},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyAlways,
-					// eventually replace with actual container image
+					// todo eventually replace with actual container image
 					Containers: []v1.Container{
 						{
-							Name:  locoApp.Name,
-							Image: "hashicorp/http-echo",
-							Args: []string{
-								fmt.Sprintf("-text=Hello from %s!", locoApp.Name),
-							},
+							Name:    locoApp.Name,
+							Image:   "alpine",
+							Command: []string{"printenv"},
 							Ports: []v1.ContainerPort{
 								{
-									ContainerPort: 5678,
+									ContainerPort: int32(locoApp.Config.Port),
 								},
 							},
+							Env: createKubeEnvVars(locoApp.EnvVars),
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse("100m"),
-									v1.ResourceMemory: resourceMustParse("100Mi"),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.CPU),
+									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
 								},
 								Limits: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse("100m"),
-									v1.ResourceMemory: resourceMustParse("100Mi"),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.CPU),
+									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
 								},
 							},
 						},
@@ -233,7 +232,7 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp)
 					Name:       locoApp.Name,
 					Protocol:   v1.ProtocolTCP,
 					Port:       80,
-					TargetPort: intstr.FromInt(5678),
+					TargetPort: intstr.FromInt(locoApp.Config.Port),
 				},
 			},
 		},
@@ -368,4 +367,17 @@ func buildGatewayClient(config *rest.Config) *gatewayCs.Clientset {
 
 	slog.Info("Gateway client initialized")
 	return gwcs
+}
+
+func createKubeEnvVars(envVars []EnvVar) []v1.EnvVar {
+	kubeEnvVars := []v1.EnvVar{}
+
+	for _, ev := range envVars {
+		kubeEnvVars = append(kubeEnvVars, v1.EnvVar{
+			Name:  ev.Name,
+			Value: ev.Value,
+		})
+	}
+
+	return kubeEnvVars
 }

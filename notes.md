@@ -94,3 +94,14 @@
 
 - need to ensure nodes are ready before allowing loco deploy to occur?
 - SSE based endpoint for deploying?
+- need to have a validation for the necessary resources
+
+- apiClient and locoConfig seem to be a shared object
+- maybe switch to private docker hub vs gitlab, not sure if there will be any difference
+- no need to re-generate a deploy token on backend again. just simply use the same one
+- maybe we can eventually add artifact attestations. seems simple enough to add them to the image, but need to figure out kubernetes side of things
+
+- kube configmap of secrets needs to be created separately
+- need to create some sort of RBAC actually.
+  - so if user provides env var, they should not be visible to the cluster owner like me.
+  - they should be created as a configmap or secret, and not directly decodeable unless by user
