@@ -105,3 +105,72 @@
 - need to create some sort of RBAC actually.
   - so if user provides env var, they should not be visible to the cluster owner like me.
   - they should be created as a configmap or secret, and not directly decodeable unless by user
+  - do we need to remove serviceAccount token for apps deployed by users?
+
+ran into this issue:
+
+k describe pods/loco-api-6f94566669-9wz4v -n loco-setup
+Name: loco-api-6f94566669-9wz4v
+Namespace: loco-setup
+Priority: 0
+Service Account: default
+Node: worker-pool-t4zde/10.116.0.5
+Start Time: Sun, 22 Jun 2025 12:40:48 -0400
+Labels: app=loco-api
+pod-template-hash=6f94566669
+Annotations: <none>
+Status: Pending
+IP:
+IPs: <none>
+Controlled By: ReplicaSet/loco-api-6f94566669
+Containers:
+loco-api:
+Container ID:
+Image: ghcr.io/nikumar1206/loco:latest
+Image ID:
+Port: 8000/TCP
+Host Port: 0/TCP
+State: Waiting
+Reason: ContainerCreating
+Ready: False
+Restart Count: 0
+Limits:
+cpu: 100m
+memory: 100m
+Requests:
+cpu: 100m
+memory: 100m
+Environment Variables from:
+env-config Secret Optional: false
+Environment: <none>
+Mounts:
+/var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-dwsdg (ro)
+Conditions:
+Type Status
+PodReadyToStartContainers False
+Initialized True
+Ready False
+ContainersReady False
+PodScheduled True
+Volumes:
+kube-api-access-dwsdg:
+Type: Projected (a volume that contains injected data from multiple sources)
+TokenExpirationSeconds: 3607
+ConfigMapName: kube-root-ca.crt
+Optional: false
+DownwardAPI: true
+QoS Class: Guaranteed
+Node-Selectors: <none>
+Tolerations: node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events: Type Reason Age From Message
+---- ------ ---- ---- ------- Normal Scheduled 3m24s default-scheduler Successfully assigned loco-setup/loco-api-6f94566669-9wz4v to worker-pool-t4zde
+Warning FailedMount 3m24s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_40_48.3551581184/token: no space left on device
+Warning FailedMount 3m23s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_40_49.3931323834/namespace: no space left on device
+Warning FailedMount 3m22s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_40_50.2625020399/token: no space left on device
+Warning FailedMount 3m20s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_40_52.325776056/ca.crt: no space left on device
+Warning FailedMount 3m16s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_40_56.3244351780/ca.crt: no space left on device
+Warning FailedMount 3m8s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_41_04.753710740/token: no space left on device
+Warning FailedMount 2m52s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_41_20.71064940/ca.crt: no space left on device
+Warning FailedMount 2m20s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_41_52.3636505467/ca.crt: no space left on device
+Warning FailedMount 76s kubelet MountVolume.SetUp failed for volume "kube-api-access-dwsdg" : write /var/lib/kubelet/pods/9325809b-7a46-4d73-916b-99e366b7aace/volumes/kubernetes.io~projected/kube-api-access-dwsdg/..2025_06_22_16_42_56.1446387085/ca.crt: no space left on device
