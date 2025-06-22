@@ -22,9 +22,8 @@ type DeployTokenResponse struct {
 
 // buildRegistryRouter houses APIs for interacting with container registry service (gitlab)
 func BuildRegistryRouter(app *fiber.App, appConfig *models.AppConfig) {
-	// api := app.Group("/api/v1/registry")
-
-	// api.Get("/token", createGetTokenHandler(appConfig))
+	api := app.Group("/api/v1/registry")
+	api.Get("/token", createGetTokenHandler(appConfig))
 }
 
 func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {

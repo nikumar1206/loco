@@ -18,9 +18,9 @@ type DeployAppRequest struct {
 }
 
 func BuildAppRouter(app *fiber.App, ac *models.AppConfig, kc *client.KubernetesClient) {
-	api := app.Group("/api/v1/app")
+	// api := app.Group("/api/v1/app")
 
-	api.Post("/deploy", deployApp(kc))
+	// api.Post("/deploy", deployApp(kc))
 }
 
 func deployApp(kc *client.KubernetesClient) fiber.Handler {

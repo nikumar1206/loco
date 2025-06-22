@@ -65,18 +65,40 @@ jobs:
             - name: Install helm
               uses: azure/setup-helm@v4.3.0
               id: install
+            
+            # can comment back in if needed, but no reason to re-apply CRDs
+            # - name: Apply app manifests
+            #   run: |
+            #       kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
+            #       kubectl apply -f ./kube/crds/cert_manager_install.yaml || true
+            #       kubectl apply -f ./kube/crds/envoy_install.yaml || true
 
-            - name: Apply app manifests
-              run: |
-                  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
-                  kubectl apply -f ./kube/base/cert_manager_install.yaml || true
-                  kubectl apply -f ./kube/base/envoy_install.yaml || true
+            # can comment back if needed, but no reason to re-apply one time resources
+            # - name: Apply base resources
+            #   run: |
+            #       kubectl apply -f ./kube/namespace.yml
+            #       kubectl apply -f ./kube/gateway.yml
+            #       kubectl apply -f ./kube/loco_route.yml
+            #       kubectl apply -f ./kube/cert_manager.yml
+            #       kubectl apply -f ./kube/certificate.yml
+
+            # can comment back in if needed
+            # - name: Enable Observability
+            #   run: |
+            #       kubectl create namespace monitoring || true
+
+            #       helm install eg-addons oci://docker.io/envoyproxy/gateway-addons-helm \
+            #         --version v1.4.1 \
+            #         -n monitoring \
+            #         --set tempo.enabled=false \
+            #         --set loki.enabled=false \
+            #         --set fluent-bit.enabled=false \
+            #         --set grafana.adminPassword="${{ secrets.GRAFANA_PASSWORD }}" || true
+                  
+            #       kubectl apply -f ./kube/monitoring_route.yml
 
             - name: Apply resources
               run: |
-                  kubectl apply -f ./kube/namespace.yml
-                  kubectl apply -f ./kube/gateway.yml
-                  kubectl apply -f ./kube/loco_route.yml
                   kubectl create secret generic env-config \
                     --from-literal=GITLAB_PAT=${{ secrets.GITLAB_PAT }} \
                     --from-literal=GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }} \
@@ -87,19 +109,4 @@ jobs:
                     -n loco-setup \
                     --dry-run=client -o yaml | kubectl apply -f - || true
                   kubectl apply -f ./kube/app_deployment.yml
-                  kubectl apply -f ./kube/cert_manager.yml
-                  kubectl apply -f ./kube/certificate.yml
             
-            - name: Enable Observability
-              run: |
-                  kubectl create namespace monitoring || true
-
-                  helm install eg-addons oci://docker.io/envoyproxy/gateway-addons-helm \
-                    --version v1.4.1 \
-                    -n monitoring \
-                    --set tempo.enabled=false \
-                    --set loki.enabled=false \
-                    --set fluent-bit.enabled=false \
-                    --set grafana.adminPassword="${{ secrets.GRAFANA_PASSWORD }}" || true
-                  
-                  kubectl apply -f ./kube/monitoring_route.yml
