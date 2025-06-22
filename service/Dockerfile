@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.4-alpine AS builder
 
 # Set necessary env vars
 ENV CGO_ENABLED=0 \
@@ -23,7 +23,7 @@ COPY service/ .
 RUN go build -o loco-api .
 
 # Stage 2: Run
-FROM gcr.io/distroless/static-debian11
+FROM gcr.io/distroless/static-debian12
 
 WORKDIR /
 
