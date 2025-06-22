@@ -34,6 +34,7 @@ jobs:
               run: cd terraform && terraform apply -auto-approve "tfplan"
 
     build-and-push:
+      name: GCR Build and Push Image
       uses: ./.github/workflows/build-push.yml
       permissions:
         contents: read
