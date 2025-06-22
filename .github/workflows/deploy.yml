@@ -84,6 +84,7 @@ jobs:
                     --from-literal=APP_ENV=${{ secrets.APP_ENV }} \
                     --from-literal=LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
                     --from-literal=PORT=${{ secrets.PORT }} \
+                    -n loco-setup \
                     --dry-run=client -o yaml | kubectl apply -f - || true
                   kubectl apply -f ./kube/app_deployment.yml
                   kubectl apply -f ./kube/cert_manager.yml
