@@ -29,8 +29,8 @@ spec:
             containers:
                 - name: loco-api
                   image: ghcr.io/nikumar1206/loco:latest
-                  envfrom:
-                      - secretRef:
+                  envFrom:
+                    - secretRef:
                         name: env-config
                   ports:
                       - containerPort: 8000
