@@ -8,6 +8,8 @@ on:
 env:
     TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
     DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_PAT }}
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
 
 jobs:
     infra:
@@ -110,4 +112,5 @@ jobs:
                     -n loco-setup \
                     --dry-run=client -o yaml | kubectl apply -f - || true
                   kubectl apply -f ./kube/app_deployment.yml
+                  kubectl set image -n loco-api deployment/loco-api loco-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ GITHUB_SHA }}
             
