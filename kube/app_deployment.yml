@@ -20,8 +20,6 @@ spec:
             labels:
                 app: loco-api
         spec:
-            imagePullSecrets:
-                - name: pull-secret
             # initContainers:
             #   Init containers are exactly like regular containers, except:
             #     - Init containers always run to completion.
