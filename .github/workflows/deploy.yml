@@ -112,5 +112,5 @@ jobs:
                     -n loco-setup \
                     --dry-run=client -o yaml | kubectl apply -f - || true
                   kubectl apply -f ./kube/app_deployment.yml
-                  kubectl set image -n loco-api deployment/loco-api loco-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+                  kubectl set image -n loco-setup deployment/loco-api loco-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
             
