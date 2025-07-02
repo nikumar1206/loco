@@ -62,7 +62,7 @@ func GenerateNameSpace(name string, username string) string {
 	appName := strings.ToLower(strings.TrimSpace(name))
 	userName := strings.ToLower(strings.TrimSpace(username))
 
-	return appName + "-" + userName + "-loco"
+	return appName + "-" + userName
 }
 
 func GenerateLabels(name, namespace, createdBy string) map[string]string {

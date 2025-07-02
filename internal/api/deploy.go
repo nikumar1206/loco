@@ -1,9 +1,10 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/joho/godotenv"
 	"github.com/nikumar1206/loco/internal/config"
@@ -24,9 +25,12 @@ type DeployAppResponse struct {
 	Message string
 }
 
-func (c *Client) DeployApp(locoConfig config.Config, containerImage string, logf func(string)) error {
+func (c *Client) DeployApp(locoConfig config.Config, containerImage string, locoToken string, logf func(string)) error {
 	// Create a new deployment
 	envVars := map[string]string{}
+	headers := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", locoToken),
+	}
 
 	if locoConfig.EnvFile != "" {
 		f, err := os.Open(locoConfig.EnvFile)
@@ -53,7 +57,7 @@ func (c *Client) DeployApp(locoConfig config.Config, containerImage string, logf
 		EnvVars:        envVarList,
 	}
 
-	resp, err := c.Post("/api/v1/app/deploy", appReq, nil)
+	resp, err := c.Post("/api/v1/app", appReq, headers)
 	if err != nil {
 		return err
 	}

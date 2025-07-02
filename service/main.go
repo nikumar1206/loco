@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/dusted-go/logging/prettylog"
+	json "github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/handlers"
@@ -18,19 +19,24 @@ import (
 
 func newAppConfig() *models.AppConfig {
 	logLevel := utils.Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
+
 	return &models.AppConfig{
 		Env:             os.Getenv("APP_ENV"),
 		ProjectID:       os.Getenv("GITLAB_PROJECT_ID"),
-		RegistryURL:     "https://gitlab.com",
+		GitlabURL:       os.Getenv("GITLAB_URL"),
+		RegistryURL:     os.Getenv("GITLAB_REGISTRY_URL"),
 		DeployTokenName: os.Getenv("GITLAB_DEPLOY_TOKEN_NAME"),
 		GitlabPAT:       os.Getenv("GITLAB_PAT"),
-		LogLevel:        slog.Level(logLevel),
 		PORT:            os.Getenv("PORT"),
+		LogLevel:        slog.Level(logLevel),
 	}
 }
 
 func main() {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
+	})
 	ac := newAppConfig()
 
 	logger := slog.New(CustomHandler{Handler: getLoggerHandler(ac)})
@@ -42,11 +48,20 @@ func main() {
 
 	app.Use(middlewares.SetContext())
 	app.Use(middlewares.Timing())
+	app.Use(middlewares.GithubTokenValidator())
+
+	app.Get("/secure", func(c fiber.Ctx) error {
+		user, _ := c.Locals("user").(string)
+
+		fmt.Println("hello user", user)
+		return c.SendString("on the secure endpoint")
+	})
 
 	kubernetesClient := client.NewKubernetesClient(ac.Env)
 
 	handlers.BuildRegistryRouter(app, ac)
 	handlers.BuildAppRouter(app, ac, kubernetesClient)
+	handlers.BuildOauthRouter(app, ac)
 
 	routes := app.GetRoutes(true)
 

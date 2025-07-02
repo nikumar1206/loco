@@ -2,7 +2,8 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
+
+	json "github.com/goccy/go-json"
 )
 
 func structToBuffer(s any) (*bytes.Buffer, error) {

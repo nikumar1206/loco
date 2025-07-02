@@ -106,8 +106,26 @@
   - so if user provides env var, they should not be visible to the cluster owner like me.
   - they should be created as a configmap or secret, and not directly decodeable unless by user
   - do we need to remove serviceAccount token for apps deployed by users?
+  - need to actually resolve the paths for loco.toml
 
-ran into this issue:
+Next Steps:
+
+- loco-api will require cluster role, rolebinding, and service account for talking to kube-api-server and making cluster lvl changes to it. obs eventually, need to figure out a way to ensure loco-api is safe and cannot be abused
+- need to actually implement the github oauth setup with JWT, so we are not exposing APIs
+- implement something like getting logs or getting an app status endpoints once above is working.
+- enhance logic of the deploy endpoint so it fails on re-deployment. that should actually be handled on the CLI side.
+- fix the endpoints to be more restful. it should be METHOD: /api/v1/app. POST should do a deploy theoretically
+- why do we keep running OOM
+  figure out this bit and whether we should actually run it
+  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+- rename loco-setup to loco-system
+- fix the logging. should all be logging with context on the service
+- cleanup the deployapp code, as well as the github callback code
+- failing to build images is not being reported, and continues as Successfully
+- cross platform builds seem to be problematic in that not all errors are being captured, and there are some interim docker issues
+- loco cli should write to a debug file.
+
+  ran into this issue:
 
 k describe pods/loco-api-6f94566669-9wz4v -n loco-setup
 Name: loco-api-6f94566669-9wz4v

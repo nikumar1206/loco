@@ -1,24 +1,22 @@
 package docker
 
 import (
-	"archive/tar"
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
+	"github.com/moby/go-archive"
 	"github.com/nikumar1206/loco/internal/config"
 )
 
@@ -58,50 +56,6 @@ type Message struct {
 	} `json:"aux"`
 }
 
-func tarDirectory(srcDir string) (io.ReadCloser, error) {
-	buf := new(bytes.Buffer)
-	tw := tar.NewWriter(buf)
-
-	err := filepath.Walk(srcDir, func(file string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		header, err := tar.FileInfoHeader(fi, file)
-		if err != nil {
-			return err
-		}
-
-		header.Name, _ = filepath.Rel(srcDir, file)
-
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
-
-		if fi.IsDir() {
-			return nil
-		}
-
-		f, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		_, err = io.Copy(tw, f)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if err := tw.Close(); err != nil {
-		return nil, err
-	}
-
-	return io.NopCloser(buf), nil
-}
-
 func printDockerOutput(r io.Reader, logf func(string)) error {
 	scanner := bufio.NewScanner(r)
 	seenStatuses := make(map[string]string)
@@ -113,7 +67,6 @@ func printDockerOutput(r io.Reader, logf func(string)) error {
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			continue // skip unparseable lines
 		}
-
 		switch {
 		case msg.Status != "":
 			// Only log new, meaningful status changes (skip "Waiting", "Downloading", etc.)
@@ -143,7 +96,7 @@ func printDockerOutput(r io.Reader, logf func(string)) error {
 }
 
 func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error {
-	buildContext, err := tarDirectory(c.cfg.ProjectPath)
+	buildContext, err := archive.TarWithOptions(c.cfg.ProjectPath, &archive.TarOptions{})
 	if err != nil {
 		return err
 	}
@@ -153,6 +106,7 @@ func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error 
 		Tags:       []string{c.ImageName},
 		Dockerfile: c.cfg.DockerfilePath,
 		Remove:     true, // remove intermediate containers
+		Platform:   "linux/amd64",
 	}
 
 	response, err := c.dockerClient.ImageBuild(ctx, buildContext, options)
@@ -194,7 +148,7 @@ func (c *DockerClient) PushImage(ctx context.Context, logf func(string), usernam
 func (c *DockerClient) GenerateImageTag(imageBase string) string {
 	imageNameBase := imageBase
 
-	tag := fmt.Sprintf("%s-%s", c.cfg.Name, time.Now().Format("20060102-150405")+"-"+generateRand(4))
+	tag := fmt.Sprintf("%s-%s", c.cfg.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
 
 	if !strings.Contains(imageNameBase, ":") {
 		imageNameBase += ":" + tag
@@ -203,7 +157,7 @@ func (c *DockerClient) GenerateImageTag(imageBase string) string {
 	return imageNameBase
 }
 
-func generateRand(n int) string {
+func GenerateRand(n int) string {
 	token := make([]byte, n)
 	rand.Read(token)
 	return fmt.Sprintf("%x", token)

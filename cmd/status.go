@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -14,15 +15,29 @@ var statusCmd = &cobra.Command{
 	Short: "Show application status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		file, _ := cmd.Flags().GetString("file")
+		output, _ := cmd.Flags().GetString("output")
 
 		// Example scaffolded status data
 		status := appStatus{
-			File:        file,
-			Pods:        3,
-			CPUUsage:    "210m",
-			MemUsage:    "380Mi",
-			AvgLatency:  "87ms",
-			ExternalURL: "https://your-app.loco.run",
+			File:         file,
+			AppName:      "my-app",
+			Environment:  "production",
+			Status:       "Running",
+			Pods:         3,
+			CPUUsage:     "210m",
+			MemUsage:     "380Mi",
+			AvgLatency:   "87ms",
+			ExternalURL:  "https://your-app.loco.run",
+			DeployedAt:   "2025-06-29 13:00 EST",
+			DeployedBy:   "nikhil@company.com",
+			TLSStatus:    "Secured (Expires: 2025-09-01)",
+			HealthStatus: "Passing",
+			Autoscaling:  "Enabled (Min: 1, Max: 5)",
+			Replicas:     "2 desired / 2 ready",
+		}
+
+		if output == "json" {
+			return printJSON(status)
 		}
 
 		p := tea.NewProgram(newStatusModel(status))
@@ -36,17 +51,33 @@ var statusCmd = &cobra.Command{
 
 func init() {
 	statusCmd.Flags().StringP("file", "f", "", "Load configuration from FILE")
+	statusCmd.Flags().StringP("output", "o", "ux", "Output format: ux | json")
 }
 
 // --- Data Model ---
 
 type appStatus struct {
-	File        string
-	Pods        int
-	CPUUsage    string
-	MemUsage    string
-	AvgLatency  string
-	ExternalURL string
+	File         string `json:"file"`
+	AppName      string `json:"appName"`
+	Environment  string `json:"environment"`
+	Status       string `json:"status"`
+	Pods         int    `json:"pods"`
+	CPUUsage     string `json:"cpuUsage"`
+	MemUsage     string `json:"memUsage"`
+	AvgLatency   string `json:"avgLatency"`
+	ExternalURL  string `json:"externalUrl"`
+	DeployedAt   string `json:"deployedAt"`
+	DeployedBy   string `json:"deployedBy"`
+	TLSStatus    string `json:"tlsStatus"`
+	HealthStatus string `json:"healthStatus"`
+	Autoscaling  string `json:"autoscaling"`
+	Replicas     string `json:"replicas"`
+}
+
+func printJSON(status appStatus) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(status)
 }
 
 // --- TUI Model ---
@@ -82,7 +113,7 @@ func (m statusModel) View() string {
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#AAAAAA")).
-		Width(14)
+		Width(18)
 
 	valueStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFFFFF")).
@@ -95,12 +126,21 @@ func (m statusModel) View() string {
 		Margin(1, 2)
 
 	content := fmt.Sprintf(
-		"%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		"%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		labelStyle.Render("App:"), valueStyle.Render(m.status.AppName),
+		labelStyle.Render("Environment:"), valueStyle.Render(m.status.Environment),
+		labelStyle.Render("Status:"), valueStyle.Render(m.status.Status),
 		labelStyle.Render("Pods:"), valueStyle.Render(fmt.Sprintf("%d", m.status.Pods)),
 		labelStyle.Render("CPU Usage:"), valueStyle.Render(m.status.CPUUsage),
 		labelStyle.Render("Memory:"), valueStyle.Render(m.status.MemUsage),
 		labelStyle.Render("Latency:"), valueStyle.Render(m.status.AvgLatency),
 		labelStyle.Render("URL:"), valueStyle.Render(m.status.ExternalURL),
+		labelStyle.Render("Deployed At:"), valueStyle.Render(m.status.DeployedAt),
+		labelStyle.Render("Deployed By:"), valueStyle.Render(m.status.DeployedBy),
+		labelStyle.Render("TLS:"), valueStyle.Render(m.status.TLSStatus),
+		labelStyle.Render("Health:"), valueStyle.Render(m.status.HealthStatus),
+		labelStyle.Render("Autoscaling:"), valueStyle.Render(m.status.Autoscaling),
+		labelStyle.Render("Replicas:"), valueStyle.Render(m.status.Replicas),
 	)
 
 	return titleStyle.Render("Application Status") + "\n" +

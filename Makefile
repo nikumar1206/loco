@@ -19,6 +19,8 @@ all: test build
 build: ## Build the application
 	$(GOBUILD) -o $(BINARY_NAME) -v
 
+vet:
+	@$(GOCMD) vet ./...
 test: clean ## Run tests
 	$(GOTEST) -v -coverprofile=c.out
 

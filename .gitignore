@@ -43,3 +43,7 @@ settings.json
 
 
 *.log
+archive/**
+
+
+.DS_Store

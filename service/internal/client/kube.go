@@ -1,13 +1,19 @@
 package client
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"path/filepath"
+	"strings"
+	"time"
+
+	json "github.com/goccy/go-json"
 
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -32,6 +38,18 @@ var (
 type KubernetesClient struct {
 	ClientSet  *kubernetes.Clientset
 	GatewaySet gatewayCs.Interface
+}
+
+type PodLogLine struct {
+	Timestamp time.Time `json:"timestamp"`
+	PodName   string    `json:"podId"`
+	Log       string    `json:"log"`
+}
+type DockerRegistryConfig struct {
+	Server   string
+	Username string
+	Password string
+	Email    string
 }
 
 // NewKubernetesClient initializes a new Kubernetes client based on the application environment.
@@ -111,7 +129,7 @@ func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace s
 }
 
 // CreateDeployment creates a Deployment if it doesn't exist.
-func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp) (*appsV1.Deployment, error) {
+func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp, containerImage string) (*appsV1.Deployment, error) {
 	slog.Info("Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
 	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
 	if err != nil {
@@ -155,17 +173,21 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 				},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyAlways,
-					// todo eventually replace with actual container image
+					ImagePullSecrets: []v1.LocalObjectReference{
+						{
+							Name: fmt.Sprintf("%s-registry-credentials", locoApp.Name),
+						},
+					},
 					Containers: []v1.Container{
 						{
-							Name:    locoApp.Name,
-							Image:   "alpine",
-							Command: []string{"printenv"},
+							Name:  locoApp.Name,
+							Image: containerImage,
 							Ports: []v1.ContainerPort{
 								{
 									ContainerPort: int32(locoApp.Config.Port),
 								},
 							},
+
 							Env: createKubeEnvVars(locoApp.EnvVars),
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
@@ -298,6 +320,45 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *LocoAp
 	return kc.GatewaySet.GatewayV1().HTTPRoutes(route.Namespace).Create(ctx, route, metaV1.CreateOptions{})
 }
 
+func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *LocoApp, registry DockerRegistryConfig) error {
+	auth := map[string]any{
+		"auths": map[string]any{
+			registry.Server: map[string]string{
+				"username": registry.Username,
+				"password": registry.Password,
+				"email":    registry.Email,
+				"auth":     base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", registry.Username, registry.Password))),
+			},
+		},
+	}
+
+	dockerConfigJSON, err := json.Marshal(auth)
+	if err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	secretName := fmt.Sprintf("%s-registry-credentials", locoApp.Name)
+	secret := &v1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      secretName,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+		Type: v1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			".dockerconfigjson": dockerConfigJSON,
+		},
+	}
+
+	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Create(c, secret, metaV1.CreateOptions{})
+	if err != nil {
+		slog.Error(err.Error())
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
 // GetPods retrieves a list of pod names in the specified namespace.
 func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
 	slog.Debug("Fetching pods", "namespace", namespace)
@@ -314,6 +375,76 @@ func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
 
 	slog.Info("Retrieved pods", "namespace", namespace, "count", len(podNames))
 	return podNames, nil
+}
+
+// GetPods retrieves a list of pod names in the specified namespace.
+func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName string, tailLines *int64) ([]PodLogLine, error) {
+	podLogOpts := &v1.PodLogOptions{}
+	if tailLines != nil {
+		podLogOpts.TailLines = tailLines
+	}
+
+	req := kc.ClientSet.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
+
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error streaming logs for pod %s: %v", podName, err)
+	}
+	defer podLogs.Close()
+
+	var logs []PodLogLine
+	scanner := bufio.NewScanner(podLogs)
+	for scanner.Scan() {
+		logs = append(logs, PodLogLine{
+			Timestamp: time.Now(),
+			PodName:   podName,
+			Log:       scanner.Text(),
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading logs for pod %s: %v", podName, err)
+	}
+
+	return logs, nil
+}
+
+func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, serviceName string, tailLines *int64) ([]PodLogLine, error) {
+	svc, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %v", err)
+	}
+
+	selector := svc.Spec.Selector
+	if len(selector) == 0 {
+		return nil, fmt.Errorf("service has no selector")
+	}
+
+	var selectorParts []string
+	for key, value := range selector {
+		selectorParts = append(selectorParts, fmt.Sprintf("%s=%s", key, value))
+	}
+	selectorString := strings.Join(selectorParts, ",")
+
+	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{
+		LabelSelector: selectorString,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods: %v", err)
+	}
+
+	var allLogs []PodLogLine
+	for _, pod := range pods.Items {
+		podLogs, err := kc.GetPodLogs(ctx, namespace, pod.Name, tailLines)
+		fmt.Println("what are pod logs", podLogs)
+		if err != nil {
+			log.Printf("error getting logs for pod %s: %v", pod.Name, err)
+			continue
+		}
+		allLogs = append(allLogs, podLogs...)
+	}
+
+	return allLogs, nil
 }
 
 func buildConfig(appEnv string) *rest.Config {

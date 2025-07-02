@@ -24,8 +24,8 @@ spec:
                 - name: loco-api
                   image: ghcr.io/nikumar1206/loco:main
                   envFrom:
-                    - secretRef:
-                        name: env-config
+                      - secretRef:
+                            name: env-config
                   ports:
                       - containerPort: 8000
                   resources:
@@ -55,7 +55,3 @@ spec:
           protocol: TCP
           port: 80
           targetPort: 8000
-          
-          # If you set the `spec.type` field to `NodePort` and you want a specific port number,
-          # you can specify a value in the `spec.ports[*].nodePort` field.
-          # nodePort:

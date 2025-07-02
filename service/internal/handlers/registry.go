@@ -30,25 +30,22 @@ func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		projectId := appConfig.ProjectID
 		tokenName := appConfig.DeployTokenName
-		expiresInMin := 5
-		expiry := time.Now().Add(time.Duration(expiresInMin) * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+
+		expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 
 		payload := map[string]any{
 			"name":       tokenName,
-			"scopes":     []string{"write_registry"},
+			"scopes":     []string{"write_registry", "read_registry"},
 			"expires_at": expiry,
 		}
 
-		// Call GitLab API
-
-		gitlabResp, err := client.NewClient(appConfig.RegistryURL).GetDeployToken(c, appConfig.GitlabPAT, projectId, payload)
+		gitlabResp, err := client.NewClient(appConfig.GitlabURL).GetDeployToken(c, appConfig.GitlabPAT, projectId, payload)
 		if err != nil {
 			return utils.SendErrorResponse(
 				c, fiber.StatusInternalServerError, err.Error(),
 			)
 		}
 
-		// Compose response
 		res := DeployTokenResponse{
 			Username:  gitlabResp.Username,
 			Password:  gitlabResp.Token,

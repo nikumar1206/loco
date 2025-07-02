@@ -3,8 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
@@ -58,30 +56,35 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	}
 	defer dockerCli.Close()
 
-	// TODO: looks wrong
-	appEnv := os.Getenv("APP_ENV")
-	host := ""
-	if appEnv == "LOCAL" {
+	isDev, err := cmd.Flags().GetBool("dev")
+	if err != nil {
+		return fmt.Errorf("error reading dev flag: %w", err)
+	}
+
+	var host string
+	if isDev {
 		host = "http://localhost:8000"
 	} else {
-		host = "https://api.deploy-app.com"
+		host = "https://loco.deploy-app.com"
 	}
 
 	apiClient := api.NewClient(host)
 
 	cfgValid := lipgloss.NewStyle().
-		Bold(true).
 		Foreground(lipgloss.Color("#00CC66")).
 		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
 
 	fmt.Print(cfgValid)
+	locoToken, err := apiClient.Login()
+	if err != nil {
+		return err
+	}
 
 	steps := []ui.Step{
 		{
 			Title: "Fetch deploy token",
 			Run: func(logf func(string)) error {
-				time.Sleep(5 * time.Second)
-				tokenResponse, err = apiClient.GetDeployToken()
+				tokenResponse, err = apiClient.GetDeployToken(locoToken)
 				dockerCli.GenerateImageTag(tokenResponse.Image)
 				if err != nil {
 					return err
@@ -92,7 +95,6 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 		{
 			Title: "Build Docker image",
 			Run: func(logf func(string)) error {
-				// todo: have this function output logs to the progress bar
 				if err := dockerCli.BuildImage(context.Background(), logf); err != nil {
 					return err
 				}
@@ -102,18 +104,16 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 		{
 			Title: "Push image to registry",
 			Run: func(logf func(string)) error {
-				// todo: comment this back in
+				if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Username, tokenResponse.Password); err != nil {
+					return fmt.Errorf("failed to push Docker image: %w", err)
+				}
 				return nil
-				// if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Username, tokenResponse.Password); err != nil {
-				// 	return fmt.Errorf("failed to push Docker image: %w", err)
-				// }
-				// return nil
 			},
 		},
 		{
 			Title: "Create Kubernetes deployment",
 			Run: func(logf func(string)) error {
-				return apiClient.DeployApp(cfg, dockerCli.ImageName, logf)
+				return apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken, logf)
 			},
 		},
 	}

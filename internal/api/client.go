@@ -1,11 +1,12 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	json "github.com/goccy/go-json"
 )
 
 type Client struct {
