@@ -29,7 +29,7 @@ go install github.com/nikumar1206/loco@latest
 
 3. **Deploy your app via `loco deploy`**
 
-Your app will be available at `https://myapp.loco.dev`
+Your app will be available at `https://myapp.deploy-app.com`
 
 See all loco cli commands via `loco help`.
 Loco also generates completions for shells such as bash and zshrc.
