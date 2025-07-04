@@ -13,6 +13,10 @@ Loco is a container orchestration platform that simplifies application deploymen
 - **Fast Request Proxy** - Simple, sensible, and scalable infra. Network requests to Loco Applications go through an NLB (on Digital Ocean), followed by an ALB (Envoy Gateway via the Kubernetes Gateway API).
 - **Simple Configuration** - Easy setup via `loco.toml`. A sample spec can be generated via `loco init`
 
+## Architecture Diagram
+
+![Architecture Diagram](./arch-light.png)
+
 ## Quick Start
 
 1.  **Download the loco cli**
