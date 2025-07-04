@@ -17,7 +17,6 @@ var statusCmd = &cobra.Command{
 		file, _ := cmd.Flags().GetString("file")
 		output, _ := cmd.Flags().GetString("output")
 
-		// Example scaffolded status data
 		status := appStatus{
 			File:         file,
 			AppName:      "my-app",

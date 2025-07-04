@@ -39,14 +39,38 @@ type AuthTokenResponse struct {
 }
 
 type TokenDetails struct {
-	ClientId string `json:"clientId"`
-	TokenTTL int    `json:"tokenTTL"`
+	ClientId string  `json:"clientId"`
+	TokenTTL float64 `json:"tokenTTL"`
 }
 
 var testCmd = &cobra.Command{
-	Use:   "test",
-	Short: "Initialize a new Loco project",
+	Use:   "login",
+	Short: "Login to loco via Github OAuth",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		user, err := user.Current()
+		if err != nil {
+			return err
+		}
+
+		t, err := keychain.GetGithubToken(user.Name)
+		if err != nil {
+			return err
+		}
+
+		if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
+			locoGreen := lipgloss.Color("#10B981")
+			locoGray := lipgloss.Color("#9CA3AF")
+
+			checkmark := lipgloss.NewStyle().Foreground(locoGreen).Render("✔")
+			message := lipgloss.NewStyle().Foreground(orange).Render("Already logged in!")
+			subtext := lipgloss.NewStyle().
+				Foreground(locoGray).
+				Render("You can continue using loco")
+
+			fmt.Printf("%s %s\n%s\n", checkmark, message, subtext)
+			return nil
+		}
+
 		c := api.NewClient("https://github.com")
 
 		isDev, err := cmd.Flags().GetBool("dev")
@@ -116,16 +140,10 @@ var testCmd = &cobra.Command{
 			return finalM.err
 		}
 		if finalM.tokenResp != nil {
-
-			user, err := user.Current()
-			if err != nil {
-				return err
-			}
-
 			keychain.SetGithubToken(user.Name, keychain.UserToken{
 				Token: finalM.tokenResp.AccessToken,
 				// subtract 10 mins?
-				ExpiresAt: time.Now().Add(time.Duration(tokenDetails.TokenTTL) - (10 * time.Minute)),
+				ExpiresAt: time.Now().Add(time.Duration(tokenDetails.TokenTTL)*time.Second - (10 * time.Minute)),
 			})
 		}
 
@@ -179,7 +197,6 @@ func pollAuthToken(c *api.Client, clientId string, deviceCode string, interval i
 }
 
 var (
-	// Southern Pacific 4449 inspired colors
 	orange   = lipgloss.Color("#FF6F00")
 	softGray = lipgloss.Color("#B0BEC5")
 	black    = lipgloss.Color("#212121")

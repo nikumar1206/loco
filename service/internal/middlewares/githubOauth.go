@@ -43,22 +43,23 @@ func GithubTokenValidator() fiber.Handler {
 		}
 		client := resty.New()
 		user := new(User)
-
 		resp, err := client.R().
 			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
 			SetHeader("Accept", "application/vnd.github+json").
 			SetResult(&user).
 			Get("https://api.github.com/user")
 		if err != nil {
+			slog.Error(err.Error())
 			return err
 		}
 
 		if resp.IsError() {
 			slog.Error(resp.String())
-			return utils.SendErrorResponse(c, http.StatusUnauthorized, "Not Authorized")
+			return utils.SendErrorResponse(c, http.StatusUnauthorized, "Could not confirm identity")
 		}
 
 		TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
+		c.Locals("user", user.Login)
 		return c.Next()
 	}
 }

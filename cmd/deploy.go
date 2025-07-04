@@ -3,11 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os/user"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/docker"
+	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -70,21 +73,31 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 
 	apiClient := api.NewClient(host)
 
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	locoToken, err := keychain.GetGithubToken(usr.Name)
+	if err != nil {
+		return err
+	}
+
+	if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
+		return fmt.Errorf("token is expired or about to expire soon. Please re-login via `loco deploy`")
+	}
+
 	cfgValid := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#00CC66")).
 		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
 
 	fmt.Print(cfgValid)
-	locoToken, err := apiClient.Login()
-	if err != nil {
-		return err
-	}
 
 	steps := []ui.Step{
 		{
 			Title: "Fetch deploy token",
 			Run: func(logf func(string)) error {
-				tokenResponse, err = apiClient.GetDeployToken(locoToken)
+				tokenResponse, err = apiClient.GetDeployToken(locoToken.Token)
 				dockerCli.GenerateImageTag(tokenResponse.Image)
 				if err != nil {
 					return err
@@ -113,7 +126,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 		{
 			Title: "Create Kubernetes deployment",
 			Run: func(logf func(string)) error {
-				return apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken, logf)
+				return apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken.Token, logf)
 			},
 		},
 	}
