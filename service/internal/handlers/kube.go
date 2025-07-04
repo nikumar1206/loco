@@ -55,10 +55,59 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		user, _ := c.Locals("user").(string)
 
 		app := client.NewLocoApp(request.LocoConfig.Name, request.LocoConfig.Subdomain, user, request.ContainerImage, request.EnvVars, request.LocoConfig)
-		slog.Info("Creating new loco app", "appName", app.Name, "namespace", app.Namespace)
-
-		_, err := kc.CreateNS(c.Context(), app)
+		// we need to check if this service exists.
+		exists, err := kc.CheckServiceExists(c.Context(), app.Namespace, app.Name)
 		if err != nil {
+			slog.Error(err.Error())
+			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to check if service already exists.")
+		}
+
+		if exists {
+			slog.InfoContext(c.Context(), "service exists, we will update in-place")
+			expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+
+			payload := map[string]any{
+				"name":       ac.DeployTokenName,
+				"scopes":     []string{"read_registry"},
+				"expires_at": expiry,
+			}
+			gitlabResp, err := client.NewClient(ac.GitlabURL).GetDeployToken(c, ac.GitlabPAT, ac.ProjectID, payload)
+			if err != nil {
+				slog.Error(err.Error())
+				return utils.SendErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+			}
+
+			registry := client.DockerRegistryConfig{
+				Server:   ac.RegistryURL,
+				Username: gitlabResp.Username,
+				Password: gitlabResp.Token,
+				Email:    "couldbeanything@gmail.com",
+			}
+
+			err = kc.UpdateDockerPullSecret(
+				c.Context(),
+				app,
+				registry,
+			)
+			if err != nil {
+				slog.Error(err.Error())
+				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to contact container registry")
+			}
+
+			err = kc.UpdateContainerImage(c.Context(), app)
+			if err != nil {
+				slog.Error(err.Error())
+				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to update Docker image of service")
+			}
+
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"message": "App updated successfully",
+			})
+		}
+
+		_, err = kc.CreateNS(c.Context(), app)
+		if err != nil {
+			slog.Error(err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create namespace")
 		}
 

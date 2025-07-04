@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: loco-api-2
-    namespace: loco-setup
+    namespace: loco-system
     labels:
         app: loco-api-2
 spec:
@@ -61,7 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
     name: loco-api-2
-    namespace: loco-setup
+    namespace: loco-system
 spec:
     selector:
         app: loco-api-2

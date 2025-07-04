@@ -32,7 +32,7 @@ var ErrDeploymentNotFound = errors.New("deployment Not Found")
 // constants
 var (
 	LocoGatewayName = "eg"
-	LocoSetupNS     = "loco-setup"
+	LocoNS          = "loco-system"
 )
 
 type KubernetesClient struct {
@@ -286,7 +286,7 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *LocoAp
 				ParentRefs: []v1Gateway.ParentReference{
 					{
 						Name:      v1Gateway.ObjectName(LocoGatewayName),
-						Namespace: ptrToNamespace(LocoSetupNS),
+						Namespace: ptrToNamespace(LocoNS),
 					},
 				},
 			},
@@ -355,6 +355,45 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *L
 	if err != nil {
 		slog.Error(err.Error())
 		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
+func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *LocoApp, registry DockerRegistryConfig) error {
+	auth := map[string]any{
+		"auths": map[string]any{
+			registry.Server: map[string]string{
+				"username": registry.Username,
+				"password": registry.Password,
+				"email":    registry.Email,
+				"auth":     base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", registry.Username, registry.Password))),
+			},
+		},
+	}
+
+	dockerConfigJSON, err := json.Marshal(auth)
+	if err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	secretName := fmt.Sprintf("%s-registry-credentials", locoApp.Name)
+	secret := &v1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      secretName,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+		Type: v1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			".dockerconfigjson": dockerConfigJSON,
+		},
+	}
+
+	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(c, secret, metaV1.UpdateOptions{})
+	if err != nil {
+		slog.Error(err.Error())
+		return fmt.Errorf("failed to update secret: %w", err)
 	}
 	return nil
 }
@@ -445,6 +484,28 @@ func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, servi
 	}
 
 	return allLogs, nil
+}
+
+func (kc *KubernetesClient) UpdateContainerImage(ctx context.Context, locoApp *LocoApp) error {
+	deploymentsClient := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace)
+
+	deployment, err := deploymentsClient.Get(context.TODO(), locoApp.Name, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
+		return fmt.Errorf("deployment has no containers")
+	}
+
+	deployment.Spec.Template.Spec.Containers[0].Image = locoApp.ContainerImage
+
+	_, err = deploymentsClient.Update(context.TODO(), deployment, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update deployment: %v", err)
+	}
+
+	return nil
 }
 
 func buildConfig(appEnv string) *rest.Config {

@@ -43,14 +43,15 @@ type LocoApp struct {
 func NewLocoApp(name, subdomain, createdBy string, containerImage string, envVars []EnvVar, config LocoConfig) *LocoApp {
 	ns := GenerateNameSpace(name, createdBy)
 	return &LocoApp{
-		Name:      name,
-		Namespace: ns,
-		Subdomain: subdomain,
-		CreatedBy: createdBy,
-		CreatedAt: time.Now(),
-		Labels:    GenerateLabels(name, ns, createdBy),
-		EnvVars:   envVars,
-		Config:    config,
+		Name:           name,
+		Namespace:      ns,
+		Subdomain:      subdomain,
+		CreatedBy:      createdBy,
+		CreatedAt:      time.Now(),
+		Labels:         GenerateLabels(name, ns, createdBy),
+		EnvVars:        envVars,
+		Config:         config,
+		ContainerImage: containerImage,
 	}
 }
 

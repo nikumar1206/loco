@@ -53,22 +53,20 @@ var testCmd = &cobra.Command{
 		}
 
 		t, err := keychain.GetGithubToken(user.Name)
-		if err != nil {
-			return err
-		}
+		if err == nil {
+			if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
+				locoGreen := lipgloss.Color("#10B981")
+				locoGray := lipgloss.Color("#9CA3AF")
 
-		if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
-			locoGreen := lipgloss.Color("#10B981")
-			locoGray := lipgloss.Color("#9CA3AF")
+				checkmark := lipgloss.NewStyle().Foreground(locoGreen).Render("✔")
+				message := lipgloss.NewStyle().Foreground(orange).Render("Already logged in!")
+				subtext := lipgloss.NewStyle().
+					Foreground(locoGray).
+					Render("You can continue using loco")
 
-			checkmark := lipgloss.NewStyle().Foreground(locoGreen).Render("✔")
-			message := lipgloss.NewStyle().Foreground(orange).Render("Already logged in!")
-			subtext := lipgloss.NewStyle().
-				Foreground(locoGray).
-				Render("You can continue using loco")
-
-			fmt.Printf("%s %s\n%s\n", checkmark, message, subtext)
-			return nil
+				fmt.Printf("%s %s\n%s\n", checkmark, message, subtext)
+				return nil
+			}
 		}
 
 		c := api.NewClient("https://github.com")
