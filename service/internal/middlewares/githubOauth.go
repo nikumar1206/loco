@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/models"
 	"github.com/nikumar1206/loco/service/internal/utils"
 	"github.com/patrickmn/go-cache"
-	"resty.dev/v3"
 )
 
 // cache valid tokens. This cache is actually written to inside the oauth handlers, but read in the middleware
@@ -41,9 +41,10 @@ func GithubTokenValidator() fiber.Handler {
 			c.Locals("user", cachedUser.(string))
 			return c.Next()
 		}
-		client := resty.New()
+
 		user := new(User)
-		resp, err := client.R().
+
+		resp, err := client.Resty.R().
 			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
 			SetHeader("Accept", "application/vnd.github+json").
 			SetResult(&user).

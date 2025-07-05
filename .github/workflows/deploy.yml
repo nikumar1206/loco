@@ -107,6 +107,9 @@ jobs:
                     --from-literal=GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }} \
                     --from-literal=GITLAB_TOKEN_NAME=${{ secrets.GITLAB_TOKEN_NAME }} \
                     --from-literal=GH_OAUTH_CLIENT_ID=${{ secrets.GH_OAUTH_CLIENT_ID }} \
+                    --from-literal=GITLAB_URL=${{ secrets.GITLAB_URL }} \
+                    --from-literal=GITLAB_REGISTRY_URL=${{ secrets.GITLAB_REGISTRY_URL }} \
+                    --from-literal=GITLAB_DEPLOY_TOKEN_NAME=${{ secrets.GITLAB_DEPLOY_TOKEN_NAME }} \
                     --from-literal=APP_ENV=${{ secrets.APP_ENV }} \
                     --from-literal=LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
                     --from-literal=PORT=${{ secrets.PORT }} \
