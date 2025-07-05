@@ -1,7 +1,7 @@
 CPU = "100m"
 DockerfilePath = "Dockerfile"
 EnvFile = ".env"
-Memory = "512Mi"
+Memory = "100Mi"
 Name = "myapp"
 Port = 8000
 ProjectPath = "."

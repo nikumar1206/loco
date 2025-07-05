@@ -57,7 +57,7 @@ var Default = LocoConfig{
 	EnvFile:        ".env",
 	ProjectPath:    ".",
 	CPU:            "100m",
-	Memory:         "512Mi",
+	Memory:         "100Mi",
 	Replicas: Replicas{
 		Min: 1,
 		Max: 1,

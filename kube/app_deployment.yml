@@ -31,10 +31,10 @@ spec:
                   resources:
                       requests:
                           cpu: 100m
-                          memory: 512Mi
+                          memory: 100Mi
                       limits:
                           cpu: 100m
-                          memory: 512Mi
+                          memory: 100Mi
             restartPolicy: Always
 ---
 apiVersion: v1
