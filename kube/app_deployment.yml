@@ -20,6 +20,7 @@ spec:
             labels:
                 app: loco-api
         spec:
+            serviceAccountName: loco-api
             containers:
                 - name: loco-api
                   image: ghcr.io/nikumar1206/loco:main
