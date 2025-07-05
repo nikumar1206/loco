@@ -70,20 +70,20 @@ jobs:
               id: install
             
             # can comment back in if needed, but no reason to re-apply CRDs
-            - name: Apply app manifests
-              run: |
-                  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
-                  kubectl apply -f ./kube/crds/cert_manager_install.yaml || true
-                  kubectl apply -f ./kube/crds/envoy_install.yaml || true
+            # - name: Apply app manifests
+            #   run: |
+            #       kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml || true
+            #       kubectl apply -f ./kube/crds/cert_manager_install.yaml || true
+            #       kubectl apply -f ./kube/crds/envoy_install.yaml || true
 
             # can comment back if needed, but no reason to re-apply one time resources
-            - name: Apply base resources
-              run: |
-                  kubectl apply -f ./kube/namespace.yml
-                  kubectl apply -f ./kube/gateway.yml
-                  kubectl apply -f ./kube/loco_route.yml
-                  kubectl apply -f ./kube/cert_manager.yml
-                  kubectl apply -f ./kube/certificate.yml
+            # - name: Apply base resources
+            #   run: |
+            #       kubectl apply -f ./kube/namespace.yml
+            #       kubectl apply -f ./kube/gateway.yml
+            #       kubectl apply -f ./kube/loco_route.yml
+            #       kubectl apply -f ./kube/cert_manager.yml
+            #       kubectl apply -f ./kube/certificate.yml
 
             # can comment back in if needed
             # - name: Enable Observability
@@ -106,6 +106,7 @@ jobs:
                     --from-literal=GITLAB_PAT=${{ secrets.GITLAB_PAT }} \
                     --from-literal=GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }} \
                     --from-literal=GITLAB_TOKEN_NAME=${{ secrets.GITLAB_TOKEN_NAME }} \
+                    --from-literal=GH_OAUTH_CLIENT_ID=${{ secrets.GH_OAUTH_CLIENT_ID }} \
                     --from-literal=APP_ENV=${{ secrets.APP_ENV }} \
                     --from-literal=LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
                     --from-literal=PORT=${{ secrets.PORT }} \

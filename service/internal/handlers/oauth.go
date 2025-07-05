@@ -5,7 +5,7 @@ import (
 	"github.com/nikumar1206/loco/service/internal/models"
 )
 
-// BuildOauthRouter houses APIs for interacting with OAuth services. Currently github, but potentially google as well
+// BuildOauthRouter houses APIs for interacting with OAuth services. currently github, but can be google one day
 func BuildOauthRouter(app *fiber.App, appConfig *models.AppConfig) {
 	githubOAuthGroup := app.Group("/api/v1/oauth/github")
 
