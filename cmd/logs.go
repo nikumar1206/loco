@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -62,12 +63,12 @@ var logsCmd = &cobra.Command{
 		s := table.DefaultStyles()
 		s.Header = s.Header.
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("240")).
+			BorderForeground(ui.LocoMuted).
 			BorderBottom(true).
 			Bold(false)
 		s.Selected = s.Selected.
-			Foreground(lipgloss.Color("229")).
-			Background(lipgloss.Color("57")).
+			Foreground(ui.LocoWhite).
+			Background(ui.LocoGreen).
 			Bold(false)
 		t.SetStyles(s)
 
@@ -79,7 +80,7 @@ var logsCmd = &cobra.Command{
 
 		m := logModel{
 			table:     t,
-			baseStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")),
+			baseStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(ui.LocoGreyish),
 			logs:      []table.Row{},
 			logsChan:  logsChan,
 			errChan:   errChan,

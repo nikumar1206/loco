@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/keychain"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -55,13 +56,11 @@ var testCmd = &cobra.Command{
 		t, err := keychain.GetGithubToken(user.Name)
 		if err == nil {
 			if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
-				locoGreen := lipgloss.Color("#10B981")
-				locoGray := lipgloss.Color("#9CA3AF")
 
-				checkmark := lipgloss.NewStyle().Foreground(locoGreen).Render("✔")
-				message := lipgloss.NewStyle().Foreground(orange).Render("Already logged in!")
+				checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
+				message := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Already logged in!")
 				subtext := lipgloss.NewStyle().
-					Foreground(locoGray).
+					Foreground(ui.LocoLightGray).
 					Render("You can continue using loco")
 
 				fmt.Printf("%s %s\n%s\n", checkmark, message, subtext)
@@ -194,14 +193,6 @@ func pollAuthToken(c *api.Client, clientId string, deviceCode string, interval i
 	return nil
 }
 
-var (
-	orange   = lipgloss.Color("#FF6F00")
-	softGray = lipgloss.Color("#B0BEC5")
-	black    = lipgloss.Color("#212121")
-	white    = lipgloss.Color("#FFFFFF")
-	red      = lipgloss.Color("#F44336")
-)
-
 type (
 	tickMsg        time.Time
 	authSuccessMsg struct {
@@ -296,18 +287,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	if m.done {
 		if m.err != nil {
-			errorStyle := lipgloss.NewStyle().Foreground(red).Bold(true)
+			errorStyle := lipgloss.NewStyle().Foreground(ui.LocoRed).Bold(true)
 			return fmt.Sprintf("%s\n%s\n",
 				errorStyle.Render("Authentication failed:"),
-				lipgloss.NewStyle().Foreground(softGray).Render(m.err.Error()))
+				lipgloss.NewStyle().Foreground(ui.LocoDarkGray).Render(m.err.Error()))
 		}
-		return lipgloss.NewStyle().Foreground(orange).Bold(true).Render("✓ Authentication successful!") + "\n"
+		return lipgloss.NewStyle().Foreground(ui.LocoOrange).Bold(true).Render("✓ Authentication successful!") + "\n"
 	}
 
-	codeStyle := lipgloss.NewStyle().Foreground(orange).Bold(true).Padding(0, 0)
-	urlStyle := lipgloss.NewStyle().Foreground(orange).Underline(true)
-	instructionStyle := lipgloss.NewStyle().Foreground(softGray)
-	spinnerStyle := lipgloss.NewStyle().Foreground(orange).Bold(true)
+	codeStyle := lipgloss.NewStyle().Foreground(ui.LocoOrange).Bold(true).Padding(0, 0)
+	urlStyle := lipgloss.NewStyle().Foreground(ui.LocoOrange).Underline(true)
+	instructionStyle := lipgloss.NewStyle().Foreground(ui.LocoLightGray)
+	spinnerStyle := lipgloss.NewStyle().Foreground(ui.LocoOrange).Bold(true)
 
 	spinner := ""
 	if len(m.loadingFrames) > 0 {
@@ -322,6 +313,6 @@ func (m model) View() string {
 		codeStyle.Render(m.userCode),
 		spinner,
 		instructionStyle.Render("Waiting for authentication..."),
-		lipgloss.NewStyle().Foreground(softGray).Faint(true).Render("Press 'q' or Ctrl+C to quit"),
+		lipgloss.NewStyle().Foreground(ui.LocoLightGray).Faint(true).Render("Press 'q' or Ctrl+C to quit"),
 	)
 }

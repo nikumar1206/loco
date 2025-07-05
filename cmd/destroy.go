@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -15,9 +16,9 @@ var destroyCmd = &cobra.Command{
 		yes, _ := cmd.Flags().GetBool("yes")
 
 		// Lipgloss styles
-		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF5F5F"))
-		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
-		valueStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00D7AF"))
+		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoRed)
+		labelStyle := lipgloss.NewStyle().Foreground(ui.LocoOrange)
+		valueStyle := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoLightGreen)
 
 		fmt.Println(titleStyle.Render("🔥 Destroy Command Called"))
 		// fmt.Println(labelStyle.Render("File: ") + valueStyle.Render(file))

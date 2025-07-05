@@ -88,7 +88,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	cfgValid := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00CC66")).
+		Foreground(ui.LocoLightGreen).
 		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
 
 	fmt.Print(cfgValid)
@@ -136,7 +136,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 
 	s := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#00CC66")).
+		Foreground(ui.LocoLightGreen).
 		Render("\n🎉 Deployment complete!") + "\n"
 
 	fmt.Print(s)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("failed to create loco.toml: %w", err)
 		}
 
-		style := lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Bold(true)
+		style := lipgloss.NewStyle().Foreground(ui.LocoLightGreen).Bold(true)
 		cmd.Printf("Created a %s in the working directory.\n", style.Render("`loco.toml`"))
 		return nil
 	},

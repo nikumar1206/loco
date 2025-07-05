@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -106,21 +107,21 @@ func (m statusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m statusModel) View() string {
 	titleStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00FFD2")).
+		Foreground(ui.LocoCyan).
 		Bold(true).
 		MarginBottom(1)
 
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#AAAAAA")).
+		Foreground(ui.LocoDimGrey).
 		Width(18)
 
 	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFFFFF")).
+		Foreground(ui.LocoWhite).
 		Bold(true)
 
 	blockStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#F57900")).
+		BorderForeground(ui.LocoOrange).
 		Padding(1, 2).
 		Margin(1, 2)
 
