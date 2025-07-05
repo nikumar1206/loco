@@ -34,7 +34,7 @@ func LocoColorScheme() fang.ColorSchemeFunc {
 				ldf(ui.LocoWhite, ui.LocoWhite),
 				ldf(ui.LocoRed, ui.LocoRed),
 			},
-			ErrorDetails: ldf(ui.LocoRed, ui.LocoOrange), // Red / Orange
+			ErrorDetails: ldf(ui.LocoRed, ui.LocoOrange),
 		}
 	}
 }

@@ -17,11 +17,13 @@ import (
 
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacV1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
 	"k8s.io/client-go/util/homedir"
 	v1Gateway "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayCs "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
@@ -130,7 +132,7 @@ func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace s
 }
 
 // CreateDeployment creates a Deployment if it doesn't exist.
-func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp, containerImage string) (*appsV1.Deployment, error) {
+func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp, containerImage string, secrets *v1.Secret) (*appsV1.Deployment, error) {
 	slog.InfoContext(ctx, "Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
 	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
 	if err != nil {
@@ -179,6 +181,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 							Name: fmt.Sprintf("%s-registry-credentials", locoApp.Name),
 						},
 					},
+					ServiceAccountName: locoApp.Name,
 					Containers: []v1.Container{
 						{
 							Name:  locoApp.Name,
@@ -189,7 +192,15 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 								},
 							},
 
-							Env: createKubeEnvVars(locoApp.EnvVars),
+							EnvFrom: []v1.EnvFromSource{
+								{
+									SecretRef: &v1.SecretEnvSource{
+										LocalObjectReference: v1.LocalObjectReference{
+											Name: secrets.Name,
+										},
+									},
+								},
+							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
 									v1.ResourceCPU:    resourceMustParse(locoApp.Config.CPU),
@@ -269,6 +280,44 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp)
 
 	slog.InfoContext(ctx, "Service created", "service", result.Name)
 	return result, nil
+}
+
+func (kc *KubernetesClient) CreateSecret(ctx context.Context, locoApp *LocoApp) (*v1.Secret, error) {
+	secretData := make(map[string][]byte)
+	for _, envVar := range locoApp.EnvVars {
+		secretData[envVar.Name] = []byte(envVar.Value)
+	}
+
+	secretConfig := &v1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+		Data: secretData,
+		Type: v1.SecretTypeOpaque,
+	}
+
+	return kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Create(ctx, secretConfig, metaV1.CreateOptions{})
+}
+
+func (kc *KubernetesClient) UpdateSecret(ctx context.Context, locoApp *LocoApp) (*v1.Secret, error) {
+	secretData := make(map[string][]byte)
+	for _, envVar := range locoApp.EnvVars {
+		secretData[envVar.Name] = []byte(envVar.Value)
+	}
+
+	secretConfig := &v1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+		Data: secretData,
+		Type: v1.SecretTypeOpaque,
+	}
+
+	return kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(ctx, secretConfig, metaV1.UpdateOptions{})
 }
 
 // Creates an HTTPRoute given the prov
@@ -491,10 +540,10 @@ func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, servi
 	return allLogs, nil
 }
 
-func (kc *KubernetesClient) UpdateContainerImage(ctx context.Context, locoApp *LocoApp) error {
+func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *LocoApp) error {
 	deploymentsClient := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace)
 
-	deployment, err := deploymentsClient.Get(context.TODO(), locoApp.Name, metaV1.GetOptions{})
+	deployment, err := deploymentsClient.Get(ctx, locoApp.Name, metaV1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get deployment: %v", err)
 	}
@@ -503,9 +552,16 @@ func (kc *KubernetesClient) UpdateContainerImage(ctx context.Context, locoApp *L
 		return fmt.Errorf("deployment has no containers")
 	}
 
+	// update secrets
+	_, err = kc.UpdateSecret(ctx, locoApp)
+	if err != nil {
+		return err
+	}
+
+	// update container image
 	deployment.Spec.Template.Spec.Containers[0].Image = locoApp.ContainerImage
 
-	_, err = deploymentsClient.Update(context.TODO(), deployment, metaV1.UpdateOptions{})
+	_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %v", err)
 	}
@@ -513,21 +569,74 @@ func (kc *KubernetesClient) UpdateContainerImage(ctx context.Context, locoApp *L
 	return nil
 }
 
+func (kc *KubernetesClient) CreateServiceAccount(ctx context.Context, locoApp *LocoApp) (*v1.ServiceAccount, error) {
+	sa := &v1.ServiceAccount{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+	}
+	return kc.ClientSet.CoreV1().ServiceAccounts(locoApp.Namespace).Create(ctx, sa, metaV1.CreateOptions{})
+}
+
+func (kc *KubernetesClient) CreateRole(ctx context.Context, locoApp *LocoApp, secret *v1.Secret) (*rbacV1.Role, error) {
+	role := &rbacV1.Role{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+		Rules: []rbacV1.PolicyRule{
+			{
+				APIGroups:     []string{""},
+				Resources:     []string{"secrets"},
+				Verbs:         []string{"get", "list", "watch"},
+				ResourceNames: []string{secret.Name},
+			},
+		},
+	}
+	return kc.ClientSet.RbacV1().Roles(locoApp.Namespace).Create(ctx, role, metaV1.CreateOptions{})
+}
+
+func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, locoApp *LocoApp) (*rbacV1.RoleBinding, error) {
+	rb := &rbacV1.RoleBinding{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      locoApp.Name,
+			Namespace: locoApp.Namespace,
+			Labels:    locoApp.Labels,
+		},
+
+		Subjects: []rbacV1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      locoApp.Name,
+				Namespace: locoApp.Namespace,
+			},
+		},
+		RoleRef: rbacV1.RoleRef{
+			Kind:     "Role",
+			Name:     locoApp.Name,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+	return kc.ClientSet.RbacV1().RoleBindings(locoApp.Namespace).Create(ctx, rb, metaV1.CreateOptions{})
+}
+
 // buildConfig uses in-cluster kube config in production, otherwise uses local.
 func buildConfig(appEnv string) *rest.Config {
 	var config *rest.Config
 	var err error
 
-	ctx := context.Background()
 	if appEnv == "PRODUCTION" {
-		slog.InfoContext(ctx, "Using in-cluster Kubernetes config")
+		slog.Info("Using in-cluster Kubernetes config")
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to create in-cluster config", "error", err)
+			slog.Error("Failed to create in-cluster config", "error", err)
 			log.Fatalf("Failed to create in-cluster config: %v", err)
 		}
 	} else {
-		slog.InfoContext(ctx, "Using local kubeconfig")
+		slog.Info("Using local kubeconfig")
 		var kubeconfig *string
 		if home := homedir.HomeDir(); home != "" {
 			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "kubeconfig path")
@@ -538,7 +647,7 @@ func buildConfig(appEnv string) *rest.Config {
 
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to build kubeconfig", "error", err)
+			slog.Error("Failed to build kubeconfig", "error", err)
 			log.Fatalf("Failed to build kubeconfig: %v", err)
 		}
 	}
@@ -568,15 +677,16 @@ func buildGatewayClient(config *rest.Config) *gatewayCs.Clientset {
 	return gwcs
 }
 
-func createKubeEnvVars(envVars []EnvVar) []v1.EnvVar {
-	kubeEnvVars := []v1.EnvVar{}
+// comment in if needed
+// func createKubeEnvVars(envVars []EnvVar) []v1.EnvVar {
+// 	kubeEnvVars := []v1.EnvVar{}
 
-	for _, ev := range envVars {
-		kubeEnvVars = append(kubeEnvVars, v1.EnvVar{
-			Name:  ev.Name,
-			Value: ev.Value,
-		})
-	}
+// 	for _, ev := range envVars {
+// 		kubeEnvVars = append(kubeEnvVars, v1.EnvVar{
+// 			Name:  ev.Name,
+// 			Value: ev.Value,
+// 		})
+// 	}
 
-	return kubeEnvVars
-}
+// 	return kubeEnvVars
+// }

@@ -36,12 +36,13 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		var request DeployAppRequest
 
 		if err := c.Bind().JSON(&request); err != nil {
+			slog.ErrorContext(c.Context(), "invalid json body", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Invalid Input")
 		}
 		request.LocoConfig.FillSensibleDefaults()
 		// validate the locoConfig
 		if err := request.LocoConfig.Validate(); err != nil {
-			slog.Error("Invalid locoConfig", "error", err.Error())
+			slog.ErrorContext(c.Context(), "Invalid locoConfig", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Invalid locoConfig")
 		}
 		// need to only create the loco app if it already does not exist
@@ -49,7 +50,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		banned := client.IsBannedSubDomain(request.LocoConfig.Subdomain)
 
 		if banned {
-			slog.Error("banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
+			slog.ErrorContext(c.Context(), "banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Provided subdomain is not allowed. Please choose another")
 		}
 		user, _ := c.Locals("user").(string)
@@ -58,7 +59,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		// we need to check if this service exists.
 		exists, err := kc.CheckServiceExists(c.Context(), app.Namespace, app.Name)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(c.Context(), err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to check if service already exists.")
 		}
 
@@ -73,7 +74,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 			}
 			gitlabResp, err := client.NewClient(ac.GitlabURL).GetDeployToken(c, ac.GitlabPAT, ac.ProjectID, payload)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.ErrorContext(c.Context(), err.Error())
 				return utils.SendErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 			}
 
@@ -90,13 +91,13 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 				registry,
 			)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.ErrorContext(c.Context(), err.Error())
 				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to contact container registry")
 			}
 
-			err = kc.UpdateContainerImage(c.Context(), app)
+			err = kc.UpdateContainer(c.Context(), app)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.ErrorContext(c.Context(), err.Error())
 				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to update Docker image of service")
 			}
 
@@ -107,7 +108,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 
 		_, err = kc.CreateNS(c.Context(), app)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(c.Context(), err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create namespace")
 		}
 
@@ -140,12 +141,37 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 			registry,
 		)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(c.Context(), err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to generate credentials")
 		}
 
-		_, err = kc.CreateDeployment(c.Context(), app, request.ContainerImage)
+		envSecret, err := kc.CreateSecret(c.Context(), app)
 		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create deployment")
+		}
+
+		_, err = kc.CreateRole(c.Context(), app, envSecret)
+		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create role")
+		}
+
+		_, err = kc.CreateServiceAccount(c.Context(), app)
+		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create service account")
+		}
+
+		_, err = kc.CreateRoleBinding(c.Context(), app)
+		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create role binding")
+		}
+
+		_, err = kc.CreateDeployment(c.Context(), app, request.ContainerImage, envSecret)
+		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create deployment")
 		}
 
@@ -156,7 +182,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 
 		_, err = kc.CreateHTTPRoute(c.Context(), app)
 		if err != nil {
-			slog.Error("oops something wrong", "error", err.Error())
+			slog.ErrorContext(c.Context(), "oops something wrong", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create http route")
 		}
 

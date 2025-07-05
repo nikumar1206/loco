@@ -115,5 +115,6 @@ jobs:
                     --from-literal=PORT=${{ secrets.PORT }} \
                     -n loco-system \
                     --dry-run=client -o yaml | kubectl apply -f - || true
+                  kubectl apply -f ./kube/rbac.yml
                   kubectl apply -f ./kube/app_deployment.yml
                   kubectl set image -n loco-system deployment/loco-api loco-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
