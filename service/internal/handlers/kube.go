@@ -169,7 +169,13 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 func appLogs(kc *client.KubernetesClient) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		appName := c.Params("appName")
-		user := "nikumar1206"
+
+		user, ok := c.Locals("user").(string)
+
+		if !ok {
+			slog.ErrorContext(c.Context(), "could not determine user. should never happen")
+			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not determine user")
+		}
 
 		namespace := client.GenerateNameSpace(appName, user)
 
@@ -188,21 +194,22 @@ func appLogs(kc *client.KubernetesClient) fiber.Handler {
 
 		logLines, err := kc.GetServiceLogs(c.Context(), namespace, appName, tailLines)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error: %v", err))
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 		}
 
 		c.Status(fiber.StatusOK).Response().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 			for _, line := range logLines {
 				jsonData, err := json.Marshal(line)
 				if err != nil {
-					slog.Error(err.Error())
+					slog.ErrorContext(c.Context(), err.Error())
 					fmt.Fprintf(w, "data: %s\n\n", err.Error())
 					break
 				}
 				fmt.Fprintf(w, "data: %s\n\n", jsonData)
 				err = w.Flush()
 				if err != nil {
-					fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+					slog.ErrorContext(c.Context(), err.Error())
 					break
 				}
 			}

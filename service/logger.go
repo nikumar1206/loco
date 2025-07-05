@@ -18,7 +18,9 @@ func (l CustomHandler) Handle(ctx context.Context, r slog.Record) error {
 	sourceIp := ctx.Value("sourceIp").(string)
 	path := ctx.Value("path").(string)
 	method := ctx.Value("method").(string)
-	userId := ctx.Value("userId")
+
+	// can be null on routes where oAuth Middleware doesn't run
+	user := ctx.Value("user")
 
 	requestGroup := slog.Group(
 		"request",
@@ -26,7 +28,7 @@ func (l CustomHandler) Handle(ctx context.Context, r slog.Record) error {
 		slog.String("sourceIp", sourceIp),
 		slog.String("method", method),
 		slog.String("path", path),
-		slog.Any("userId", userId),
+		slog.Any("user", user),
 	)
 
 	r.AddAttrs(requestGroup)

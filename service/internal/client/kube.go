@@ -53,6 +53,7 @@ type DockerRegistryConfig struct {
 }
 
 // NewKubernetesClient initializes a new Kubernetes client based on the application environment.
+// for local testing, it points to local kube config, otherwise will
 func NewKubernetesClient(appEnv string) *KubernetesClient {
 	slog.Info("Initializing Kubernetes client", "env", appEnv)
 	config := buildConfig(appEnv)
@@ -68,7 +69,7 @@ func NewKubernetesClient(appEnv string) *KubernetesClient {
 
 // CheckNSExists checks if a namespace exists in the Kubernetes cluster.
 func (kc *KubernetesClient) CheckNSExists(c context.Context, namespace string) (bool, error) {
-	slog.Debug("Checking if namespace exists", "namespace", namespace)
+	slog.DebugContext(c, "Checking if namespace exists", "namespace", namespace)
 	namespaces, err := kc.ClientSet.CoreV1().Namespaces().List(c, metaV1.ListOptions{})
 	if err != nil {
 		slog.Error("Failed to list namespaces", "error", err)
@@ -77,25 +78,25 @@ func (kc *KubernetesClient) CheckNSExists(c context.Context, namespace string) (
 
 	for _, ns := range namespaces.Items {
 		if ns.Name == namespace {
-			slog.Info("Namespace exists", "namespace", namespace)
+			slog.InfoContext(c, "Namespace exists", "namespace", namespace)
 			return true, nil
 		}
 	}
 
-	slog.Info("Namespace does not exist", "namespace", namespace)
+	slog.InfoContext(c, "Namespace does not exist", "namespace", namespace)
 	return false, nil
 }
 
 // CreateNS creates a new namespace in the Kubernetes cluster if it does not already exist.
 func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *LocoApp) (*v1.Namespace, error) {
-	slog.Info("Creating namespace", "namespace", locoApp.Namespace)
+	slog.InfoContext(c, "Creating namespace", "namespace", locoApp.Namespace)
 	exists, err := kc.CheckNSExists(c, locoApp.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	if exists {
-		slog.Warn("Namespace already exists", "namespace", locoApp.Namespace)
+		slog.WarnContext(c, "Namespace already exists", "namespace", locoApp.Namespace)
 		return nil, nil
 	}
 
@@ -108,40 +109,40 @@ func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *LocoApp) (*v1.N
 
 	ns, err := kc.ClientSet.CoreV1().Namespaces().Create(c, nsConfig, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create namespace", "namespace", locoApp.Namespace, "error", err)
+		slog.ErrorContext(c, "Failed to create namespace", "namespace", locoApp.Namespace, "error", err)
 		return nil, err
 	}
 
-	slog.Info("Namespace created", "namespace", ns.Name)
+	slog.InfoContext(c, "Namespace created", "namespace", ns.Name)
 	return ns, nil
 }
 
 // CheckDeploymentExists checks if a deployment exists in the specified namespace.
 func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace string, deploymentName string) (bool, error) {
-	slog.Debug("Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)
+	slog.DebugContext(c, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)
 	_, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(c, deploymentName, metaV1.GetOptions{})
 	if err != nil {
-		slog.Error("Failed to get deployment", "deployment", deploymentName, "namespace", namespace, "error", err)
+		slog.ErrorContext(c, "Failed to get deployment", "deployment", deploymentName, "namespace", namespace, "error", err)
 		return false, ErrDeploymentNotFound
 	}
-	slog.Info("Deployment exists", "deployment", deploymentName)
+	slog.InfoContext(c, "Deployment exists", "deployment", deploymentName)
 	return true, nil
 }
 
 // CreateDeployment creates a Deployment if it doesn't exist.
 func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp, containerImage string) (*appsV1.Deployment, error) {
-	slog.Info("Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
+	slog.InfoContext(ctx, "Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
 	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
 	if err != nil {
 		if errors.Is(err, ErrDeploymentNotFound) {
-			slog.Info("deployment doesnt exist")
+			slog.InfoContext(ctx, "deployment doesnt exist")
 		} else {
 			return nil, err
 		}
 	}
 
 	if existing {
-		slog.Warn("Deployment already exists", "deployment", locoApp.Name)
+		slog.WarnContext(ctx, "Deployment already exists", "deployment", locoApp.Name)
 		return nil, nil
 	}
 
@@ -208,18 +209,18 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 
 	result, err := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace).Create(ctx, deployment, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create deployment", "deployment", locoApp.Name, "error", err)
+		slog.ErrorContext(ctx, "Failed to create deployment", "deployment", locoApp.Name, "error", err)
 		return nil, err
 	}
 
-	slog.Info("Deployment created", "deployment", result.Name)
+	slog.InfoContext(ctx, "Deployment created", "deployment", result.Name)
 	return result, nil
 }
 
 func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, serviceName string) (bool, error) {
 	_, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
 	if err == nil {
-		slog.Warn("Service already exists", "name", serviceName)
+		slog.WarnContext(ctx, "Service already exists", "name", serviceName)
 		return true, nil
 	}
 	return false, nil
@@ -227,7 +228,7 @@ func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, s
 
 // CreateService creates a Service for the specified deployment in the given namespace.
 func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp) (*v1.Service, error) {
-	slog.Info("Creating service", "namespace", locoApp.Namespace, "name", locoApp.Name)
+	slog.InfoContext(ctx, "Creating service", "namespace", locoApp.Namespace, "name", locoApp.Name)
 
 	kc.CheckServiceExists(ctx, locoApp.Namespace, locoApp.Name)
 
@@ -262,11 +263,11 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp)
 
 	result, err := kc.ClientSet.CoreV1().Services(locoApp.Namespace).Create(ctx, service, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error("Failed to create service", "name", locoApp.Name, "error", err)
+		slog.ErrorContext(ctx, "Failed to create service", "name", locoApp.Name, "error", err)
 		return nil, err
 	}
 
-	slog.Info("Service created", "service", result.Name)
+	slog.InfoContext(ctx, "Service created", "service", result.Name)
 	return result, nil
 }
 
@@ -334,7 +335,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *L
 
 	dockerConfigJSON, err := json.Marshal(auth)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(c, err.Error())
 		return err
 	}
 
@@ -353,7 +354,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *L
 
 	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Create(c, secret, metaV1.CreateOptions{})
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(c, err.Error())
 		return fmt.Errorf("failed to create secret: %w", err)
 	}
 	return nil
@@ -373,7 +374,7 @@ func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *L
 
 	dockerConfigJSON, err := json.Marshal(auth)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(c, err.Error())
 		return err
 	}
 
@@ -392,31 +393,32 @@ func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *L
 
 	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(c, secret, metaV1.UpdateOptions{})
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(c, err.Error())
 		return fmt.Errorf("failed to update secret: %w", err)
 	}
 	return nil
 }
 
 // GetPods retrieves a list of pod names in the specified namespace.
-func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
-	slog.Debug("Fetching pods", "namespace", namespace)
-	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metaV1.ListOptions{})
-	if err != nil {
-		slog.Error("Failed to list pods", "namespace", namespace, "error", err)
-		return nil, err
-	}
+// comment in if needed
+// func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
+// 	slog.Debug(ctx, "Fetching pods", "namespace", namespace)
+// 	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{})
+// 	if err != nil {
+// 		slog.ErrorContext(ctx, "Failed to list pods", "namespace", namespace, "error", err)
+// 		return nil, err
+// 	}
 
-	var podNames []string
-	for _, pod := range pods.Items {
-		podNames = append(podNames, pod.Name)
-	}
+// 	var podNames []string
+// 	for _, pod := range pods.Items {
+// 		podNames = append(podNames, pod.Name)
+// 	}
 
-	slog.Info("Retrieved pods", "namespace", namespace, "count", len(podNames))
-	return podNames, nil
-}
+// 	slog.InfoContext(ctx, "Retrieved pods", "namespace", namespace, "count", len(podNames))
+// 	return podNames, nil
+// }
 
-// GetPods retrieves a list of pod names in the specified namespace.
+// GetPodLogs retrieves a list of pod names in the specified namespace.
 func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName string, tailLines *int64) ([]PodLogLine, error) {
 	podLogOpts := &v1.PodLogOptions{}
 	if tailLines != nil {
@@ -442,6 +444,7 @@ func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName s
 	}
 
 	if err := scanner.Err(); err != nil {
+		slog.ErrorContext(ctx, "error reading logs for pod", "pod", podName, "error", err)
 		return nil, fmt.Errorf("error reading logs for pod %s: %v", podName, err)
 	}
 
@@ -451,11 +454,13 @@ func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName s
 func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, serviceName string, tailLines *int64) ([]PodLogLine, error) {
 	svc, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to get service", "service", serviceName, "error", err)
 		return nil, fmt.Errorf("failed to get service: %v", err)
 	}
 
 	selector := svc.Spec.Selector
 	if len(selector) == 0 {
+		slog.ErrorContext(ctx, "service has no selector", "service", serviceName)
 		return nil, fmt.Errorf("service has no selector")
 	}
 
@@ -469,13 +474,13 @@ func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, servi
 		LabelSelector: selectorString,
 	})
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to list pods", "service", serviceName, "error", err)
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}
 
 	var allLogs []PodLogLine
 	for _, pod := range pods.Items {
 		podLogs, err := kc.GetPodLogs(ctx, namespace, pod.Name, tailLines)
-		fmt.Println("what are pod logs", podLogs)
 		if err != nil {
 			log.Printf("error getting logs for pod %s: %v", pod.Name, err)
 			continue
@@ -508,19 +513,21 @@ func (kc *KubernetesClient) UpdateContainerImage(ctx context.Context, locoApp *L
 	return nil
 }
 
+// buildConfig uses in-cluster kube config in production, otherwise uses local.
 func buildConfig(appEnv string) *rest.Config {
 	var config *rest.Config
 	var err error
 
+	ctx := context.Background()
 	if appEnv == "PRODUCTION" {
-		slog.Info("Using in-cluster Kubernetes config")
+		slog.InfoContext(ctx, "Using in-cluster Kubernetes config")
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			slog.Error("Failed to create in-cluster config", "error", err)
+			slog.ErrorContext(ctx, "Failed to create in-cluster config", "error", err)
 			log.Fatalf("Failed to create in-cluster config: %v", err)
 		}
 	} else {
-		slog.Info("Using local kubeconfig")
+		slog.InfoContext(ctx, "Using local kubeconfig")
 		var kubeconfig *string
 		if home := homedir.HomeDir(); home != "" {
 			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "kubeconfig path")
@@ -531,7 +538,7 @@ func buildConfig(appEnv string) *rest.Config {
 
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
-			slog.Error("Failed to build kubeconfig", "error", err)
+			slog.ErrorContext(ctx, "Failed to build kubeconfig", "error", err)
 			log.Fatalf("Failed to build kubeconfig: %v", err)
 		}
 	}

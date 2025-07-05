@@ -74,7 +74,7 @@ var logsCmd = &cobra.Command{
 		logsChan := make(chan api.LogEntry)
 		errChan := make(chan error)
 
-		// Start the HTTP stream
+		// start the http stream
 		go client.StreamLogs(ctx, "", cfg.Name, logsChan, errChan)
 
 		m := logModel{

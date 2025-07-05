@@ -50,13 +50,6 @@ func main() {
 	app.Use(middlewares.Timing())
 	app.Use(middlewares.GithubTokenValidator())
 
-	app.Get("/secure", func(c fiber.Ctx) error {
-		user, _ := c.Locals("user").(string)
-
-		fmt.Println("hello user", user)
-		return c.SendString("on the secure endpoint")
-	})
-
 	kubernetesClient := client.NewKubernetesClient(ac.Env)
 
 	handlers.BuildRegistryRouter(app, ac)

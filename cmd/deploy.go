@@ -84,7 +84,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
-		return fmt.Errorf("token is expired or about to expire soon. Please re-login via `loco deploy`")
+		return fmt.Errorf("token is expired or about to expire soon. Please re-login via `loco login`")
 	}
 
 	cfgValid := lipgloss.NewStyle().

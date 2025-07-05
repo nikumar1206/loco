@@ -74,7 +74,7 @@ func (c *Client) doRequest(method, path string, body io.Reader, headers map[stri
 	if err != nil {
 		return nil, &APIError{
 			StatusCode: 0,
-			Body:       fmt.Sprintf("request failed: %v", err),
+			Body:       err.Error(),
 		}
 	}
 	defer resp.Body.Close()
