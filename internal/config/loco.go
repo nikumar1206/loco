@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -13,13 +15,13 @@ type Config struct {
 	Subdomain      string   `toml:"Subdomain"`
 	DockerfilePath string   `toml:"DockerfilePath"`
 	EnvFile        string   `toml:"EnvFile"`
-	ProjectPath    string   `toml:"ProjectPath"`
 	CPU            string   `toml:"CPU"`
 	Memory         string   `toml:"Memory"`
 	Replicas       Replicas `toml:"Replicas"`
 	Scalers        Scalers  `toml:"Scalers"`
 	Health         Health   `toml:"Health"`
 	Logs           Logs     `toml:"Logs"`
+	projectPath    string
 }
 
 type Replicas struct {
@@ -49,7 +51,6 @@ var Default = Config{
 	Subdomain:      "myapp",
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
-	ProjectPath:    ".",
 	CPU:            "100m",
 	Memory:         "100Mi",
 	Replicas: Replicas{
@@ -88,9 +89,16 @@ func CreateDefault() error {
 	return Create(Default)
 }
 
-func Load(path string) (Config, error) {
+func Load(cfgPath string) (Config, error) {
 	var config Config
-	file, err := os.Open(path)
+
+	cfgPathAbs, err := filepath.Abs(cfgPath)
+	if err != nil {
+		return config, err
+	}
+	config.projectPath = filepath.Dir(cfgPathAbs)
+
+	file, err := os.Open(cfgPath)
 	if err != nil {
 		return config, err
 	}
@@ -102,16 +110,15 @@ func Load(path string) (Config, error) {
 		return config, err
 	}
 
+	config.DockerfilePath = resolvePath(config.DockerfilePath, cfgPathAbs)
+	config.EnvFile = resolvePath(config.EnvFile, cfgPathAbs)
+
 	return config, nil
 }
 
-func FillSensibleDefaults(cfg Config) Config {
+func (cfg *Config) FillSensibleDefaults() {
 	if cfg.DockerfilePath == "" {
 		cfg.DockerfilePath = Default.DockerfilePath
-	}
-
-	if cfg.ProjectPath == "" {
-		cfg.ProjectPath = Default.ProjectPath
 	}
 
 	if cfg.CPU == "" {
@@ -121,11 +128,25 @@ func FillSensibleDefaults(cfg Config) Config {
 	if cfg.Memory == "" {
 		cfg.Memory = Default.Memory
 	}
-
-	return cfg
 }
 
-func ErrorOnBadConfig(cfg Config) error {
+func resolvePath(path, baseDir string) string {
+	if path == "" {
+		return ""
+	}
+
+	if filepath.IsAbs(path) {
+		return path
+	}
+
+	projectFolder := filepath.Dir(baseDir)
+
+	return filepath.Join(projectFolder, path)
+}
+
+// Validate ensures the locoConfig is accurate.
+// it also validates and resolves paths to env and Dockerfile
+func (cfg *Config) Validate() error {
 	if cfg.Name == "" {
 		return fmt.Errorf("name must be set")
 	}
@@ -138,5 +159,24 @@ func ErrorOnBadConfig(cfg Config) error {
 		return fmt.Errorf("subdomain must be set")
 	}
 
+	if !fileExists(cfg.DockerfilePath) {
+		return fmt.Errorf("provided Dockerfile path could not be resolved. Please provide path to a valid Dockerfile")
+	}
+
+	if cfg.EnvFile != "" && !fileExists(cfg.EnvFile) {
+		return fmt.Errorf("provided env path could not be resolved. Please provide path to a valid environments file")
+	}
 	return nil
+}
+
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	if err != nil {
+		return !errors.Is(err, os.ErrNotExist)
+	}
+	return true
+}
+
+func (cfg Config) GetProjectPath() string {
+	return cfg.projectPath
 }

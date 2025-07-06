@@ -5,7 +5,6 @@
 - ✅ Build out the **database structure**
   - 5-layer concept: **teams, users, apps, deployments, events**
 - 🔐 Implement **OAuth** with GitHub/Google
-  - We will _not_ manage passwords
 
 ### 📦 Container & Cluster Security
 
@@ -105,10 +104,16 @@
 - need to create some sort of RBAC actually.
   - so if user provides env var, they should not be visible to the cluster owner like me.
   - they should be created as a configmap or secret, and not directly decodeable unless by user
-  - do we need to remove serviceAccount token for apps deployed by users?
   - need to actually resolve the paths for loco.toml
+- need to actually wait for the new pod to come up before saying its all good.
 
-Next Steps:
+- add example to readme
+- path to example loco.toml.
+- how to scale viewing loco.toml
+- make loco CI friendly, via a loco deploy --non-interactive --token {GH-TOKEN}
+- loco env command to update just .env
+
+  Next Steps:
 
 - loco-api will require cluster role, rolebinding, and service account for talking to kube-api-server and making cluster lvl changes to it. obs eventually, need to figure out a way to ensure loco-api is safe and cannot be abused
 - need to actually implement the github oauth setup with JWT, so we are not exposing APIs

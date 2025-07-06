@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -96,15 +97,20 @@ func printDockerOutput(r io.Reader, logf func(string)) error {
 }
 
 func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error {
-	buildContext, err := archive.TarWithOptions(c.cfg.ProjectPath, &archive.TarOptions{})
+	buildContext, err := archive.TarWithOptions(c.cfg.GetProjectPath(), &archive.TarOptions{})
 	if err != nil {
 		return err
 	}
 	defer buildContext.Close()
 
+	relDockerfilePath, err := filepath.Rel(c.cfg.GetProjectPath(), c.cfg.DockerfilePath)
+	if err != nil {
+		return err
+	}
+
 	options := build.ImageBuildOptions{
 		Tags:       []string{c.ImageName},
-		Dockerfile: c.cfg.DockerfilePath,
+		Dockerfile: relDockerfilePath,
 		Remove:     true, // remove intermediate containers
 		Platform:   "linux/amd64",
 	}

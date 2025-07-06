@@ -10,8 +10,8 @@ Loco is a container orchestration platform that simplifies application deploymen
 - **Automatic Builds** - Dockerfile-based container builds.
 - **Auto-scaling** - Sensible CPU based horizontal scaling that can be easily configured.
 - **HTTPS by default** - Automatic SSL certificate management, powered by Let's Encrypt and Certificate Manager.
-- **Fast Request Proxy** - Simple, sensible, and scalable infra. Network requests to Loco Applications go through an NLB (on Digital Ocean), followed by an ALB (Envoy Gateway via the Kubernetes Gateway API).
-- **Simple Configuration** - Easy setup via `loco.toml`. A sample spec can be generated via `loco init`
+- **Fast Reverse Proxy** - Envoy Gateway API serves HTTP3 traffic.
+- **Simple Configuration** - Easy setup via `loco.toml`. A sample spec can be generated via `loco init`.
 
 ## Architecture Diagram
 
@@ -37,6 +37,16 @@ Loco also generates completions for shells such as bash and zshrc.
 ```bash
 loco completion zsh
 ```
+
+## Examples
+
+Sample [`loco.toml`](./loco.toml)
+
+A very simple app (currently deployed on loco) can be found here: [example-test-api](./examples/test-api/)
+
+## How-Tos
+
+- how we can scale our clusters
 
 ## Abuse Prevention
 

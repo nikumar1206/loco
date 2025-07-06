@@ -30,10 +30,22 @@ func init() {
 	deployCmd.Flags().BoolP("yes", "y", false, "Assume yes to all prompts")
 }
 
-func deployCmdFunc(cmd *cobra.Command, args []string) error {
+func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 	var err error
 	var tokenResponse api.DeployTokenResponse
 
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
+	locoToken, err := keychain.GetGithubToken(usr.Name)
+	if err != nil {
+		return err
+	}
+
+	if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
+		return fmt.Errorf("token is expired or about to expire soon. Please re-login via `loco login`")
+	}
 	configPath, err := cmd.Flags().GetString("config")
 	if err != nil {
 		return fmt.Errorf("failed to read config flag: %w", err)
@@ -47,11 +59,16 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	if err := config.ErrorOnBadConfig(cfg); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	cfg = config.FillSensibleDefaults(cfg)
+	cfg.FillSensibleDefaults()
+
+	cfgValid := lipgloss.NewStyle().
+		Foreground(ui.LocoLightGreen).
+		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
+	fmt.Print(cfgValid)
 
 	dockerCli, err := docker.NewDockerClient(cfg)
 	if err != nil {
@@ -72,26 +89,6 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	apiClient := api.NewClient(host)
-
-	usr, err := user.Current()
-	if err != nil {
-		return err
-	}
-
-	locoToken, err := keychain.GetGithubToken(usr.Name)
-	if err != nil {
-		return err
-	}
-
-	if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
-		return fmt.Errorf("token is expired or about to expire soon. Please re-login via `loco login`")
-	}
-
-	cfgValid := lipgloss.NewStyle().
-		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 Validated loco.toml. Beginning deployment!") + "\n"
-
-	fmt.Print(cfgValid)
 
 	steps := []ui.Step{
 		{
@@ -137,7 +134,7 @@ func deployCmdFunc(cmd *cobra.Command, args []string) error {
 	s := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 Deployment complete!") + "\n"
+		Render("\n🎉 Deployment scheduled!") + "\n"
 
 	fmt.Print(s)
 	return nil

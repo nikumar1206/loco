@@ -1,25 +1,24 @@
-CPU = "100m"
-DockerfilePath = "Dockerfile"
-EnvFile = ".env"
-Memory = "100Mi"
 Name = "myapp"
 Port = 8000
-ProjectPath = "."
 Subdomain = "myapp"
+DockerfilePath = "Dockerfile"
+EnvFile = ".env"
+CPU = "100m"
+Memory = "100Mi"
 
 [Replicas]
-Max = 1
-Min = 1
+  Max = 1
+  Min = 1
 
 [Scalers]
-CPUTarget = 70
-MemoryTarget = 0
+  CPUTarget = 70
+  MemoryTarget = 0
 
 [Health]
-Interval = 30
-Path = "/health"
-Timeout = 5
+  Interval = 30
+  Path = "/health"
+  Timeout = 5
 
 [Logs]
-RetentionPeriod = "7d"
-Structured = true
+  RetentionPeriod = "7d"
+  Structured = true

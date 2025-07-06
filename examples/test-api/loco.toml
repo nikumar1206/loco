@@ -1,15 +1,14 @@
 # Application Configuration
-Name = "test-api"
-Port = 8000
+Name = "test-api" 
+Port = 8000 
 Subdomain = "test-api" # Will be deployed to test-api.deploy-app.com
 
 # Project Configuration
-DockerfilePath = "Dockerfile" # Relative to ProjectPath
-EnvFile = ".env"              # Relative to ProjectPath
-ProjectPath = "."
+DockerfilePath = "Dockerfile" # Relative to loco.toml path
+EnvFile = ".env" # Relative to loco.toml path
 
 # Resource Allocation
-CPU = "100m"     # CPU cores (e.g., this is 0.1 cores)
+CPU = "100m" # CPU cores (e.g., this is 0.1 cores)
 Memory = "100Mi" # Memory allocation (e.g., "256Mi", "1Gi", "2Gi")
 
 # Scaling Configuration
@@ -19,16 +18,16 @@ Min = 1 # Minimum number of replicas
 
 # Autoscaling Triggers
 [Scalers]
-CPUTarget = 70    # CPU utilization target percentage
+CPUTarget = 70 # CPU utilization target percentage
 MemoryTarget = 80 # Memory utilization target percentage
 
 # Health Checks
 [Health]
-Interval = 30    # Check interval in seconds
+Interval = 30 # Check interval in seconds
 Path = "/health" # Health check endpoint
-Timeout = 5      # Timeout in seconds
+Timeout = 5 # Timeout in seconds
 
 # Logging Configuration
 [Logs]
 RetentionPeriod = "7d" # Log retention period
-Structured = true      # Enable structured JSON logging
+Structured = true # Enable structured JSON logging
