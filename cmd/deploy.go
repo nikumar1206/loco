@@ -72,7 +72,7 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 
 	dockerCli, err := docker.NewDockerClient(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to create Docker client: %w", err)
+		return err
 	}
 	defer dockerCli.Close()
 

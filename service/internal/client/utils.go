@@ -34,3 +34,5 @@ func ptrToKind(k string) *v1Gateway.Kind {
 	t := v1Gateway.Kind(k)
 	return &t
 }
+
+func ptrToBool(b bool) *bool { return &b }

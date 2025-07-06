@@ -21,6 +21,8 @@ import (
 	"github.com/nikumar1206/loco/internal/config"
 )
 
+var MINIMUM_DOCKER_ENGINE_VERSION = "28.0.0"
+
 type DockerClient struct {
 	dockerClient *client.Client
 	cfg          config.Config
@@ -32,6 +34,15 @@ func NewDockerClient(cfg config.Config) (*DockerClient, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
+	}
+
+	v, err := cli.ServerVersion(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if v.Version < MINIMUM_DOCKER_ENGINE_VERSION {
+		return nil, fmt.Errorf("loco requires minimum Docker engine version of %s. Please update your Docker version", MINIMUM_DOCKER_ENGINE_VERSION)
 	}
 
 	return &DockerClient{

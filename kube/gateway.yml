@@ -22,7 +22,10 @@ spec:
     port: 443
     allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              expose-via-gw: "true"
     tls:
       mode: Terminate
       certificateRefs:

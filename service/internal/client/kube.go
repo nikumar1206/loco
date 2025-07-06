@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"k8s.io/client-go/util/homedir"
 	v1Gateway "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayCs "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
@@ -38,10 +39,28 @@ var (
 )
 
 type KubernetesClient struct {
-	ClientSet  *kubernetes.Clientset
-	GatewaySet gatewayCs.Interface
+	ClientSet     *kubernetes.Clientset
+	GatewaySet    gatewayCs.Interface
+	CertManagerCs certmanagerv1.Interface
 }
 
+type DeploymentStatus struct {
+	Status          string    `json:"status"`
+	Pods            int       `json:"pods"`
+	CPUUsage        string    `json:"cpuUsage"`
+	MemoryUsage     string    `json:"memoryUsage"`
+	Latency         string    `json:"latency"`
+	URL             string    `json:"url"`
+	DeployedAt      time.Time `json:"deployedAt"`
+	DeployedBy      string    `json:"deployedBy"`
+	TLS             string    `json:"tls"`
+	Health          string    `json:"health"`
+	Autoscaling     bool      `json:"autoscaling"`
+	MinReplicas     int32     `json:"minReplicas"`
+	MaxReplicas     int32     `json:"maxReplicas"`
+	DesiredReplicas int32     `json:"desiredReplicas"`
+	ReadyReplicas   int32     `json:"readyReplicas"`
+}
 type PodLogLine struct {
 	Timestamp time.Time `json:"timestamp"`
 	PodName   string    `json:"podId"`
@@ -62,10 +81,12 @@ func NewKubernetesClient(appEnv string) *KubernetesClient {
 
 	clientSet := buildKubeClientSet(config)
 	gatewaySet := buildGatewayClient(config)
+	certManagerClient := buildCertManagerClient(config)
 
 	return &KubernetesClient{
-		ClientSet:  clientSet,
-		GatewaySet: gatewaySet,
+		ClientSet:     clientSet,
+		GatewaySet:    gatewaySet,
+		CertManagerCs: certManagerClient,
 	}
 }
 
@@ -101,11 +122,14 @@ func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *LocoApp) (*v1.N
 		slog.WarnContext(c, "Namespace already exists", "namespace", locoApp.Namespace)
 		return nil, nil
 	}
+	// add label for allowing GW routes
+	labels := locoApp.Labels
+	labels["expose-via-gw"] = "true"
 
 	nsConfig := &v1.Namespace{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:   locoApp.Namespace,
-			Labels: locoApp.Labels,
+			Labels: labels,
 		},
 	}
 
@@ -149,6 +173,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 	}
 
 	replicas := int32(1)
+	maxReplicaHistory := int32(2)
 
 	deployment := &appsV1.Deployment{
 		ObjectMeta: metaV1.ObjectMeta{
@@ -170,6 +195,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 					MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 				},
 			},
+			RevisionHistoryLimit: &maxReplicaHistory,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metaV1.ObjectMeta{
 					Labels: locoApp.Labels,
@@ -186,6 +212,15 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 						{
 							Name:  locoApp.Name,
 							Image: containerImage,
+							SecurityContext: &v1.SecurityContext{
+								AllowPrivilegeEscalation: ptrToBool(false),
+								Privileged:               ptrToBool(false),
+								ReadOnlyRootFilesystem:   ptrToBool(true),
+								RunAsNonRoot:             ptrToBool(true),
+								Capabilities: &v1.Capabilities{
+									Drop: []v1.Capability{"ALL"},
+								},
+							},
 							Ports: []v1.ContainerPort{
 								{
 									ContainerPort: int32(locoApp.Config.Port),
@@ -623,6 +658,110 @@ func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, locoApp *Loco
 	return kc.ClientSet.RbacV1().RoleBindings(locoApp.Namespace).Create(ctx, rb, metaV1.CreateOptions{})
 }
 
+func (kc *KubernetesClient) GetCertificateExpiry(ctx context.Context, namespace, certName string) (time.Time, error) {
+	cert, err := kc.CertManagerCs.CertmanagerV1().Certificates(namespace).Get(ctx, certName, metaV1.GetOptions{})
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get certificate: %v", err)
+	}
+
+	if cert.Status.NotAfter == nil {
+		return time.Time{}, fmt.Errorf("certificate does not have a NotAfter (expiry) field set")
+	}
+
+	return cert.Status.NotAfter.Time, nil
+}
+
+func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, appName string) (*DeploymentStatus, error) {
+	deployment, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(ctx, appName, metaV1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	createdBy := deployment.Labels[LabelAppCreatedFor]
+	createdAtStr := deployment.Labels[LabelAppCreatedAt]
+
+	var createdAt time.Time
+	if createdAtStr != "" {
+		parsedTime, err := time.Parse("20060102T150405Z", createdAtStr)
+		if err == nil {
+			createdAt = parsedTime
+		} else {
+			createdAt = deployment.CreationTimestamp.Time // fallback
+		}
+	} else {
+		createdAt = deployment.CreationTimestamp.Time // fallback
+	}
+
+	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", LabelAppName, appName),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods: %v", err)
+	}
+
+	httpRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(namespace).Get(ctx, appName, metaV1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get HTTPRoute: %v", err)
+	}
+	hostname := ""
+	if len(httpRoute.Spec.Hostnames) > 0 {
+		hostname = string(httpRoute.Spec.Hostnames[0])
+	}
+
+	hpa, err := kc.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(ctx, appName, metaV1.GetOptions{})
+	autoscalingEnabled := false
+	var minReplicas, maxReplicas int32
+	if err == nil {
+		autoscalingEnabled = true
+		if hpa.Spec.MinReplicas != nil {
+			minReplicas = *hpa.Spec.MinReplicas
+		}
+		maxReplicas = hpa.Spec.MaxReplicas
+	}
+
+	status := "Running"
+	if deployment.Status.ReadyReplicas != *deployment.Spec.Replicas {
+		status = "Pending"
+	}
+
+	health := "Passing"
+	for _, pod := range pods.Items {
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == v1.PodReady && condition.Status != v1.ConditionTrue {
+				health = "Degraded"
+				break
+			}
+		}
+	}
+
+	certExpiry := "Unknown"
+	expiryTime, err := kc.GetCertificateExpiry(ctx, namespace, appName)
+	if err == nil {
+		certExpiry = expiryTime.Format("2006-01-02")
+	} else {
+		slog.WarnContext(ctx, "Failed to get certificate expiry", "error", err)
+	}
+
+	// Build final response
+	return &DeploymentStatus{
+		Status:          status,
+		Pods:            len(pods.Items),
+		CPUUsage:        "N/A", // Metrics API integration needed for live usage
+		MemoryUsage:     "N/A", // Metrics API integration needed for live usage
+		Latency:         "N/A", // Optional: can pull from service mesh or internal metrics
+		URL:             fmt.Sprintf("https://%s", hostname),
+		DeployedAt:      createdAt,
+		DeployedBy:      createdBy,
+		TLS:             fmt.Sprintf("Secured (Expires: %s)", certExpiry),
+		Health:          health,
+		Autoscaling:     autoscalingEnabled,
+		MinReplicas:     minReplicas,
+		MaxReplicas:     maxReplicas,
+		DesiredReplicas: *deployment.Spec.Replicas,
+		ReadyReplicas:   deployment.Status.ReadyReplicas,
+	}, nil
+}
+
 // buildConfig uses in-cluster kube config in production, otherwise uses local.
 func buildConfig(appEnv string) *rest.Config {
 	var config *rest.Config
@@ -675,6 +814,15 @@ func buildGatewayClient(config *rest.Config) *gatewayCs.Clientset {
 
 	slog.Info("Gateway client initialized")
 	return gwcs
+}
+
+func buildCertManagerClient(config *rest.Config) certmanagerv1.Interface {
+	certClient, err := certmanagerv1.NewForConfig(config)
+	if err != nil {
+		slog.Error("Failed to create cert-manager client", "error", err)
+		log.Fatalf("Failed to create cert-manager client: %v", err)
+	}
+	return certClient
 }
 
 // comment in if needed
