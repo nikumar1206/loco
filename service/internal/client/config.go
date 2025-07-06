@@ -14,7 +14,6 @@ type LocoConfig struct {
 	Subdomain      string   `toml:"Subdomain"`
 	DockerfilePath string   `toml:"DockerfilePath"`
 	EnvFile        string   `toml:"EnvFile"`
-	ProjectPath    string   `toml:"ProjectPath"`
 	CPU            string   `toml:"CPU"`
 	Memory         string   `toml:"Memory"`
 	Replicas       Replicas `toml:"Replicas"`
@@ -55,7 +54,6 @@ var Default = LocoConfig{
 	Subdomain:      "myapp",
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
-	ProjectPath:    ".",
 	CPU:            "100m",
 	Memory:         "100Mi",
 	Replicas: Replicas{
@@ -114,10 +112,6 @@ func Load(path string) (LocoConfig, error) {
 func (cfg *LocoConfig) FillSensibleDefaults() {
 	if cfg.DockerfilePath == "" {
 		cfg.DockerfilePath = Default.DockerfilePath
-	}
-
-	if cfg.ProjectPath == "" {
-		cfg.ProjectPath = Default.ProjectPath
 	}
 
 	if cfg.CPU == "" {
