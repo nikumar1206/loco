@@ -116,10 +116,6 @@ func (cfg *LocoConfig) FillSensibleDefaults() {
 		cfg.DockerfilePath = Default.DockerfilePath
 	}
 
-	if cfg.EnvFile == "" {
-		cfg.EnvFile = Default.EnvFile
-	}
-
 	if cfg.ProjectPath == "" {
 		cfg.ProjectPath = Default.ProjectPath
 	}
