@@ -3,13 +3,38 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
+	"os/user"
+	"strconv"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
+
+type DeploymentStatus struct {
+	Status          string    `json:"status"`
+	Pods            int       `json:"pods"`
+	CPUUsage        string    `json:"cpuUsage"`
+	MemoryUsage     string    `json:"memoryUsage"`
+	Latency         string    `json:"latency"`
+	URL             string    `json:"url"`
+	DeployedAt      time.Time `json:"deployedAt"`
+	DeployedBy      string    `json:"deployedBy"`
+	TLS             string    `json:"tls"`
+	Health          string    `json:"health"`
+	Autoscaling     bool      `json:"autoscaling"`
+	MinReplicas     int32     `json:"minReplicas"`
+	MaxReplicas     int32     `json:"maxReplicas"`
+	DesiredReplicas int32     `json:"desiredReplicas"`
+	ReadyReplicas   int32     `json:"readyReplicas"`
+}
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
@@ -18,22 +43,66 @@ var statusCmd = &cobra.Command{
 		file, _ := cmd.Flags().GetString("file")
 		output, _ := cmd.Flags().GetString("output")
 
+		isDev, err := cmd.Flags().GetBool("dev")
+		if err != nil {
+			return fmt.Errorf("error reading dev flag: %w", err)
+		}
+
+		var host string
+		if isDev {
+			host = "http://localhost:8000"
+		} else {
+			host = "https://loco.deploy-app.com"
+		}
+
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			return fmt.Errorf("failed to read config flag: %w", err)
+		}
+		if configPath == "" {
+			configPath = "loco.toml"
+		}
+
+		cfg, err := config.Load(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		usr, err := user.Current()
+		if err != nil {
+			return err
+		}
+		locoToken, err := keychain.GetGithubToken(usr.Name)
+		if err != nil {
+			return err
+		}
+
+		if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
+			return fmt.Errorf("token is expired or will expire soon. Please re-login via `loco login`")
+		}
+
+		deploymentStatus := new(DeploymentStatus)
+		path := fmt.Sprintf("/api/v1/app/%s/status", cfg.Name)
+
+		statusUrl := host + path
+
+		resp, err := api.Resty.R().
+			SetHeader("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token)).
+			SetResult(&deploymentStatus).
+			Get(statusUrl)
+		if err != nil {
+			slog.Error(err.Error())
+			return err
+		}
+
+		if resp.IsError() {
+			return fmt.Errorf("client/server error: %s", resp.String())
+		}
+
 		status := appStatus{
-			File:         file,
-			AppName:      "my-app",
-			Environment:  "production",
-			Status:       "Running",
-			Pods:         3,
-			CPUUsage:     "210m",
-			MemUsage:     "380Mi",
-			AvgLatency:   "87ms",
-			ExternalURL:  "https://your-app.loco.run",
-			DeployedAt:   "2025-06-29 13:00 EST",
-			DeployedBy:   "nikhil@company.com",
-			TLSStatus:    "Secured (Expires: 2025-09-01)",
-			HealthStatus: "Passing",
-			Autoscaling:  "Enabled (Min: 1, Max: 5)",
-			Replicas:     "2 desired / 2 ready",
+			DeploymentStatus: *deploymentStatus,
+			File:             file,
+			AppName:          cfg.Name,
+			Environment:      "production",
 		}
 
 		if output == "json" {
@@ -52,26 +121,28 @@ var statusCmd = &cobra.Command{
 func init() {
 	statusCmd.Flags().StringP("file", "f", "", "Load configuration from FILE")
 	statusCmd.Flags().StringP("output", "o", "ux", "Output format: ux | json")
+	statusCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
 }
 
 // --- Data Model ---
 
 type appStatus struct {
-	File         string `json:"file"`
-	AppName      string `json:"appName"`
-	Environment  string `json:"environment"`
-	Status       string `json:"status"`
-	Pods         int    `json:"pods"`
-	CPUUsage     string `json:"cpuUsage"`
-	MemUsage     string `json:"memUsage"`
-	AvgLatency   string `json:"avgLatency"`
-	ExternalURL  string `json:"externalUrl"`
-	DeployedAt   string `json:"deployedAt"`
-	DeployedBy   string `json:"deployedBy"`
-	TLSStatus    string `json:"tlsStatus"`
-	HealthStatus string `json:"healthStatus"`
-	Autoscaling  string `json:"autoscaling"`
-	Replicas     string `json:"replicas"`
+	DeploymentStatus
+	File        string `json:"file"`
+	AppName     string `json:"appName"`
+	Environment string `json:"environment"`
+	// Status       string `json:"status"`
+	// Pods         int    `json:"pods"`
+	// CPUUsage     string `json:"cpuUsage"`
+	// MemUsage     string `json:"memUsage"`
+	// AvgLatency   string `json:"avgLatency"`
+	// ExternalURL  string `json:"externalUrl"`
+	// DeployedAt   string `json:"deployedAt"`
+	// DeployedBy   string `json:"deployedBy"`
+	// TLSStatus    string `json:"tlsStatus"`
+	// HealthStatus string `json:"healthStatus"`
+	// Autoscaling  string `json:"autoscaling"`
+	// Replicas     string `json:"replicas"`
 }
 
 func printJSON(status appStatus) error {
@@ -125,22 +196,27 @@ func (m statusModel) View() string {
 		Padding(1, 2).
 		Margin(1, 2)
 
+	readyReplicas := strconv.Itoa(int(m.status.ReadyReplicas))
+
+	replicaSummary := fmt.Sprintf("%d / %d / %d", m.status.MinReplicas, m.status.DesiredReplicas, m.status.MaxReplicas)
+
 	content := fmt.Sprintf(
-		"%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		"%s %s\n%s %s\n%s %s\n%s %d\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
 		labelStyle.Render("App:"), valueStyle.Render(m.status.AppName),
 		labelStyle.Render("Environment:"), valueStyle.Render(m.status.Environment),
 		labelStyle.Render("Status:"), valueStyle.Render(m.status.Status),
-		labelStyle.Render("Pods:"), valueStyle.Render(fmt.Sprintf("%d", m.status.Pods)),
+		labelStyle.Render("Pods:"), m.status.Pods,
 		labelStyle.Render("CPU Usage:"), valueStyle.Render(m.status.CPUUsage),
-		labelStyle.Render("Memory:"), valueStyle.Render(m.status.MemUsage),
-		labelStyle.Render("Latency:"), valueStyle.Render(m.status.AvgLatency),
-		labelStyle.Render("URL:"), valueStyle.Render(m.status.ExternalURL),
-		labelStyle.Render("Deployed At:"), valueStyle.Render(m.status.DeployedAt),
+		labelStyle.Render("Memory:"), valueStyle.Render(m.status.MemoryUsage),
+		labelStyle.Render("Latency:"), valueStyle.Render(m.status.Latency),
+		labelStyle.Render("URL:"), valueStyle.Render(m.status.URL),
+		labelStyle.Render("Deployed At:"), valueStyle.Render(m.status.DeployedAt.String()),
 		labelStyle.Render("Deployed By:"), valueStyle.Render(m.status.DeployedBy),
-		labelStyle.Render("TLS:"), valueStyle.Render(m.status.TLSStatus),
-		labelStyle.Render("Health:"), valueStyle.Render(m.status.HealthStatus),
-		labelStyle.Render("Autoscaling:"), valueStyle.Render(m.status.Autoscaling),
-		labelStyle.Render("Replicas:"), valueStyle.Render(m.status.Replicas),
+		labelStyle.Render("TLS:"), valueStyle.Render(m.status.TLS),
+		labelStyle.Render("Health:"), valueStyle.Render(m.status.Health),
+		labelStyle.Render("Autoscaling:"), valueStyle.Render(strconv.FormatBool(m.status.Autoscaling)),
+		labelStyle.Render("Ready Replicas:"), valueStyle.Render(readyReplicas),
+		labelStyle.Render("Replicas (Min/Desired/Max):"), valueStyle.Render(replicaSummary),
 	)
 
 	return titleStyle.Render("Application Status") + "\n" +

@@ -43,7 +43,7 @@ var logsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		fmt.Println("we got till here")
+
 		client := api.NewClient(host)
 		ctx, cancel := context.WithCancel(context.Background())
 

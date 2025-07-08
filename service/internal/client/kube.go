@@ -742,13 +742,12 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		slog.WarnContext(ctx, "Failed to get certificate expiry", "error", err)
 	}
 
-	// Build final response
 	return &DeploymentStatus{
 		Status:          status,
 		Pods:            len(pods.Items),
-		CPUUsage:        "N/A", // Metrics API integration needed for live usage
-		MemoryUsage:     "N/A", // Metrics API integration needed for live usage
-		Latency:         "N/A", // Optional: can pull from service mesh or internal metrics
+		CPUUsage:        "N/A",
+		MemoryUsage:     "N/A",
+		Latency:         "N/A",
 		URL:             fmt.Sprintf("https://%s", hostname),
 		DeployedAt:      createdAt,
 		DeployedBy:      createdBy,

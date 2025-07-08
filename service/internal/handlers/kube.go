@@ -29,6 +29,7 @@ func BuildAppRouter(app *fiber.App, ac *models.AppConfig, kc *client.KubernetesC
 
 	api.Post("", deployApp(ac, kc))
 	api.Get("/:appName/logs", appLogs(kc))
+	api.Get("/:appName/status", appStatus(kc))
 }
 
 func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler {
@@ -242,5 +243,28 @@ func appLogs(kc *client.KubernetesClient) fiber.Handler {
 		}))
 
 		return nil
+	}
+}
+
+func appStatus(kc *client.KubernetesClient) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		appName := c.Params("appName")
+
+		user, ok := c.Locals("user").(string)
+
+		if !ok {
+			slog.ErrorContext(c.Context(), "could not determine user. should never happen")
+			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not determine user")
+		}
+
+		namespace := client.GenerateNameSpace(appName, user)
+
+		deploymentStatus, err := kc.GetDeploymentStatus(c.Context(), namespace, appName)
+		if err != nil {
+			slog.ErrorContext(c.Context(), err.Error())
+			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not fetch deployment status")
+		}
+
+		return c.Status(fiber.StatusOK).JSON(deploymentStatus)
 	}
 }
