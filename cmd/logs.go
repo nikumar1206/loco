@@ -24,11 +24,11 @@ var logsCmd = &cobra.Command{
 			return fmt.Errorf("error reading dev flag: %w", err)
 		}
 
-		var host string
-		if isDev {
-			host = "http://localhost:8000"
-		} else {
-			host = "https://loco.deploy-app.com"
+		host := determineHost(isDev)
+
+		locoToken, err := getLocoToken()
+		if err != nil {
+			return err
 		}
 
 		configPath, err := cmd.Flags().GetString("config")
@@ -76,7 +76,7 @@ var logsCmd = &cobra.Command{
 		errChan := make(chan error)
 
 		// start the http stream
-		go client.StreamLogs(ctx, "", cfg.Name, logsChan, errChan)
+		go client.StreamLogs(ctx, locoToken.Token, cfg.Name, logsChan, errChan)
 
 		m := logModel{
 			table:     t,

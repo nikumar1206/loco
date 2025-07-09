@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/user"
 	"strconv"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
-	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -48,12 +46,7 @@ var statusCmd = &cobra.Command{
 			return fmt.Errorf("error reading dev flag: %w", err)
 		}
 
-		var host string
-		if isDev {
-			host = "http://localhost:8000"
-		} else {
-			host = "https://loco.deploy-app.com"
-		}
+		host := determineHost(isDev)
 
 		configPath, err := cmd.Flags().GetString("config")
 		if err != nil {
@@ -67,17 +60,10 @@ var statusCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		usr, err := user.Current()
-		if err != nil {
-			return err
-		}
-		locoToken, err := keychain.GetGithubToken(usr.Name)
-		if err != nil {
-			return err
-		}
 
-		if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
-			return fmt.Errorf("token is expired or will expire soon. Please re-login via `loco login`")
+		locoToken, err := getLocoToken()
+		if err != nil {
+			return err
 		}
 
 		deploymentStatus := new(DeploymentStatus)

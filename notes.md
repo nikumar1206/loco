@@ -1,7 +1,8 @@
 ## High Priority
 
 - Build out the database structure (teams, users, apps, deployments, events)
-- Do not deploy image if Docker Scout or vulnerabilities are detected
+- Do not deploy image if vulnerabilities are detected
+  - best option is likely trivy, but if we start doing this, we should already have moved image building to our backend
 - Implement RBAC for strict permission control
   - this is more of a general statement than an actionable item.
 - Start monitoring/log exporting? with `loco-api`.
@@ -9,6 +10,10 @@
 - Provide a way to deliver logs back to users
 - Unhappy paths should offer clear, actionable steps
 - theoretically need a development cluster, followed by a production cluster.
+- look into connectRPC for API server/client code generation. also supports streaming
+- logs should take an output flag so they can be serialized to JSON and users can jq
+  - should also have a simple yank command to grab the whole log as json
+  - if we ever introduce streaming in real time, we should include a freeze
 
 ---
 
@@ -32,7 +37,8 @@
 
 ## Low Priority
 
-- Add potential CLI commands: `docs`, `variables`, `login`, `account`
+- Add potential CLI commands: `docs`, `env`, `account`
+
 - Make brew package for CLI with auto shell completions
 - Enable deployment to path prefixes (`/api`, `/`, etc.)
 - Auto-fill default `loco.toml` values if omitted
@@ -81,3 +87,5 @@
 - how are we handling security patches?
 - loco versions will need to not break previous apps deployed.
   - loco.toml should take in some sort of versioning ability
+- Somehow already need to start cleaning the code up.
+  - API code is horrendous tbh
