@@ -72,6 +72,9 @@ var Default = Config{
 }
 
 func Create(c Config) error {
+	if _, err := os.Stat("loco.toml"); !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("file already exists")
+	}
 	file, err := os.Create("loco.toml")
 	if err != nil {
 		return err

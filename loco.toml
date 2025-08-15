@@ -3,8 +3,9 @@ Port = 8000
 Subdomain = "myapp"
 DockerfilePath = "Dockerfile"
 EnvFile = ".env"
+ProjectPath = "."
 CPU = "100m"
-Memory = "100Mi"
+Memory = "512Mi"
 
 [Replicas]
   Max = 1

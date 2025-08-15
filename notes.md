@@ -89,3 +89,4 @@
   - loco.toml should take in some sort of versioning ability
 - Somehow already need to start cleaning the code up.
   - API code is horrendous tbh
+- also gitlab fetch token is only valid at deployment. what if new node comes in and needs to pull down image, it cannot since gitlab token expires in like 5 mins.
