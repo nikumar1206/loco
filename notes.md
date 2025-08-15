@@ -77,7 +77,6 @@
 - Fix endpoints to follow RESTful conventions (`POST /api/v1/app` should deploy)
 - Investigate OOM issues
 - Evaluate whether to install metrics-server
-- Rename `loco-setup` to `loco-system`
 - Improve logging with contextual information
 - Cleanup deployApp and GitHub callback code
 - Ensure image build failures are correctly reported
