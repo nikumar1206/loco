@@ -1,31 +1,38 @@
 ## High Priority
 
-- Build out the database structure (teams, users, apps, deployments, events)
-- Do not deploy image if vulnerabilities are detected
-  - best option is likely trivy, but if we start doing this, we should already have moved image building to our backend
+- Flesh out the database structure (teams, users, apps, deployments, events)
+- Detect project language and build accordingly. build the docker file on our server.
+    - Python, Go, Javascript/TypeScript
+    - Cache Docker layers per project
 - Implement RBAC for strict permission control
   - this is more of a general statement than an actionable item.
-- Start monitoring/log exporting? with `loco-api`.
-- Loco admins should have no access to user pod logs
-- Provide a way to deliver logs back to users
-- Unhappy paths should offer clear, actionable steps
-- theoretically need a development cluster, followed by a production cluster.
+- Monitoring
+    - implement e2e monitoring, starting with envoy-proxy, loco-api.
+    - take what i learn and apply to user pod monitoring as well
+    - Switch to `kube-prometheus-stack` (remove `eg-addons`)
+    - Configure `ServiceMonitor` manually for Envoy
+    - Set up monitoring with non-emptyDir, idk what this means
+    - Stick to open standards: Prometheus / Grafana / OpenTelemetry
+- Logging
+    - implement e2e logging, starting with envoy-proxy, loco-api.
+    - take what i learn and apply to user pod logging as well
+    - logs should only be visible to the person owning the project.
+- theoretically need 2 clusters for loco development; a dev cluster, and a prod cluster.
+    - should users have some sort of environment feature?
+
 - look into connectRPC for API server/client code generation. also supports streaming
-- logs should take an output flag so they can be serialized to JSON and users can jq
+- logs cmd should take an output flag so they can be serialized as JSON and users can use jq
   - should also have a simple yank command to grab the whole log as json
-  - if we ever introduce streaming in real time, we should include a freeze
+  - if we ever introduce streaming logs in real time, we should include a freeze
+
+- Support and test different deployment types: UI, cache (Redis), DB, Blob
+- Tracing
+    - deferring for now, don't have an idea for this.
 
 ---
 
 ## Medium Priority
 
-- Support common deployments: UI, cache (Redis), DB, blob
-- Switch to `kube-prometheus-stack` (remove `eg-addons`)
-- Configure `ServiceMonitor` manually for Envoy
-- Set up monitoring with non-emptyDir
-- Stick to open standards: Prometheus / Grafana / OpenTelemetry
-- Defer tracing to future
-- Cache Docker layers per project
 - Set registry lifecycle policy (start with 6 months)
 - Require image prefixing with random hash
 - Only allow registry writes from our infra, not reads
@@ -67,6 +74,7 @@
 - Respect/Allow specifying .dockerignore files / .gitignore files when building container images.
 - Add multi-port container support
   - super low prio. i can see the usecase, but pref one entry point for simplicity
+- Unhappy paths should offer clear, actionable steps
 
 ---
 
