@@ -25,7 +25,7 @@ func (c *Client) GetDeployToken(ctx fiber.Ctx, registryPat string, projectId str
 		"PRIVATE-TOKEN": registryPat,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx.Context(), "Error creating deploy token", slog.String("err", err.Error()))
+		slog.ErrorContext(ctx, "Error creating deploy token", slog.String("err", err.Error()))
 		return nil, err
 	}
 

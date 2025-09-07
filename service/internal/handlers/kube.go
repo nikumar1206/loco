@@ -37,13 +37,13 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		var request DeployAppRequest
 
 		if err := c.Bind().JSON(&request); err != nil {
-			slog.ErrorContext(c.Context(), "invalid json body", "error", err.Error())
+			slog.ErrorContext(c, "invalid json body", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Invalid Input")
 		}
 		request.LocoConfig.FillSensibleDefaults()
 		// validate the locoConfig
 		if err := request.LocoConfig.Validate(); err != nil {
-			slog.ErrorContext(c.Context(), "Invalid locoConfig", "error", err.Error())
+			slog.ErrorContext(c, "Invalid locoConfig", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Invalid locoConfig")
 		}
 		// need to only create the loco app if it already does not exist
@@ -51,21 +51,21 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		banned := client.IsBannedSubDomain(request.LocoConfig.Subdomain)
 
 		if banned {
-			slog.ErrorContext(c.Context(), "banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
+			slog.ErrorContext(c, "banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
 			return utils.SendErrorResponse(c, http.StatusBadRequest, "Provided subdomain is not allowed. Please choose another")
 		}
 		user, _ := c.Locals("user").(string)
 
 		app := client.NewLocoApp(request.LocoConfig.Name, request.LocoConfig.Subdomain, user, request.ContainerImage, request.EnvVars, request.LocoConfig)
 		// we need to check if this service exists.
-		exists, err := kc.CheckServiceExists(c.Context(), app.Namespace, app.Name)
+		exists, err := kc.CheckServiceExists(c, app.Namespace, app.Name)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to check if service already exists.")
 		}
 
 		if exists {
-			slog.InfoContext(c.Context(), "service exists, we will update in-place")
+			slog.InfoContext(c, "service exists, we will update in-place")
 			expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 
 			payload := map[string]any{
@@ -75,7 +75,7 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 			}
 			gitlabResp, err := client.NewClient(ac.GitlabURL).GetDeployToken(c, ac.GitlabPAT, ac.ProjectID, payload)
 			if err != nil {
-				slog.ErrorContext(c.Context(), err.Error())
+				slog.ErrorContext(c, err.Error())
 				return utils.SendErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 			}
 
@@ -87,18 +87,18 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 			}
 
 			err = kc.UpdateDockerPullSecret(
-				c.Context(),
+				c,
 				app,
 				registry,
 			)
 			if err != nil {
-				slog.ErrorContext(c.Context(), err.Error())
+				slog.ErrorContext(c, err.Error())
 				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to contact container registry")
 			}
 
-			err = kc.UpdateContainer(c.Context(), app)
+			err = kc.UpdateContainer(c, app)
 			if err != nil {
-				slog.ErrorContext(c.Context(), err.Error())
+				slog.ErrorContext(c, err.Error())
 				return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to update Docker image of service")
 			}
 
@@ -107,9 +107,9 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 			})
 		}
 
-		_, err = kc.CreateNS(c.Context(), app)
+		_, err = kc.CreateNS(c, app)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create namespace")
 		}
 
@@ -137,53 +137,53 @@ func deployApp(ac *models.AppConfig, kc *client.KubernetesClient) fiber.Handler 
 		}
 
 		err = kc.CreateDockerPullSecret(
-			c.Context(),
+			c,
 			app,
 			registry,
 		)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to generate credentials")
 		}
 
-		envSecret, err := kc.CreateSecret(c.Context(), app)
+		envSecret, err := kc.CreateSecret(c, app)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create deployment")
 		}
 
-		_, err = kc.CreateRole(c.Context(), app, envSecret)
+		_, err = kc.CreateRole(c, app, envSecret)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create role")
 		}
 
-		_, err = kc.CreateServiceAccount(c.Context(), app)
+		_, err = kc.CreateServiceAccount(c, app)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create service account")
 		}
 
-		_, err = kc.CreateRoleBinding(c.Context(), app)
+		_, err = kc.CreateRoleBinding(c, app)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create role binding")
 		}
 
-		_, err = kc.CreateDeployment(c.Context(), app, request.ContainerImage, envSecret)
+		_, err = kc.CreateDeployment(c, app, request.ContainerImage, envSecret)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create deployment")
 		}
 
-		_, err = kc.CreateService(c.Context(), app)
+		_, err = kc.CreateService(c, app)
 		if err != nil {
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create service")
 		}
 
-		_, err = kc.CreateHTTPRoute(c.Context(), app)
+		_, err = kc.CreateHTTPRoute(c, app)
 		if err != nil {
-			slog.ErrorContext(c.Context(), "oops something wrong", "error", err.Error())
+			slog.ErrorContext(c, "oops something wrong", "error", err.Error())
 			return utils.SendErrorResponse(c, http.StatusInternalServerError, "failed to create http route")
 		}
 
@@ -200,7 +200,7 @@ func appLogs(kc *client.KubernetesClient) fiber.Handler {
 		user, ok := c.Locals("user").(string)
 
 		if !ok {
-			slog.ErrorContext(c.Context(), "could not determine user. should never happen")
+			slog.ErrorContext(c, "could not determine user. should never happen")
 			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not determine user")
 		}
 
@@ -219,9 +219,9 @@ func appLogs(kc *client.KubernetesClient) fiber.Handler {
 		c.Set("Connection", "keep-alive")
 		c.Set("Transfer-Encoding", "chunked")
 
-		logLines, err := kc.GetServiceLogs(c.Context(), namespace, appName, tailLines)
+		logLines, err := kc.GetServiceLogs(c, namespace, appName, tailLines)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 		}
 
@@ -229,14 +229,14 @@ func appLogs(kc *client.KubernetesClient) fiber.Handler {
 			for _, line := range logLines {
 				jsonData, err := json.Marshal(line)
 				if err != nil {
-					slog.ErrorContext(c.Context(), err.Error())
+					slog.ErrorContext(c, err.Error())
 					fmt.Fprintf(w, "data: %s\n\n", err.Error())
 					break
 				}
 				fmt.Fprintf(w, "data: %s\n\n", jsonData)
 				err = w.Flush()
 				if err != nil {
-					slog.ErrorContext(c.Context(), err.Error())
+					slog.ErrorContext(c, err.Error())
 					break
 				}
 			}
@@ -253,15 +253,15 @@ func appStatus(kc *client.KubernetesClient) fiber.Handler {
 		user, ok := c.Locals("user").(string)
 
 		if !ok {
-			slog.ErrorContext(c.Context(), "could not determine user. should never happen")
+			slog.ErrorContext(c, "could not determine user. should never happen")
 			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not determine user")
 		}
 
 		namespace := client.GenerateNameSpace(appName, user)
 
-		deploymentStatus, err := kc.GetDeploymentStatus(c.Context(), namespace, appName)
+		deploymentStatus, err := kc.GetDeploymentStatus(c, namespace, appName)
 		if err != nil {
-			slog.ErrorContext(c.Context(), err.Error())
+			slog.ErrorContext(c, err.Error())
 			return utils.SendErrorResponse(c, fiber.StatusInternalServerError, "could not fetch deployment status")
 		}
 

@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -40,11 +39,7 @@ func GithubTokenValidator() fiber.Handler {
 		cachedUser, found := TokenCache.Get(token)
 		if found {
 			usr := cachedUser.(string)
-
 			c.Locals("user", usr)
-			ctx := context.WithValue(c.Context(), "user", usr)
-			c.SetContext(ctx)
-
 			return c.Next()
 		}
 
@@ -67,9 +62,6 @@ func GithubTokenValidator() fiber.Handler {
 
 		TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
 		c.Locals("user", user.Login)
-
-		ctx := context.WithValue(c.Context(), "user", user.Login)
-		c.SetContext(ctx)
 
 		return c.Next()
 	}
