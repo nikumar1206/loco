@@ -14,4 +14,3 @@ resource "digitalocean_kubernetes_cluster" "loco" {
     max_nodes  = 3
   }
 }
-
