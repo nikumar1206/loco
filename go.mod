@@ -3,6 +3,7 @@ module github.com/nikumar1206/loco
 go 1.24.0
 
 require (
+	connectrpc.com/connect v1.18.1
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.7
@@ -16,6 +17,7 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/spf13/cobra v1.10.1
 	github.com/zalando/go-keyring v0.2.6
+	google.golang.org/protobuf v1.36.8
 	resty.dev/v3 v3.0.0-beta.3
 )
 

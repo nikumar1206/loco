@@ -169,6 +169,11 @@ func (cfg *Config) Validate() error {
 	if cfg.EnvFile != "" && !fileExists(cfg.EnvFile) {
 		return fmt.Errorf("provided env path could not be resolved. Please provide path to a valid environments file")
 	}
+
+	if cfg.Scalers.CPUTarget != 0 && cfg.Scalers.MemoryTarget != 0 {
+		return fmt.Errorf("only one scaler config should be provided.")
+	}
+
 	return nil
 }
 
