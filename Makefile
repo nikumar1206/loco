@@ -45,9 +45,6 @@ reload-service:
 reload-cli:
 	@(air --build.cmd "go build -o loco ." --build.bin "./loco")
 
-deploy: clean ## trigger loco deploy.
-	@(go run cmd/* deploy)
-
 lint: clean
 	@(golangci-lint run)
 

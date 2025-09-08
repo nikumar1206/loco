@@ -171,7 +171,7 @@ func (cfg *Config) Validate() error {
 	}
 
 	if cfg.Scalers.CPUTarget != 0 && cfg.Scalers.MemoryTarget != 0 {
-		return fmt.Errorf("only one scaler config should be provided.")
+		return fmt.Errorf("only one scaler config should be provided")
 	}
 
 	return nil
