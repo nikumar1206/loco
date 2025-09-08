@@ -47,3 +47,6 @@ archive/**
 
 
 .DS_Store
+
+
+scratch*.txt

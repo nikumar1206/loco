@@ -25,7 +25,7 @@ type User struct {
 func GithubTokenValidator() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// skip auth for these endpoints
-		if c.Path() == "/api/v1/oauth/github" {
+		if c.Path() == "/api/v1/oauth/github" || strings.Contains(c.Path(), "GithubOAuthDetails") {
 			return c.Next()
 		}
 

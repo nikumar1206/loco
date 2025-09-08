@@ -60,7 +60,7 @@ func (*GithubOAuthDetailsRequest) Descriptor() ([]byte, []int) {
 type GithubOAuthDetailsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ClientId      string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	TokenTtl      float32                `protobuf:"fixed32,2,opt,name=token_ttl,json=tokenTtl,proto3" json:"token_ttl,omitempty"`
+	TokenTtl      float64                `protobuf:"fixed64,2,opt,name=token_ttl,json=tokenTtl,proto3" json:"token_ttl,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -102,7 +102,7 @@ func (x *GithubOAuthDetailsResponse) GetClientId() string {
 	return ""
 }
 
-func (x *GithubOAuthDetailsResponse) GetTokenTtl() float32 {
+func (x *GithubOAuthDetailsResponse) GetTokenTtl() float64 {
 	if x != nil {
 		return x.TokenTtl
 	}
@@ -117,7 +117,7 @@ const file_proto_oauth_v1_oauth_proto_rawDesc = "" +
 	"\x19GithubOAuthDetailsRequest\"V\n" +
 	"\x1aGithubOAuthDetailsResponse\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1b\n" +
-	"\ttoken_ttl\x18\x02 \x01(\x02R\btokenTtl2}\n" +
+	"\ttoken_ttl\x18\x02 \x01(\x01R\btokenTtl2}\n" +
 	"\fOAuthService\x12m\n" +
 	"\x12GithubOAuthDetails\x12).proto.oauth.v1.GithubOAuthDetailsRequest\x1a*.proto.oauth.v1.GithubOAuthDetailsResponse\"\x00B4Z2github.com/nikumar1206/loco/proto/oauth/v1;oauthv1b\x06proto3"
 

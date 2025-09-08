@@ -1,16 +1,21 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os/user"
 	"time"
 
+	"connectrpc.com/connect"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
+	oAuth "github.com/nikumar1206/loco/proto/oauth/v1"
+	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
 	"github.com/spf13/cobra"
 )
 
@@ -77,25 +82,21 @@ var testCmd = &cobra.Command{
 
 		var host string
 		if isDev {
-			host = "http://localhost:8000"
+			// for now hardcoding to connect RPC port.
+			host = "http://localhost:8080"
 		} else {
 			host = "https://loco.deploy-app.com"
 		}
 
-		locoClient := api.NewClient(host)
-
-		res, err := locoClient.Get("/api/v1/oauth/github", nil)
-		if err != nil {
-			return err
-		}
-		tokenDetails := new(TokenDetails)
-		err = json.Unmarshal(res, tokenDetails)
+		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host, connect.WithHTTPGet())
+		fmt.Println("using the new grpc client")
+		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
 			return err
 		}
 
 		payload := DeviceCodeRequest{
-			ClientId: tokenDetails.ClientId,
+			ClientId: resp.Msg.ClientId,
 			Scope:    "read:user",
 		}
 
@@ -119,6 +120,7 @@ var testCmd = &cobra.Command{
 		go func() {
 			err := pollAuthToken(c, payload.ClientId, deviceTokenResponse.DeviceCode, deviceTokenResponse.Interval, tokenChan)
 			if err != nil {
+				fmt.Println("there was err", err.Error())
 				errorChan <- err
 			}
 		}()
@@ -140,7 +142,7 @@ var testCmd = &cobra.Command{
 			keychain.SetGithubToken(user.Name, keychain.UserToken{
 				Token: finalM.tokenResp.AccessToken,
 				// subtract 10 mins?
-				ExpiresAt: time.Now().Add(time.Duration(tokenDetails.TokenTTL)*time.Second - (10 * time.Minute)),
+				ExpiresAt: time.Now().Add(time.Duration(resp.Msg.TokenTtl)*time.Second - (10 * time.Minute)),
 			})
 		}
 

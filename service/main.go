@@ -4,17 +4,23 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 
+	"connectrpc.com/grpcreflect"
 	"github.com/dusted-go/logging/prettylog"
 	json "github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/handlers"
 	"github.com/nikumar1206/loco/service/internal/middlewares"
 	"github.com/nikumar1206/loco/service/internal/models"
 	"github.com/nikumar1206/loco/service/internal/utils"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func newAppConfig() *models.AppConfig {
@@ -57,6 +63,29 @@ func main() {
 	handlers.BuildOauthRouter(app, ac)
 
 	routes := app.GetRoutes(true)
+
+	path, handler := oauthv1connect.NewOAuthServiceHandler(new(handlers.OAuthServer))
+
+	newOAuthHandler := adaptor.HTTPHandler(handler)
+	app.Use(path, newOAuthHandler)
+
+	// todo: cleanup, but leaving here for e2e testing
+	go func() {
+		mux := http.NewServeMux()
+		reflector := grpcreflect.NewStaticReflector(
+			oauthv1connect.OAuthServiceGithubOAuthDetailsProcedure,
+		)
+		mux.Handle(grpcreflect.NewHandlerV1(reflector))
+		// Many tools still expect the older version of the server reflection API, so
+		// most servers should mount both handlers.
+		mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
+		mux.Handle(path, handler)
+		http.ListenAndServe(
+			"localhost:8080",
+			// Use h2c so we can serve HTTP/2 without TLS.
+			h2c.NewHandler(mux, &http2.Server{}),
+		)
+	}()
 
 	for _, route := range routes {
 		fmt.Printf("%s %s\n", route.Method, route.Path)
