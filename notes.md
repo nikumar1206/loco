@@ -2,32 +2,34 @@
 
 - Flesh out the database structure (teams, users, apps, deployments, events)
 - Detect project language and build accordingly. build the docker file on our server.
-    - Python, Go, Javascript/TypeScript
-    - Cache Docker layers per project
+  - Python, Go, Javascript/TypeScript
+  - Cache Docker layers per project
 - Implement RBAC for strict permission control
   - this is more of a general statement than an actionable item.
 - Monitoring
-    - implement e2e monitoring, starting with envoy-proxy, loco-api.
-    - take what i learn and apply to user pod monitoring as well
-    - Switch to `kube-prometheus-stack` (remove `eg-addons`)
-    - Configure `ServiceMonitor` manually for Envoy
-    - Set up monitoring with non-emptyDir, idk what this means
-    - Stick to open standards: Prometheus / Grafana / OpenTelemetry
+  - implement e2e monitoring, starting with envoy-proxy, loco-api.
+  - take what i learn and apply to user pod monitoring as well
+  - Switch to `kube-prometheus-stack` (remove `eg-addons`)
+  - Configure `ServiceMonitor` manually for Envoy
+  - Set up monitoring with non-emptyDir, idk what this means
+  - Stick to open standards: Prometheus / Grafana / OpenTelemetry
 - Logging
-    - implement e2e logging, starting with envoy-proxy, loco-api.
-    - take what i learn and apply to user pod logging as well
-    - logs should only be visible to the person owning the project.
+  - implement e2e logging, starting with envoy-proxy, loco-api.
+  - take what i learn and apply to user pod logging as well
+  - logs should only be visible to the person owning the project.
 - theoretically need 2 clusters for loco development; a dev cluster, and a prod cluster.
-    - should users have some sort of environment feature?
+
+  - should users have some sort of environment feature?
 
 - look into connectRPC for API server/client code generation. also supports streaming
 - logs cmd should take an output flag so they can be serialized as JSON and users can use jq
+
   - should also have a simple yank command to grab the whole log as json
   - if we ever introduce streaming logs in real time, we should include a freeze
 
 - Support and test different deployment types: UI, cache (Redis), DB, Blob
 - Tracing
-    - deferring for now, don't have an idea for this.
+  - deferring for now, don't have an idea for this.
 
 ---
 
@@ -82,7 +84,6 @@
 
 - Add endpoints for getting logs and app status
 - Enhance deploy endpoint to fail on redeploy (CLI side)
-- Fix endpoints to follow RESTful conventions (`POST /api/v1/app` should deploy)
 - Investigate OOM issues
 - Evaluate whether to install metrics-server
 - Improve logging with contextual information
