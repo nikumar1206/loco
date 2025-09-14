@@ -3,15 +3,19 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os/user"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/docker"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
+	registryv1 "github.com/nikumar1206/loco/proto/registry/v1"
+	registryv1connect "github.com/nikumar1206/loco/proto/registry/v1/registryv1connect"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +36,7 @@ func init() {
 
 func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 	var err error
-	var tokenResponse api.DeployTokenResponse
+	var tokenResponse *connect.Response[registryv1.GitlabTokenResponse]
 
 	usr, err := user.Current()
 	if err != nil {
@@ -59,11 +63,10 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
+	if err := config.Validate(cfg.LocoConfig); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
-
-	cfg.FillSensibleDefaults()
+	config.FillSensibleDefaults(cfg.LocoConfig)
 
 	cfgValid := lipgloss.NewStyle().
 		Foreground(ui.LocoLightGreen).
@@ -90,15 +93,20 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 
 	apiClient := api.NewClient(host)
 
+	registryClient := registryv1connect.NewRegistryServiceClient(http.DefaultClient, host)
+
 	steps := []ui.Step{
 		{
 			Title: "Fetch deploy token",
 			Run: func(logf func(string)) error {
-				tokenResponse, err = apiClient.GetDeployToken(locoToken.Token)
-				dockerCli.GenerateImageTag(tokenResponse.Image)
+				req := connect.NewRequest(&registryv1.GitlabTokenRequest{})
+				req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+
+				tokenResponse, err = registryClient.GitlabToken(context.Background(), req)
 				if err != nil {
 					return err
 				}
+				dockerCli.GenerateImageTag(tokenResponse.Msg.Image)
 				return nil
 			},
 		},
@@ -114,7 +122,7 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		{
 			Title: "Push image to registry",
 			Run: func(logf func(string)) error {
-				if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Username, tokenResponse.Password); err != nil {
+				if err := dockerCli.PushImage(context.Background(), logf, tokenResponse.Msg.GetUsername(), tokenResponse.Msg.GetToken()); err != nil {
 					return fmt.Errorf("failed to push Docker image: %w", err)
 				}
 				return nil
@@ -123,6 +131,8 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		{
 			Title: "Create Kubernetes deployment",
 			Run: func(logf func(string)) error {
+				// todo: cleanup how we pass variables around, why should this be dockercli.image?
+				// and why would this be generated client side?
 				return apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken.Token, logf)
 			},
 		},
@@ -134,8 +144,14 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 	s := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 Deployment scheduled!") + "\n"
+		Render("\n🎉 Deployment scheduled!")
 
-	fmt.Print(s)
+	fmt.Println(s)
+
+	s = lipgloss.NewStyle().
+		Foreground(ui.LocoOrange).
+		Render("\nYou can track deployment status by running `loco status`")
+	fmt.Println(s)
+
 	return nil
 }

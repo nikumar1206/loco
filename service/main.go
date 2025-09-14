@@ -8,12 +8,12 @@ import (
 	"os"
 	"strconv"
 
+	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/dusted-go/logging/prettylog"
-	json "github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
+	"github.com/nikumar1206/loco/proto/registry/v1/registryv1connect"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/handlers"
 	"github.com/nikumar1206/loco/service/internal/middlewares"
@@ -39,59 +39,58 @@ func newAppConfig() *models.AppConfig {
 }
 
 func main() {
-	app := fiber.New(fiber.Config{
-		JSONEncoder: json.Marshal,
-		JSONDecoder: json.Unmarshal,
-	})
 	ac := newAppConfig()
 
 	logger := slog.New(CustomHandler{Handler: getLoggerHandler(ac)})
 	slog.SetDefault(logger)
 
-	app.Get("/", func(c fiber.Ctx) error {
-		return c.SendString("Loco Deploy Token Service is running")
+	mux := http.NewServeMux()
+	interceptors := connect.WithInterceptors(middlewares.GithubTokenValidator())
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Loco Service is Running")
 	})
 
-	app.Use(middlewares.SetContext())
-	app.Use(middlewares.Timing())
-	app.Use(middlewares.GithubTokenValidator())
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Loco Service is Running")
+	})
 
 	kubernetesClient := client.NewKubernetesClient(ac.Env)
 
-	handlers.BuildRegistryRouter(app, ac)
-	handlers.BuildAppRouter(app, ac, kubernetesClient)
-	handlers.BuildOauthRouter(app, ac)
+	oAuthServiceHandler := &handlers.OAuthServer{}
+	registryServiceHandler := &handlers.RegistryServer{AppConfig: *ac}
+	appServiceHandler := &handlers.AppServer{AppConfig: *ac, Kc: *kubernetesClient}
 
-	routes := app.GetRoutes(true)
+	oauthPath, oauthHandler := oauthv1connect.NewOAuthServiceHandler(oAuthServiceHandler, interceptors)
+	registryPath, registryHandler := registryv1connect.NewRegistryServiceHandler(registryServiceHandler, interceptors)
+	appPath, appHandler := appv1connect.NewAppServiceHandler(appServiceHandler, interceptors)
 
-	path, handler := oauthv1connect.NewOAuthServiceHandler(new(handlers.OAuthServer))
+	reflector := grpcreflect.NewStaticReflector(
+		oauthv1connect.OAuthServiceGithubOAuthDetailsProcedure,
+		registryv1connect.RegistryServiceGitlabTokenProcedure,
+		appv1connect.AppServiceDeployAppProcedure,
+		appv1connect.AppServiceLogsProcedure,
+		appv1connect.AppServiceStatusProcedure,
+	)
 
-	newOAuthHandler := adaptor.HTTPHandler(handler)
-	app.Use(path, newOAuthHandler)
+	mux.Handle(grpcreflect.NewHandlerV1(reflector))
+	// Many tools still expect the older version of the server reflection API, so
+	// most servers should mount both handlers.
+	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
+	mux.Handle(oauthPath, oauthHandler)
+	mux.Handle(registryPath, registryHandler)
+	mux.Handle(appPath, appHandler)
 
-	// todo: cleanup, but leaving here for e2e testing
-	go func() {
-		mux := http.NewServeMux()
-		reflector := grpcreflect.NewStaticReflector(
-			oauthv1connect.OAuthServiceGithubOAuthDetailsProcedure,
-		)
-		mux.Handle(grpcreflect.NewHandlerV1(reflector))
-		// Many tools still expect the older version of the server reflection API, so
-		// most servers should mount both handlers.
-		mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
-		mux.Handle(path, handler)
-		http.ListenAndServe(
-			"localhost:8080",
-			// Use h2c so we can serve HTTP/2 without TLS.
-			h2c.NewHandler(mux, &http2.Server{}),
-		)
-	}()
+	muxWTiming := middlewares.Timing(mux)
+	muxWContext := middlewares.SetContext(muxWTiming)
 
-	for _, route := range routes {
-		fmt.Printf("%s %s\n", route.Method, route.Path)
-	}
-
-	log.Fatal(app.Listen(ac.PORT, fiber.ListenConfig{DisableStartupMessage: true}))
+	log.Fatal(http.ListenAndServe(
+		"localhost:8000",
+		// use h2c so we can serve HTTP/2 without TLS.
+		h2c.NewHandler(muxWContext, &http2.Server{}),
+	))
 }
 
 func getLoggerHandler(ac *models.AppConfig) slog.Handler {

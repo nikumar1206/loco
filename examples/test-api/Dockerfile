@@ -9,4 +9,6 @@ COPY main.py .
 
 EXPOSE 8000
 
+USER 99
+
 CMD ["python", "main.py"]

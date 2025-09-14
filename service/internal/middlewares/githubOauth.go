@@ -1,16 +1,16 @@
 package middlewares
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
+	"connectrpc.com/connect"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/models"
-	"github.com/nikumar1206/loco/service/internal/utils"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -22,47 +22,57 @@ type User struct {
 	Email string `json:"email"`
 }
 
-func GithubTokenValidator() fiber.Handler {
-	return func(c fiber.Ctx) error {
-		// skip auth for these endpoints
-		if c.Path() == "/api/v1/oauth/github" || strings.Contains(c.Path(), "GithubOAuthDetails") {
-			return c.Next()
-		}
+func GithubTokenValidator() connect.UnaryInterceptorFunc {
+	interceptor := func(next connect.UnaryFunc) connect.UnaryFunc {
+		return connect.UnaryFunc(func(
+			ctx context.Context,
+			req connect.AnyRequest,
+		) (connect.AnyResponse, error) {
+			if req.Spec().Procedure == "/proto.oauth.v1.OAuthService/GithubOAuthDetails" {
+				return next(ctx, req)
+			}
 
-		authHeader := c.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			return utils.SendErrorResponse(c, http.StatusUnauthorized, "Not Authorized")
-		}
+			authHeader := req.Header().Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				return nil, connect.NewError(
+					connect.CodeUnauthenticated,
+					errors.New("no token provided"),
+				)
+			}
+			token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token := strings.TrimPrefix(authHeader, "Bearer ")
+			if cachedUser, found := TokenCache.Get(token); found {
+				usr := cachedUser.(string)
+				c := context.WithValue(ctx, "user", usr)
+				return next(c, req)
+			}
 
-		cachedUser, found := TokenCache.Get(token)
-		if found {
-			usr := cachedUser.(string)
-			c.Locals("user", usr)
-			return c.Next()
-		}
+			user := new(User)
+			resp, err := client.Resty.R().
+				SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
+				SetHeader("Accept", "application/vnd.github+json").
+				SetResult(user).
+				Get("https://api.github.com/user")
+			if err != nil {
+				slog.Error(err.Error())
+				return nil, connect.NewError(
+					connect.CodeInternal,
+					err,
+				)
+			}
 
-		user := new(User)
+			if resp.IsError() {
+				slog.Error(resp.String())
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
+			}
 
-		resp, err := client.Resty.R().
-			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
-			SetHeader("Accept", "application/vnd.github+json").
-			SetResult(&user).
-			Get("https://api.github.com/user")
-		if err != nil {
-			slog.Error(err.Error())
-			return err
-		}
+			// cache the token
+			TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
 
-		if resp.IsError() {
-			slog.Error(resp.String())
-			return utils.SendErrorResponse(c, http.StatusUnauthorized, "Could not confirm identity")
-		}
-
-		TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
-		c.Locals("user", user.Login)
-
-		return c.Next()
+			// inject user login into context
+			c := context.WithValue(ctx, "user", user.Login)
+			return next(c, req)
+		})
 	}
+	return connect.UnaryInterceptorFunc(interceptor)
 }

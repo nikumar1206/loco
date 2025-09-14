@@ -1,61 +1,46 @@
 package handlers
 
 import (
+	"context"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
+	"connectrpc.com/connect"
+	registry "github.com/nikumar1206/loco/proto/registry/v1"
 	"github.com/nikumar1206/loco/service/internal/client"
 	"github.com/nikumar1206/loco/service/internal/models"
-	"github.com/nikumar1206/loco/service/internal/utils"
 )
 
-type DeployTokenResponse struct {
-	Username  string   `json:"username"`
-	Password  string   `json:"password"`
-	Registry  string   `json:"registry"`
-	Image     string   `json:"image"`
-	ExpiresAt string   `json:"expiresAt"`
-	Revoked   bool     `json:"revoked"`
-	Expired   bool     `json:"expired"`
-	Scopes    []string `json:"scopes"`
+type RegistryServer struct {
+	AppConfig models.AppConfig
 }
 
-// buildRegistryRouter houses APIs for interacting with container registry service (gitlab)
-func BuildRegistryRouter(app *fiber.App, appConfig *models.AppConfig) {
-	api := app.Group("/api/v1/registry")
-	api.Get("/token", createGetTokenHandler(appConfig))
-}
+func (s *RegistryServer) GitlabToken(
+	ctx context.Context, req *connect.Request[registry.GitlabTokenRequest],
+) (*connect.Response[registry.GitlabTokenResponse], error) {
+	projectId := s.AppConfig.ProjectID
+	tokenName := s.AppConfig.DeployTokenName
 
-func createGetTokenHandler(appConfig *models.AppConfig) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		projectId := appConfig.ProjectID
-		tokenName := appConfig.DeployTokenName
+	expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 
-		expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
-
-		payload := map[string]any{
-			"name":       tokenName,
-			"scopes":     []string{"write_registry", "read_registry"},
-			"expires_at": expiry,
-		}
-
-		gitlabResp, err := client.NewClient(appConfig.GitlabURL).GetDeployToken(c, appConfig.GitlabPAT, projectId, payload)
-		if err != nil {
-			return utils.SendErrorResponse(
-				c, fiber.StatusInternalServerError, err.Error(),
-			)
-		}
-
-		res := DeployTokenResponse{
-			Username:  gitlabResp.Username,
-			Password:  gitlabResp.Token,
-			Registry:  "registry.gitlab.com",
-			Image:     "registry.gitlab.com/locomotive-group/loco-ecr",
-			ExpiresAt: gitlabResp.ExpiresAt,
-			Revoked:   gitlabResp.Revoked,
-			Expired:   gitlabResp.Expired,
-			Scopes:    gitlabResp.Scopes,
-		}
-		return c.JSON(res)
+	payload := map[string]any{
+		"name":       tokenName,
+		"scopes":     []string{"write_registry", "read_registry"},
+		"expires_at": expiry,
 	}
+
+	gitlabResp, err := client.NewClient(s.AppConfig.GitlabURL).GetDeployToken(ctx, s.AppConfig.GitlabPAT, projectId, payload)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	res := connect.NewResponse(&registry.GitlabTokenResponse{
+		Username:  gitlabResp.Username,
+		Token:     gitlabResp.Token,
+		Registry:  "registry.gitlab.com",
+		Image:     "registry.gitlab.com/locomotive-group/loco-ecr",
+		ExpiresAt: gitlabResp.ExpiresAt,
+		Revoked:   gitlabResp.Revoked,
+		Expired:   gitlabResp.Expired,
+		Scopes:    gitlabResp.Scopes,
+	})
+	return res, nil
 }

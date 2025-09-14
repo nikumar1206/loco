@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 )
 
 // goal is to house logic required for creating and managing the app
@@ -36,11 +38,11 @@ type LocoApp struct {
 	Labels         map[string]string
 	ContainerImage string
 	Subdomain      string
-	EnvVars        []EnvVar
-	Config         LocoConfig
+	EnvVars        []*appv1.EnvVar
+	Config         *appv1.LocoConfig
 }
 
-func NewLocoApp(name, subdomain, createdBy string, containerImage string, envVars []EnvVar, config LocoConfig) *LocoApp {
+func NewLocoApp(name, subdomain, createdBy string, containerImage string, envVars []*appv1.EnvVar, config *appv1.LocoConfig) *LocoApp {
 	ns := GenerateNameSpace(name, createdBy)
 	return &LocoApp{
 		Name:           name,

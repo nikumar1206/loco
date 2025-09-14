@@ -7,71 +7,42 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 )
 
+// todo: what are we doing with this file?
 type Config struct {
-	Name           string   `toml:"Name"`
-	Port           int      `toml:"Port"`
-	Subdomain      string   `toml:"Subdomain"`
-	DockerfilePath string   `toml:"DockerfilePath"`
-	EnvFile        string   `toml:"EnvFile"`
-	CPU            string   `toml:"CPU"`
-	Memory         string   `toml:"Memory"`
-	Replicas       Replicas `toml:"Replicas"`
-	Scalers        Scalers  `toml:"Scalers"`
-	Health         Health   `toml:"Health"`
-	Logs           Logs     `toml:"Logs"`
-	projectPath    string
+	LocoConfig  *appv1.LocoConfig
+	ProjectPath string
 }
 
-type Replicas struct {
-	Max int `toml:"Max"`
-	Min int `toml:"Min"`
-}
-
-type Scalers struct {
-	CPUTarget    int `toml:"CPUTarget"`
-	MemoryTarget int `toml:"MemoryTarget"`
-}
-
-type Health struct {
-	Interval int    `toml:"Interval"`
-	Path     string `toml:"Path"`
-	Timeout  int    `toml:"Timeout"`
-}
-
-type Logs struct {
-	RetentionPeriod string `toml:"RetentionPeriod"`
-	Structured      bool   `toml:"Structured"`
-}
-
-var Default = Config{
+var Default = &appv1.LocoConfig{
 	Name:           "myapp",
 	Port:           8000,
 	Subdomain:      "myapp",
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
-	CPU:            "100m",
+	Cpu:            "100m",
 	Memory:         "100Mi",
-	Replicas: Replicas{
+	Replicas: &appv1.Replicas{
 		Min: 1,
 		Max: 1,
 	},
-	Scalers: Scalers{
-		CPUTarget: 70,
+	Scalers: &appv1.Scalers{
+		CpuTarget: 70,
 	},
-	Health: Health{
+	Health: &appv1.Health{
 		Interval: 30,
 		Path:     "/health",
 		Timeout:  5,
 	},
-	Logs: Logs{
+	Logs: &appv1.Logs{
 		Structured:      true,
 		RetentionPeriod: "7d",
 	},
 }
 
-func Create(c Config) error {
+func Create(c *appv1.LocoConfig) error {
 	if _, err := os.Stat("loco.toml"); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("file already exists")
 	}
@@ -99,7 +70,7 @@ func Load(cfgPath string) (Config, error) {
 	if err != nil {
 		return config, err
 	}
-	config.projectPath = filepath.Dir(cfgPathAbs)
+	config.ProjectPath = filepath.Dir(cfgPathAbs)
 
 	file, err := os.Open(cfgPath)
 	if err != nil {
@@ -108,24 +79,24 @@ func Load(cfgPath string) (Config, error) {
 	defer file.Close()
 
 	decoder := toml.NewDecoder(file)
-	_, err = decoder.Decode(&config)
+	_, err = decoder.Decode(&config.LocoConfig)
 	if err != nil {
 		return config, err
 	}
 
-	config.DockerfilePath = resolvePath(config.DockerfilePath, cfgPathAbs)
-	config.EnvFile = resolvePath(config.EnvFile, cfgPathAbs)
+	config.LocoConfig.DockerfilePath = resolvePath(config.LocoConfig.DockerfilePath, cfgPathAbs)
+	config.LocoConfig.EnvFile = resolvePath(config.LocoConfig.EnvFile, cfgPathAbs)
 
 	return config, nil
 }
 
-func (cfg *Config) FillSensibleDefaults() {
+func FillSensibleDefaults(cfg *appv1.LocoConfig) {
 	if cfg.DockerfilePath == "" {
 		cfg.DockerfilePath = Default.DockerfilePath
 	}
 
-	if cfg.CPU == "" {
-		cfg.CPU = Default.CPU
+	if cfg.Cpu == "" {
+		cfg.Cpu = Default.Cpu
 	}
 
 	if cfg.Memory == "" {
@@ -149,7 +120,7 @@ func resolvePath(path, baseDir string) string {
 
 // Validate ensures the locoConfig is accurate.
 // it also validates and resolves paths to env and Dockerfile
-func (cfg *Config) Validate() error {
+func Validate(cfg *appv1.LocoConfig) error {
 	if cfg.Name == "" {
 		return fmt.Errorf("name must be set")
 	}
@@ -170,7 +141,7 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("provided env path could not be resolved. Please provide path to a valid environments file")
 	}
 
-	if cfg.Scalers.CPUTarget != 0 && cfg.Scalers.MemoryTarget != 0 {
+	if cfg.Scalers.CpuTarget != 0 && cfg.Scalers.MemoryTarget != 0 {
 		return fmt.Errorf("only one scaler config should be provided")
 	}
 
@@ -183,8 +154,4 @@ func fileExists(filePath string) bool {
 		return !errors.Is(err, os.ErrNotExist)
 	}
 	return true
-}
-
-func (cfg Config) GetProjectPath() string {
-	return cfg.projectPath
 }

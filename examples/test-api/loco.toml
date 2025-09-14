@@ -1,6 +1,6 @@
 # Application Configuration
-Name = "test-api" 
-Port = 8000 
+Name = "test-api"
+Port = 8000
 Subdomain = "test-api" # Will be deployed to test-api.deploy-app.com
 
 # Project Configuration
@@ -19,7 +19,7 @@ Min = 1 # Minimum number of replicas
 # Autoscaling Triggers
 [Scalers]
 CPUTarget = 70 # CPU utilization target percentage
-MemoryTarget = 80 # Memory utilization target percentage
+# MemoryTarget = 80 # Memory utilization target percentage
 
 # Health Checks
 [Health]

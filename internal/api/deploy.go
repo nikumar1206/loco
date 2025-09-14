@@ -1,71 +1,45 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	json "github.com/goccy/go-json"
-
+	"connectrpc.com/connect"
 	"github.com/joho/godotenv"
 	"github.com/nikumar1206/loco/internal/config"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 )
 
-type EnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type DeployAppRequest struct {
-	LocoConfig     config.Config `json:"locoConfig"`
-	ContainerImage string        `json:"containerImage"`
-	EnvVars        []EnvVar
-}
-
-type DeployAppResponse struct {
-	Message string
-}
-
-func (c *Client) DeployApp(locoConfig config.Config, containerImage string, locoToken string, logf func(string)) error {
-	// Create a new deployment
+func (c *Client) DeployApp(config config.Config, containerImage string, locoToken string, logf func(string)) error {
 	envVars := map[string]string{}
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", locoToken),
-	}
-
-	if locoConfig.EnvFile != "" {
-		f, err := os.Open(locoConfig.EnvFile)
+	if config.LocoConfig.EnvFile != "" {
+		f, err := os.Open(config.LocoConfig.EnvFile)
 		if err != nil {
 			return err
 		}
-
 		envVars, err = godotenv.Parse(f)
 		if err != nil {
 			return err
 		}
-
 	}
 
-	envVarList := []EnvVar{}
-
+	envVarList := []*appv1.EnvVar{}
 	for k, v := range envVars {
-		envVarList = append(envVarList, EnvVar{Name: k, Value: v})
+		envVarList = append(envVarList, &appv1.EnvVar{Name: k, Value: v})
 	}
 
-	appReq := DeployAppRequest{
-		LocoConfig:     locoConfig,
+	deployClient := appv1connect.NewAppServiceClient(&c.HTTPClient, c.BaseURL)
+
+	req := connect.NewRequest(&appv1.DeployAppRequest{
+		LocoConfig:     config.LocoConfig,
 		ContainerImage: containerImage,
 		EnvVars:        envVarList,
-	}
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken))
 
-	resp, err := c.Post("/api/v1/app", appReq, headers)
-	if err != nil {
-		return err
-	}
-	deployAppResponse := new(DeployAppResponse)
+	_, err := deployClient.DeployApp(context.Background(), req)
 
-	if err := json.Unmarshal(resp, deployAppResponse); err != nil {
-		return fmt.Errorf("error unmarshalling deploy token response: %v", err)
-	}
-
-	return nil
+	return err
 }

@@ -2,24 +2,20 @@ package middlewares
 
 import (
 	"log/slog"
+	"net/http"
 	"time"
-
-	"github.com/gofiber/fiber/v3"
 )
 
-func Timing() fiber.Handler {
-	return func(c fiber.Ctx) error {
+func Timing(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		next.ServeHTTP(w, r)
 
-		err := c.Next()
 		duration := time.Since(start).String()
 		slog.InfoContext(
-			c,
+			r.Context(),
 			"handled request",
 			slog.String("duration", duration),
-			slog.Int("statusCode", c.Response().StatusCode()),
 		)
-
-		return err
-	}
+	})
 }

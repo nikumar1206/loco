@@ -5,76 +5,37 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	app "github.com/nikumar1206/loco/proto/app/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-type LocoConfig struct {
-	Name           string   `toml:"Name"`
-	Port           int      `toml:"Port"`
-	Subdomain      string   `toml:"Subdomain"`
-	DockerfilePath string   `toml:"DockerfilePath"`
-	EnvFile        string   `toml:"EnvFile"`
-	CPU            string   `toml:"CPU"`
-	Memory         string   `toml:"Memory"`
-	Replicas       Replicas `toml:"Replicas"`
-	Scalers        Scalers  `toml:"Scalers"`
-	Health         Health   `toml:"Health"`
-	Logs           Logs     `toml:"Logs"`
-}
-
-type EnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type Replicas struct {
-	Max int `toml:"Max"`
-	Min int `toml:"Min"`
-}
-
-type Scalers struct {
-	CPUTarget    int `toml:"CPUTarget"`
-	MemoryTarget int `toml:"MemoryTarget"`
-}
-
-type Health struct {
-	Interval int    `toml:"Interval"`
-	Path     string `toml:"Path"`
-	Timeout  int    `toml:"Timeout"`
-}
-
-type Logs struct {
-	RetentionPeriod string `toml:"RetentionPeriod"`
-	Structured      bool   `toml:"Structured"`
-}
-
-var Default = LocoConfig{
+var Default = app.LocoConfig{
 	Name:           "myapp",
 	Port:           8000,
 	Subdomain:      "myapp",
 	DockerfilePath: "Dockerfile",
 	EnvFile:        ".env",
-	CPU:            "100m",
+	Cpu:            "100m",
 	Memory:         "100Mi",
-	Replicas: Replicas{
+	Replicas: &app.Replicas{
 		Min: 1,
 		Max: 1,
 	},
-	Scalers: Scalers{
-		CPUTarget: 70,
+	Scalers: &app.Scalers{
+		CpuTarget: 70,
 	},
-	Health: Health{
+	Health: &app.Health{
 		Interval: 30,
 		Path:     "/health",
 		Timeout:  5,
 	},
-	Logs: Logs{
+	Logs: &app.Logs{
 		Structured:      true,
 		RetentionPeriod: "7d",
 	},
 }
 
-func Create(c LocoConfig) error {
+func Create(c *app.LocoConfig) error {
 	file, err := os.Create("loco.toml")
 	if err != nil {
 		return err
@@ -89,33 +50,33 @@ func Create(c LocoConfig) error {
 }
 
 func CreateDefault() error {
-	return Create(Default)
+	return Create(&Default)
 }
 
-func Load(path string) (LocoConfig, error) {
-	var config LocoConfig
+func Load(path string) (*app.LocoConfig, error) {
+	var config app.LocoConfig
 	file, err := os.Open(path)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 	defer file.Close()
 
 	decoder := toml.NewDecoder(file)
 	_, err = decoder.Decode(&config)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 
-	return config, nil
+	return &config, nil
 }
 
-func (cfg *LocoConfig) FillSensibleDefaults() {
+func FillSensibleDefaults(cfg *app.LocoConfig) {
 	if cfg.DockerfilePath == "" {
 		cfg.DockerfilePath = Default.DockerfilePath
 	}
 
-	if cfg.CPU == "" {
-		cfg.CPU = Default.CPU
+	if cfg.Cpu == "" {
+		cfg.Cpu = Default.Cpu
 	}
 
 	if cfg.Memory == "" {
@@ -123,7 +84,7 @@ func (cfg *LocoConfig) FillSensibleDefaults() {
 	}
 }
 
-func (cfg *LocoConfig) Validate() error {
+func Validate(cfg *app.LocoConfig) error {
 	if cfg.Name == "" {
 		return fmt.Errorf("name must be set")
 	}
@@ -136,7 +97,7 @@ func (cfg *LocoConfig) Validate() error {
 		return fmt.Errorf("subdomain must be set")
 	}
 
-	return validateResources(cfg.CPU, cfg.Memory)
+	return validateResources(cfg.Cpu, cfg.Memory)
 }
 
 func validateResources(cpuStr, memStr string) error {

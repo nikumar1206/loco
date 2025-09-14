@@ -6,24 +6,25 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 )
 
 func TestCreateAndLoadConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "loco.toml")
 
-	cfg := LocoConfig{
+	cfg := appv1.LocoConfig{
 		Name:           "testapp",
 		Port:           8080,
 		Subdomain:      "testsub",
 		DockerfilePath: "Dockerfile",
 		EnvFile:        ".env",
-		CPU:            "200m",
+		Cpu:            "200m",
 		Memory:         "256Mi",
-		Replicas:       Replicas{Min: 1, Max: 2},
-		Scalers:        Scalers{CPUTarget: 60, MemoryTarget: 70},
-		Health:         Health{Interval: 10, Path: "/health", Timeout: 3},
-		Logs:           Logs{RetentionPeriod: "3d", Structured: false},
+		Replicas:       &appv1.Replicas{Min: 1, Max: 2},
+		Scalers:        &appv1.Scalers{CpuTarget: 60, MemoryTarget: 70},
+		Health:         &appv1.Health{Interval: 10, Path: "/health", Timeout: 3},
+		Logs:           &appv1.Logs{RetentionPeriod: "3d", Structured: false},
 	}
 
 	file, err := os.Create(configPath)
@@ -31,7 +32,7 @@ func TestCreateAndLoadConfig(t *testing.T) {
 		t.Fatalf("failed to create config file: %v", err)
 	}
 	defer file.Close()
-	if err := toml.NewEncoder(file).Encode(cfg); err != nil {
+	if err := toml.NewEncoder(file).Encode(&cfg); err != nil {
 		t.Fatalf("failed to encode config: %v", err)
 	}
 	file.Close()
@@ -62,13 +63,13 @@ func TestCreateDefault(t *testing.T) {
 }
 
 func TestFillSensibleDefaults(t *testing.T) {
-	cfg := LocoConfig{}
-	cfg.FillSensibleDefaults()
+	cfg := &appv1.LocoConfig{}
+	FillSensibleDefaults(cfg)
 	if cfg.DockerfilePath != Default.DockerfilePath {
 		t.Errorf("DockerfilePath not set to default")
 	}
 
-	if cfg.CPU != Default.CPU {
+	if cfg.Cpu != Default.Cpu {
 		t.Errorf("CPU not set to default")
 	}
 	if cfg.Memory != Default.Memory {
@@ -77,41 +78,41 @@ func TestFillSensibleDefaults(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	valid := Default
+	valid := &Default
 	valid.Name = "valid"
 	valid.Port = 8080
 	valid.Subdomain = "sub"
-	if err := valid.Validate(); err != nil {
+	if err := Validate(valid); err != nil {
 		t.Errorf("expected valid config, got error: %v", err)
 	}
 
 	invalid := valid
 	invalid.Name = ""
-	if err := invalid.Validate(); err == nil {
+	if err := Validate(invalid); err == nil {
 		t.Errorf("expected error for empty name")
 	}
 
 	invalid = valid
 	invalid.Port = 80
-	if err := invalid.Validate(); err == nil {
+	if err := Validate(invalid); err == nil {
 		t.Errorf("expected error for invalid port")
 	}
 
 	invalid = valid
 	invalid.Subdomain = ""
-	if err := invalid.Validate(); err == nil {
+	if err := Validate(invalid); err == nil {
 		t.Errorf("expected error for empty subdomain")
 	}
 
 	invalid = valid
-	invalid.CPU = "1000m"
-	if err := invalid.Validate(); err == nil {
+	invalid.Cpu = "1000m"
+	if err := Validate(invalid); err == nil {
 		t.Errorf("expected error for CPU > 500m")
 	}
 
 	invalid = valid
 	invalid.Memory = "2Gi"
-	if err := invalid.Validate(); err == nil {
+	if err := Validate(invalid); err == nil {
 		t.Errorf("expected error for Memory > 1Gi")
 	}
 }

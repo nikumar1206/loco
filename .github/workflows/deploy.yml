@@ -36,11 +36,11 @@ jobs:
               run: cd terraform && terraform apply -auto-approve "tfplan"
 
     build-and-push:
-      name: GCR Build and Push Image
-      uses: ./.github/workflows/build-push.yml
-      permissions:
-        contents: read
-        packages: write
+        name: GCR Build and Push Image
+        uses: ./.github/workflows/build-push.yml
+        permissions:
+            contents: read
+            packages: write
 
     deploy:
         name: Deploy Manifests to Cluster
@@ -68,7 +68,7 @@ jobs:
             - name: Install helm
               uses: azure/setup-helm@v4.3.0
               id: install
-            
+
             # can comment back in if needed, but no reason to re-apply CRDs
             # - name: Apply app manifests
             #   run: |
@@ -97,7 +97,7 @@ jobs:
             #         --set loki.enabled=false \
             #         --set fluent-bit.enabled=false \
             #         --set grafana.adminPassword="${{ secrets.GRAFANA_PASSWORD }}" || true
-                  
+
             #       kubectl apply -f ./kube/monitoring_route.yml
 
             - name: Apply resources

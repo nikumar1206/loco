@@ -1,12 +1,11 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
 	json "github.com/goccy/go-json"
-
-	"github.com/gofiber/fiber/v3"
 )
 
 type gitlabResponse struct {
@@ -18,7 +17,7 @@ type gitlabResponse struct {
 	Scopes    []string `json:"scopes"`
 }
 
-func (c *Client) GetDeployToken(ctx fiber.Ctx, registryPat string, projectId string, payload map[string]any) (*gitlabResponse, error) {
+func (c *Client) GetDeployToken(ctx context.Context, registryPat string, projectId string, payload map[string]any) (*gitlabResponse, error) {
 	deployTokenPath := fmt.Sprintf("/api/v4/projects/%s/deploy_tokens", projectId)
 	resp, err := c.Post(deployTokenPath, payload, map[string]string{
 		"Content-Type":  "application/json",

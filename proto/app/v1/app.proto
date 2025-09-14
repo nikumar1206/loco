@@ -1,0 +1,102 @@
+syntax = "proto3";
+package proto.app.v1;
+option go_package = "github.com/nikumar1206/loco/proto/app/v1;appv1";
+import "google/protobuf/timestamp.proto";
+
+// --- deploy app ---
+message DeployAppRequest {
+    LocoConfig loco_config = 1;
+    string container_image = 2;
+    repeated EnvVar env_vars = 3;
+}
+
+message LocoConfig {
+    string name = 1;
+    int32 port = 2;
+    string subdomain = 3;
+    string dockerfile_path = 4;
+    string env_file = 5;
+    string cpu = 6;
+    string memory = 7;
+    Replicas replicas = 8;
+    Scalers scalers = 9;
+    Health health = 10;
+    Logs logs = 11;
+}
+
+message EnvVar {
+    string name = 1;
+    string value = 2;
+}
+
+message Replicas {
+    int32 min = 1;
+    int32 max = 2;
+}
+
+message Scalers {
+    int32 cpu_target = 1;
+    int32 memory_target = 2;
+}
+
+message Health {
+    int32 interval = 1;
+    string path = 2;
+    int32 timeout = 3;
+}
+
+message Logs {
+    string retention_period = 1;
+    bool structured = 2;
+}
+
+message DeployAppResponse {
+    string message = 1;
+}
+
+// --- logs ---
+
+message LogsRequest {
+    string app_name = 1;
+    int64 tail = 2;
+}
+
+message LogsResponse {
+    repeated LogLine log_line = 1;
+}
+
+message LogLine {
+    google.protobuf.Timestamp timestamp = 1;
+    string pod_name = 2;
+    string log = 3;
+}
+
+// --- status ---
+ message StatusRequest {
+     string app_name = 1;
+}
+
+message StatusResponse {
+    string status = 1;
+    int32 pods = 2;
+    string cpu_usage = 3;
+    string memory_usage = 4;
+    string latency = 5;
+    string url = 6;
+    google.protobuf.Timestamp deployed_at = 7;
+    string deployed_by = 8;
+    string tls = 9;
+    string health = 10;
+    bool autoscaling = 11;
+    int32 min_replicas = 12;
+    int32 max_replicas = 13;
+    int32 desired_replicas = 14;
+    int32 ready_replicas = 15;
+}
+
+
+service AppService {
+  rpc DeployApp(DeployAppRequest) returns (DeployAppResponse) {}
+  rpc Logs(LogsRequest) returns (LogsResponse) {}
+  rpc Status(StatusRequest) returns (StatusResponse) {}
+}

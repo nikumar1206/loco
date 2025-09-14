@@ -14,6 +14,8 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -44,23 +46,6 @@ type KubernetesClient struct {
 	CertManagerCs certmanagerv1.Interface
 }
 
-type DeploymentStatus struct {
-	Status          string    `json:"status"`
-	Pods            int       `json:"pods"`
-	CPUUsage        string    `json:"cpuUsage"`
-	MemoryUsage     string    `json:"memoryUsage"`
-	Latency         string    `json:"latency"`
-	URL             string    `json:"url"`
-	DeployedAt      time.Time `json:"deployedAt"`
-	DeployedBy      string    `json:"deployedBy"`
-	TLS             string    `json:"tls"`
-	Health          string    `json:"health"`
-	Autoscaling     bool      `json:"autoscaling"`
-	MinReplicas     int32     `json:"minReplicas"`
-	MaxReplicas     int32     `json:"maxReplicas"`
-	DesiredReplicas int32     `json:"desiredReplicas"`
-	ReadyReplicas   int32     `json:"readyReplicas"`
-}
 type PodLogLine struct {
 	Timestamp time.Time `json:"timestamp"`
 	PodName   string    `json:"podId"`
@@ -238,11 +223,11 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoA
 							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.CPU),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Cpu),
 									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
 								},
 								Limits: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.CPU),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Cpu),
 									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
 								},
 							},
@@ -301,7 +286,7 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp)
 					Name:       locoApp.Name,
 					Protocol:   v1.ProtocolTCP,
 					Port:       80,
-					TargetPort: intstr.FromInt(locoApp.Config.Port),
+					TargetPort: intstr.FromInt32(locoApp.Config.Port),
 				},
 			},
 		},
@@ -671,7 +656,7 @@ func (kc *KubernetesClient) GetCertificateExpiry(ctx context.Context, namespace,
 	return cert.Status.NotAfter.Time, nil
 }
 
-func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, appName string) (*DeploymentStatus, error) {
+func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, appName string) (*appv1.StatusResponse, error) {
 	deployment, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(ctx, appName, metaV1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get deployment: %v", err)
@@ -742,16 +727,16 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		slog.WarnContext(ctx, "Failed to get certificate expiry", "error", err)
 	}
 
-	return &DeploymentStatus{
+	return &appv1.StatusResponse{
 		Status:          status,
-		Pods:            len(pods.Items),
-		CPUUsage:        "N/A",
+		Pods:            int32(len(pods.Items)),
+		CpuUsage:        "N/A",
 		MemoryUsage:     "N/A",
 		Latency:         "N/A",
-		URL:             fmt.Sprintf("https://%s", hostname),
-		DeployedAt:      createdAt,
+		Url:             fmt.Sprintf("https://%s", hostname),
+		DeployedAt:      timestamppb.New(createdAt),
 		DeployedBy:      createdBy,
-		TLS:             fmt.Sprintf("Secured (Expires: %s)", certExpiry),
+		Tls:             fmt.Sprintf("Secured (Expires: %s)", certExpiry),
 		Health:          health,
 		Autoscaling:     autoscalingEnabled,
 		MinReplicas:     minReplicas,
@@ -823,17 +808,3 @@ func buildCertManagerClient(config *rest.Config) certmanagerv1.Interface {
 	}
 	return certClient
 }
-
-// comment in if needed
-// func createKubeEnvVars(envVars []EnvVar) []v1.EnvVar {
-// 	kubeEnvVars := []v1.EnvVar{}
-
-// 	for _, ev := range envVars {
-// 		kubeEnvVars = append(kubeEnvVars, v1.EnvVar{
-// 			Name:  ev.Name,
-// 			Value: ev.Value,
-// 		})
-// 	}
-
-// 	return kubeEnvVars
-// }

@@ -57,7 +57,6 @@ var testCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		t, err := keychain.GetGithubToken(user.Name)
 		if err == nil {
 			if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
@@ -72,7 +71,6 @@ var testCmd = &cobra.Command{
 				return nil
 			}
 		}
-
 		c := api.NewClient("https://github.com")
 
 		isDev, err := cmd.Flags().GetBool("dev")
@@ -83,13 +81,12 @@ var testCmd = &cobra.Command{
 		var host string
 		if isDev {
 			// for now hardcoding to connect RPC port.
-			host = "http://localhost:8080"
+			host = "http://localhost:8000"
 		} else {
 			host = "https://loco.deploy-app.com"
 		}
 
-		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host, connect.WithHTTPGet())
-		fmt.Println("using the new grpc client")
+		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host)
 		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
 			return err

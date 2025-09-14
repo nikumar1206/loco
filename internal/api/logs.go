@@ -1,13 +1,15 @@
 package api
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"net/http"
 	"time"
 
+	"connectrpc.com/connect"
 	json "github.com/goccy/go-json"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 )
 
 type LogEntry struct {
@@ -31,45 +33,29 @@ func (c *Client) GetSSE(path string, headers map[string]string) (*http.Response,
 }
 
 // StreamLogs connects to the SSE endpoint and yields logs through the provided channel.
-func (c *Client) StreamLogs(ctx context.Context, locoToken, appName string, logsChan chan<- LogEntry, errChan chan<- error) {
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", locoToken),
-	}
+func (c *Client) StreamLogs(ctx context.Context, locoToken string, logsRequest *appv1.LogsRequest, logsChan chan<- LogEntry, errChan chan<- error) {
+	authHeader := fmt.Sprintf("Bearer %s", locoToken)
 
-	path := fmt.Sprintf("/api/v1/app/%s/logs", appName)
-	resp, err := c.GetSSE(path, headers)
+	logsClient := appv1connect.NewAppServiceClient(&c.HTTPClient, c.BaseURL)
+
+	req := connect.NewRequest(logsRequest)
+	req.Header().Set("Authorization", authHeader)
+
+	resp, err := logsClient.Logs(ctx, connect.NewRequest(logsRequest))
 	if err != nil {
 		errChan <- fmt.Errorf("failed to get logs: %w", err)
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		errChan <- fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-		return
-	}
-
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			line := scanner.Text()
-			if len(line) >= 6 && line[:6] == "data: " {
-				line = line[6:]
-			}
-
-			var logEntry LogEntry
-			if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-				continue
-			}
-			// fmt.Println("foo")
-			logsChan <- logEntry
+	for _, log_line := range resp.Msg.LogLine {
+		line := log_line.Log
+		if len(line) >= 6 && line[:6] == "data: " {
+			line = line[6:]
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		errChan <- fmt.Errorf("error reading log stream: %w", err)
+		var logEntry LogEntry
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			continue
+		}
+		logsChan <- logEntry
 	}
 }

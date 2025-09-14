@@ -12,6 +12,7 @@ import (
 	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +77,8 @@ var logsCmd = &cobra.Command{
 		errChan := make(chan error)
 
 		// start the http stream
-		go client.StreamLogs(ctx, locoToken.Token, cfg.Name, logsChan, errChan)
+		// todo: this isnt a real stream, we need to fix this so server streams, and this listens if user sets follow
+		go client.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
 
 		m := logModel{
 			table:     t,

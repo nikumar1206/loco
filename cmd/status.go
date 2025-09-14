@@ -1,38 +1,22 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
-	"time"
 
+	"connectrpc.com/connect"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/api"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
+	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"
 )
-
-type DeploymentStatus struct {
-	Status          string    `json:"status"`
-	Pods            int       `json:"pods"`
-	CPUUsage        string    `json:"cpuUsage"`
-	MemoryUsage     string    `json:"memoryUsage"`
-	Latency         string    `json:"latency"`
-	URL             string    `json:"url"`
-	DeployedAt      time.Time `json:"deployedAt"`
-	DeployedBy      string    `json:"deployedBy"`
-	TLS             string    `json:"tls"`
-	Health          string    `json:"health"`
-	Autoscaling     bool      `json:"autoscaling"`
-	MinReplicas     int32     `json:"minReplicas"`
-	MaxReplicas     int32     `json:"maxReplicas"`
-	DesiredReplicas int32     `json:"desiredReplicas"`
-	ReadyReplicas   int32     `json:"readyReplicas"`
-}
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
@@ -65,30 +49,23 @@ var statusCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		client := appv1connect.NewAppServiceClient(http.DefaultClient, host)
 
-		deploymentStatus := new(DeploymentStatus)
-		path := fmt.Sprintf("/api/v1/app/%s/status", cfg.Name)
+		req := connect.NewRequest(&appv1.StatusRequest{
+			AppName: cfg.LocoConfig.Name,
+		})
+		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
 
-		statusUrl := host + path
-
-		resp, err := api.Resty.R().
-			SetHeader("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token)).
-			SetResult(&deploymentStatus).
-			Get(statusUrl)
+		res, err := client.Status(context.Background(), req)
 		if err != nil {
-			slog.Error(err.Error())
 			return err
 		}
 
-		if resp.IsError() {
-			return fmt.Errorf("client/server error: %s", resp.String())
-		}
-
 		status := appStatus{
-			DeploymentStatus: *deploymentStatus,
-			File:             file,
-			AppName:          cfg.Name,
-			Environment:      "production",
+			StatusResponse: res.Msg,
+			File:           file,
+			AppName:        cfg.LocoConfig.Name,
+			Environment:    "production",
 		}
 
 		if output == "json" {
@@ -113,7 +90,7 @@ func init() {
 // --- Data Model ---
 
 type appStatus struct {
-	DeploymentStatus
+	*appv1.StatusResponse
 	File        string `json:"file"`
 	AppName     string `json:"appName"`
 	Environment string `json:"environment"`
@@ -192,13 +169,13 @@ func (m statusModel) View() string {
 		labelStyle.Render("Environment:"), valueStyle.Render(m.status.Environment),
 		labelStyle.Render("Status:"), valueStyle.Render(m.status.Status),
 		labelStyle.Render("Pods:"), m.status.Pods,
-		labelStyle.Render("CPU Usage:"), valueStyle.Render(m.status.CPUUsage),
+		labelStyle.Render("CPU Usage:"), valueStyle.Render(m.status.CpuUsage),
 		labelStyle.Render("Memory:"), valueStyle.Render(m.status.MemoryUsage),
 		labelStyle.Render("Latency:"), valueStyle.Render(m.status.Latency),
-		labelStyle.Render("URL:"), valueStyle.Render(m.status.URL),
+		labelStyle.Render("URL:"), valueStyle.Render(m.status.Url),
 		labelStyle.Render("Deployed At:"), valueStyle.Render(m.status.DeployedAt.String()),
 		labelStyle.Render("Deployed By:"), valueStyle.Render(m.status.DeployedBy),
-		labelStyle.Render("TLS:"), valueStyle.Render(m.status.TLS),
+		labelStyle.Render("TLS:"), valueStyle.Render(m.status.Tls),
 		labelStyle.Render("Health:"), valueStyle.Render(m.status.Health),
 		labelStyle.Render("Autoscaling:"), valueStyle.Render(strconv.FormatBool(m.status.Autoscaling)),
 		labelStyle.Render("Ready Replicas:"), valueStyle.Render(readyReplicas),
