@@ -11,20 +11,19 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/dusted-go/logging/prettylog"
+	"github.com/nikumar1206/loco/api/client"
+	"github.com/nikumar1206/loco/api/middleware"
+	"github.com/nikumar1206/loco/api/models"
+	"github.com/nikumar1206/loco/api/service"
 	"github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
 	"github.com/nikumar1206/loco/proto/registry/v1/registryv1connect"
-	"github.com/nikumar1206/loco/service/internal/client"
-	"github.com/nikumar1206/loco/service/internal/handlers"
-	"github.com/nikumar1206/loco/service/internal/middlewares"
-	"github.com/nikumar1206/loco/service/internal/models"
-	"github.com/nikumar1206/loco/service/internal/utils"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 func newAppConfig() *models.AppConfig {
-	logLevel := utils.Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
+	logLevel := Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
 
 	return &models.AppConfig{
 		Env:             os.Getenv("APP_ENV"),
@@ -45,7 +44,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	mux := http.NewServeMux()
-	interceptors := connect.WithInterceptors(middlewares.GithubTokenValidator())
+	interceptors := connect.WithInterceptors(middleware.GithubTokenValidator())
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -59,9 +58,9 @@ func main() {
 
 	kubernetesClient := client.NewKubernetesClient(ac.Env)
 
-	oAuthServiceHandler := &handlers.OAuthServer{}
-	registryServiceHandler := &handlers.RegistryServer{AppConfig: *ac}
-	appServiceHandler := &handlers.AppServer{AppConfig: *ac, Kc: *kubernetesClient}
+	oAuthServiceHandler := &service.OAuthServer{}
+	registryServiceHandler := &service.RegistryServer{AppConfig: *ac}
+	appServiceHandler := &service.AppServer{AppConfig: *ac, Kc: *kubernetesClient}
 
 	oauthPath, oauthHandler := oauthv1connect.NewOAuthServiceHandler(oAuthServiceHandler, interceptors)
 	registryPath, registryHandler := registryv1connect.NewRegistryServiceHandler(registryServiceHandler, interceptors)
@@ -83,8 +82,8 @@ func main() {
 	mux.Handle(registryPath, registryHandler)
 	mux.Handle(appPath, appHandler)
 
-	muxWTiming := middlewares.Timing(mux)
-	muxWContext := middlewares.SetContext(muxWTiming)
+	muxWTiming := middleware.Timing(mux)
+	muxWContext := middleware.SetContext(muxWTiming)
 
 	log.Fatal(http.ListenAndServe(
 		"localhost:8000",

@@ -39,8 +39,8 @@ clean: ## Clean up the project directory and tidy modules
 build-linux: clean ## Build the application for Linux
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v
 
-reload-service:
-	@(cd service && air --build.cmd "lsof -ti:8000 | xargs -r kill -9; go build -o loco-api ." --build.bin "./loco-api")
+reload-api:
+	@(cd api && air --build.cmd "lsof -ti:8000 | xargs -r kill -9; go build -o loco-api ." --build.bin "./loco-api")
 
 reload-cli:
 	@(air --build.cmd "go build -o loco ." --build.bin "./loco")

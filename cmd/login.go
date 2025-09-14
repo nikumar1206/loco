@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
 	oAuth "github.com/nikumar1206/loco/proto/oauth/v1"
@@ -71,7 +71,7 @@ var testCmd = &cobra.Command{
 				return nil
 			}
 		}
-		c := api.NewClient("https://github.com")
+		c := client.NewClient("https://github.com")
 
 		isDev, err := cmd.Flags().GetBool("dev")
 		if err != nil {
@@ -147,7 +147,7 @@ var testCmd = &cobra.Command{
 	},
 }
 
-func pollAuthToken(c *api.Client, clientId string, deviceCode string, interval int, tokenChan chan AuthTokenResponse) error {
+func pollAuthToken(c *client.Client, clientId string, deviceCode string, interval int, tokenChan chan AuthTokenResponse) error {
 	authTokenRequest := AuthTokenRequest{
 		ClientId:   clientId,
 		DeviceCode: deviceCode,
@@ -160,7 +160,7 @@ func pollAuthToken(c *api.Client, clientId string, deviceCode string, interval i
 			"Content-Type": "application/json",
 		})
 		if err != nil {
-			if apiError, ok := err.(*api.APIError); ok {
+			if apiError, ok := err.(*client.APIError); ok {
 				switch apiError.StatusCode {
 				case 400:
 					time.Sleep(time.Duration(interval) * time.Second)

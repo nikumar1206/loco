@@ -1,6 +1,7 @@
-package api
+package client
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -110,4 +111,14 @@ func (c *Client) Post(path string, body any, headers map[string]string) ([]byte,
 		return nil, fmt.Errorf("failed to convert request body to buffer: %v", err)
 	}
 	return c.doRequest(http.MethodPost, path, buf, headers)
+}
+
+func structToBuffer(s any) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return &buf, nil
 }

@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/nikumar1206/loco/service/internal/client"
-	"github.com/nikumar1206/loco/service/internal/models"
+	"github.com/nikumar1206/loco/api/client"
+	"github.com/nikumar1206/loco/api/models"
 	"github.com/patrickmn/go-cache"
 )
 

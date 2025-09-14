@@ -1,12 +1,12 @@
-package handlers
+package service
 
 import (
 	"context"
 	"log/slog"
 
 	"connectrpc.com/connect"
+	"github.com/nikumar1206/loco/api/models"
 	oAuth "github.com/nikumar1206/loco/proto/oauth/v1"
-	"github.com/nikumar1206/loco/service/internal/models"
 )
 
 type OAuthServer struct{}

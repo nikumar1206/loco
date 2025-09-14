@@ -1,4 +1,4 @@
-module github.com/nikumar1206/loco/service
+module github.com/nikumar1206/loco/api
 
 go 1.25.0
 
@@ -20,6 +20,7 @@ require (
 
 require (
 	connectrpc.com/connect v1.18.1
+	connectrpc.com/grpcreflect v1.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -38,6 +39,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/net v0.43.0
 	golang.org/x/sys v0.35.0 // indirect
@@ -58,11 +60,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-require (
-	connectrpc.com/grpcreflect v1.3.0
-	github.com/nikumar1206/loco/proto v0.0.0-20250907203827-1a1763ff28fa
-)
-
-require github.com/stretchr/testify v1.11.1 // indirect
-
-replace github.com/nikumar1206/loco/proto => ../proto
+require github.com/nikumar1206/loco/proto v0.0.0-20250914032632-3235f9ec53ef

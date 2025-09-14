@@ -9,7 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/docker"
 	"github.com/nikumar1206/loco/internal/keychain"
@@ -91,7 +91,7 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		host = "https://loco.deploy-app.com"
 	}
 
-	apiClient := api.NewClient(host)
+	apiClient := client.NewClient(host)
 
 	registryClient := registryv1connect.NewRegistryServiceClient(http.DefaultClient, host)
 

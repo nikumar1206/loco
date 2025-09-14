@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
@@ -45,7 +45,7 @@ var logsCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		client := api.NewClient(host)
+		c := client.NewClient(host)
 		ctx, cancel := context.WithCancel(context.Background())
 
 		columns := []table.Column{
@@ -73,12 +73,12 @@ var logsCmd = &cobra.Command{
 			Bold(false)
 		t.SetStyles(s)
 
-		logsChan := make(chan api.LogEntry)
+		logsChan := make(chan client.LogEntry)
 		errChan := make(chan error)
 
 		// start the http stream
 		// todo: this isnt a real stream, we need to fix this so server streams, and this listens if user sets follow
-		go client.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
+		go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
 
 		m := logModel{
 			table:     t,
@@ -112,7 +112,7 @@ type logModel struct {
 	baseStyle lipgloss.Style
 	logs      []table.Row
 
-	logsChan chan api.LogEntry
+	logsChan chan client.LogEntry
 	errChan  chan error
 
 	ctx    context.Context

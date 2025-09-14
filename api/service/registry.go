@@ -1,13 +1,13 @@
-package handlers
+package service
 
 import (
 	"context"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/nikumar1206/loco/api/client"
+	"github.com/nikumar1206/loco/api/models"
 	registry "github.com/nikumar1206/loco/proto/registry/v1"
-	"github.com/nikumar1206/loco/service/internal/client"
-	"github.com/nikumar1206/loco/service/internal/models"
 )
 
 type RegistryServer struct {

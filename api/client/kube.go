@@ -20,6 +20,7 @@ import (
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacV1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -808,3 +809,30 @@ func buildCertManagerClient(config *rest.Config) certmanagerv1.Interface {
 	}
 	return certClient
 }
+
+func resourceMustParse(value string) resource.Quantity {
+	q, err := resource.ParseQuantity(value)
+	if err != nil {
+		panic(err)
+	}
+	return q
+}
+
+func ptrToString(s string) *string { return &s }
+
+func ptrToPortNumber(p int) *v1Gateway.PortNumber {
+	n := v1Gateway.PortNumber(p)
+	return &n
+}
+
+func ptrToNamespace(n string) *v1Gateway.Namespace {
+	ns := v1Gateway.Namespace(n)
+	return &ns
+}
+
+func ptrToKind(k string) *v1Gateway.Kind {
+	t := v1Gateway.Kind(k)
+	return &t
+}
+
+func ptrToBool(b bool) *bool { return &b }

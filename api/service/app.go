@@ -1,4 +1,4 @@
-package handlers
+package service
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/nikumar1206/loco/api/client"
+	"github.com/nikumar1206/loco/api/models"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
-	"github.com/nikumar1206/loco/service/internal/client"
-	"github.com/nikumar1206/loco/service/internal/models"
 )
 
 var (
