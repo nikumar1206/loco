@@ -60,4 +60,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-require github.com/nikumar1206/loco/proto v0.0.0-20250914032632-3235f9ec53ef
+require github.com/nikumar1206/loco/proto v0.0.0-20250914131758-a26b64c803d3
