@@ -21,12 +21,7 @@ var logsCmd = &cobra.Command{
 	Short: "View application logs",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parseAndSetDebugFlag(cmd)
-		isDev, err := cmd.Flags().GetBool("dev")
-		if err != nil {
-			return fmt.Errorf("error reading dev flag: %w", err)
-		}
-
-		host := determineHost(isDev)
+		host := parseDevFlag(cmd)
 
 		locoToken, err := getLocoToken()
 		if err != nil {

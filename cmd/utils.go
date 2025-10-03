@@ -11,12 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func determineHost(isDev bool) string {
+func parseDevFlag(cmd *cobra.Command) string {
+	isDev, err := cmd.Flags().GetBool("dev")
+	if err != nil {
+		log.Fatalf("Error getting dev flag: %v", err)
+	}
+
 	if isDev {
 		return "http://localhost:8000"
-	} else {
-		return "https://loco.deploy-app.com"
 	}
+	return "https://loco.deploy-app.com"
 }
 
 func getLocoToken() (*keychain.UserToken, error) {

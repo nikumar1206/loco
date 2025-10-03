@@ -27,12 +27,7 @@ var statusCmd = &cobra.Command{
 		file, _ := cmd.Flags().GetString("file")
 		output, _ := cmd.Flags().GetString("output")
 
-		isDev, err := cmd.Flags().GetBool("dev")
-		if err != nil {
-			return fmt.Errorf("error reading dev flag: %w", err)
-		}
-
-		host := determineHost(isDev)
+		host := parseDevFlag(cmd)
 
 		configPath, err := cmd.Flags().GetString("config")
 		if err != nil {
