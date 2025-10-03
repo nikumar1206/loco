@@ -1,0 +1,32 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+    name: envoy-gateway-sm
+    namespace: monitoring
+spec:
+    selector:
+        matchLabels:
+            app.kubernetes.io/instance: eg
+    namespaceSelector:
+        matchNames:
+            - envoy-gateway-system
+    endpoints:
+        - port: metrics
+          interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+    name: envoy-dataplane-sm
+    namespace: monitoring
+spec:
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: envoy
+    namespaceSelector:
+        matchNames:
+            - envoy-gateway-system
+    endpoints:
+        - port: admin
+          path: /stats/prometheus
+          interval: 15s

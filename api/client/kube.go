@@ -10,9 +10,9 @@ import (
 	"log"
 	"log/slog"
 	"path/filepath"
-	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	json "github.com/goccy/go-json"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -20,12 +20,15 @@ import (
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacV1 "k8s.io/api/rbac/v1"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/nikumar1206/loco/api/pkg/klogmux"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"k8s.io/client-go/util/homedir"
@@ -521,44 +524,65 @@ func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName s
 	return logs, nil
 }
 
-func (kc *KubernetesClient) GetServiceLogs(ctx context.Context, namespace, serviceName string, tailLines *int64) ([]PodLogLine, error) {
-	svc, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get service", "service", serviceName, "error", err)
-		return nil, fmt.Errorf("failed to get service: %v", err)
+func (kc *KubernetesClient) GetLogs(
+	ctx context.Context,
+	namespace,
+	serviceName string,
+	username string,
+	tailLines *int64,
+	stream *connect.ServerStream[appv1.LogsResponse],
+) error {
+	// Build the log stream
+	builder := klogmux.NewBuilder(kc.ClientSet).
+		Namespace(namespace).
+		Follow(true).
+		Timestamps(true)
+
+	if tailLines != nil {
+		builder = builder.TailLines(*tailLines)
 	}
 
-	selector := svc.Spec.Selector
-	if len(selector) == 0 {
-		slog.ErrorContext(ctx, "service has no selector", "service", serviceName)
-		return nil, fmt.Errorf("service has no selector")
+	selector := "app.loco.io/instance=" + serviceName + "-" + username
+	if serviceName != "" {
+		builder = builder.LabelSelector(selector)
 	}
 
-	var selectorParts []string
-	for key, value := range selector {
-		selectorParts = append(selectorParts, fmt.Sprintf("%s=%s", key, value))
-	}
-	selectorString := strings.Join(selectorParts, ",")
+	logStream := builder.Build()
 
-	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{
-		LabelSelector: selectorString,
-	})
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to list pods", "service", serviceName, "error", err)
-		return nil, fmt.Errorf("failed to list pods: %v", err)
+	if err := logStream.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start log stream: %w", err)
 	}
+	defer logStream.Stop()
 
-	var allLogs []PodLogLine
-	for _, pod := range pods.Items {
-		podLogs, err := kc.GetPodLogs(ctx, namespace, pod.Name, tailLines)
-		if err != nil {
-			log.Printf("error getting logs for pod %s: %v", pod.Name, err)
-			continue
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+
+		case entry, ok := <-logStream.Entries():
+			if !ok {
+				// chan closed, stream done
+				return nil
+			}
+
+			if err := stream.Send(&appv1.LogsResponse{
+				Timestamp: timestamppb.New(entry.Timestamp),
+				PodName:   entry.PodName,
+				Log:       entry.Message,
+			}); err != nil {
+				return fmt.Errorf("failed to send log entry: %w", err)
+			}
+
+		case err, ok := <-logStream.Errors():
+			if !ok {
+				// err chan closed
+				continue
+			}
+			// todo: this does mean that one error in stream interrupts response
+			// maybe later we can handle this better
+			return err
 		}
-		allLogs = append(allLogs, podLogs...)
 	}
-
-	return allLogs, nil
 }
 
 func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *LocoApp) error {

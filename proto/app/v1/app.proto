@@ -62,10 +62,6 @@ message LogsRequest {
 }
 
 message LogsResponse {
-    repeated LogLine log_line = 1;
-}
-
-message LogLine {
     google.protobuf.Timestamp timestamp = 1;
     string pod_name = 2;
     string log = 3;
@@ -97,6 +93,6 @@ message StatusResponse {
 
 service AppService {
   rpc DeployApp(DeployAppRequest) returns (DeployAppResponse) {}
-  rpc Logs(LogsRequest) returns (LogsResponse) {}
+  rpc Logs(LogsRequest) returns (stream LogsResponse) {}
   rpc Status(StatusRequest) returns (StatusResponse) {}
 }

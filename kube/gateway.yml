@@ -1,56 +1,57 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: eg
+    name: eg
 spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: eg
-  namespace: loco-system
+    name: eg
+    namespace: loco-system
 spec:
-  infrastructure:
-    annotations:
-      service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
-  gatewayClassName: eg
-  listeners:
-  - name: https
-    hostname: "*.deploy-app.com"
-    protocol: HTTPS
-    port: 443
-    allowedRoutes:
-        namespaces:
-          from: Selector
-          selector:
-            matchLabels:
-              expose-via-gw: "true"
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - name: loco-tls
-        kind: Secret
-        group: ""
-  - name: http
-    hostname: "*.deploy-app.com"
-    protocol: HTTP
-    port: 80
-    allowedRoutes:
-        namespaces:
-          from: All
+    infrastructure:
+        annotations:
+            # necessary for network load balancer on DO
+            service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
+    gatewayClassName: eg
+    listeners:
+        - name: https
+          hostname: "*.deploy-app.com"
+          protocol: HTTPS
+          port: 443
+          allowedRoutes:
+              namespaces:
+                  from: Selector
+                  selector:
+                      matchLabels:
+                          expose-via-gw: "true"
+          tls:
+              mode: Terminate
+              certificateRefs:
+                  - name: loco-tls
+                    kind: Secret
+                    group: ""
+        - name: http
+          hostname: "*.deploy-app.com"
+          protocol: HTTP
+          port: 80
+          allowedRoutes:
+              namespaces:
+                  from: All
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy
 metadata:
-  name: enable-http3
-  namespace: loco-system
+    name: enable-http3
+    namespace: loco-system
 spec:
-  http3: {}
-  targetRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: eg
+    http3: {}
+    targetRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: eg
 ---
 # apiVersion: gateway.envoyproxy.io/v1alpha1
 # kind: EnvoyPatchPolicy
@@ -70,4 +71,18 @@ spec:
 #       op: replace
 #       path: /typedPerFilterConfig/envoy.filters.http.router
 #       value:
-#         suppress_envoy_headers: false
+#         suppress_envoy_headers: falsea
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyProxy
+# metadata:
+#     name: eg-proxy
+#     namespace: envoy-gateway-system
+# spec:
+#     bootstrap:
+#         type: Replace
+#         value: |
+#             admin:
+#                 address:
+#                     socketAddress:
+#                         address: 0.0.0.0
+#                         portValue: 19000 # <-- proxy admin

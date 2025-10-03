@@ -44,7 +44,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	mux := http.NewServeMux()
-	interceptors := connect.WithInterceptors(middleware.GithubTokenValidator())
+	interceptors := connect.WithInterceptors(middleware.NewGithubAuthInterceptor())
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -2,12 +2,12 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
-	json "github.com/goccy/go-json"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
 )
@@ -36,26 +36,27 @@ func (c *Client) GetSSE(path string, headers map[string]string) (*http.Response,
 func (c *Client) StreamLogs(ctx context.Context, locoToken string, logsRequest *appv1.LogsRequest, logsChan chan<- LogEntry, errChan chan<- error) {
 	authHeader := fmt.Sprintf("Bearer %s", locoToken)
 
+	c.HTTPClient.Timeout = 0 // disable timeout for streaming requests
 	logsClient := appv1connect.NewAppServiceClient(&c.HTTPClient, c.BaseURL)
 
 	req := connect.NewRequest(logsRequest)
 	req.Header().Set("Authorization", authHeader)
 
-	resp, err := logsClient.Logs(ctx, connect.NewRequest(logsRequest))
+	stream, err := logsClient.Logs(ctx, req)
 	if err != nil {
-		errChan <- fmt.Errorf("failed to get logs: %w", err)
-		return
+		errChan <- fmt.Errorf("failed to initiate log stream: %w", err)
+	}
+	for stream.Receive() {
+		msg := stream.Msg()
+
+		logsChan <- LogEntry{
+			Timestamp: msg.Timestamp.AsTime(),
+			PodName:   msg.PodName,
+			Log:       msg.Log,
+		}
 	}
 
-	for _, log_line := range resp.Msg.LogLine {
-		line := log_line.Log
-		if len(line) >= 6 && line[:6] == "data: " {
-			line = line[6:]
-		}
-		var logEntry LogEntry
-		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-			continue
-		}
-		logsChan <- logEntry
+	if err := stream.Err(); err != nil && !errors.Is(err, context.Canceled) {
+		errChan <- err
 	}
 }

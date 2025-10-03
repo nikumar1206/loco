@@ -9,8 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/nikumar1206/loco/api/client"
 	"github.com/nikumar1206/loco/api/models"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
@@ -170,39 +168,23 @@ func (s *AppServer) DeployApp(
 func (s *AppServer) Logs(
 	ctx context.Context,
 	req *connect.Request[appv1.LogsRequest],
-) (*connect.Response[appv1.LogsResponse], error) {
+	stream *connect.ServerStream[appv1.LogsResponse],
+) error {
 	appName := req.Msg.AppName
-
 	user, ok := ctx.Value("user").(string)
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, NoUserError)
+		return connect.NewError(connect.CodeUnauthenticated, NoUserError)
 	}
 
 	namespace := client.GenerateNameSpace(appName, user)
-
-	var tailLines *int64
-	if req.Msg.Tail > 0 {
-		tailLines = &req.Msg.Tail
-	}
-
-	logLines, err := s.Kc.GetServiceLogs(ctx, namespace, appName, tailLines)
+	err := s.Kc.GetLogs(ctx, namespace, appName, user, nil, stream)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch logs: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch logs: %w", err))
 	}
 
-	// Convert to proto PodLogLine messages
-	pbLines := make([]*appv1.LogLine, 0, len(logLines))
-	for _, line := range logLines {
-		pbLines = append(pbLines, &appv1.LogLine{
-			Timestamp: timestamppb.New(line.Timestamp),
-			PodName:   line.PodName,
-			Log:       line.Log,
-		})
-	}
-
-	return connect.NewResponse(&appv1.LogsResponse{LogLine: pbLines}), nil
+	return nil
 }
 
 func (s *AppServer) Status(

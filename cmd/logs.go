@@ -76,8 +76,6 @@ var logsCmd = &cobra.Command{
 		logsChan := make(chan client.LogEntry)
 		errChan := make(chan error)
 
-		// start the http stream
-		// todo: this isnt a real stream, we need to fix this so server streams, and this listens if user sets follow
 		go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
 
 		m := logModel{
@@ -90,9 +88,11 @@ var logsCmd = &cobra.Command{
 			cancel:    cancel,
 		}
 
-		if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
+		if finalModel, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running log viewer: %v\n", err)
 			return err
+		} else if fm, ok := finalModel.(logModel); ok && fm.err != nil {
+			return fm.err
 		}
 
 		return nil
@@ -114,6 +114,7 @@ type logModel struct {
 
 	logsChan chan client.LogEntry
 	errChan  chan error
+	err      error
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -129,8 +130,7 @@ func (m logModel) waitForLog() tea.Cmd {
 		select {
 		case log := <-m.logsChan:
 			return logMsg{
-				Time: log.Timestamp.Local().Format(time.RFC3339),
-
+				Time:    log.Timestamp.Local().Format(time.RFC3339),
 				PodId:   log.PodName,
 				Message: log.Log,
 			}
@@ -156,7 +156,7 @@ func (m logModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.waitForLog() // Continue polling
 
 	case errMsg:
-		fmt.Fprintf(os.Stderr, "Error: %v\n", msg)
+		m.err = msg.error
 		return m, tea.Quit
 
 	case tea.KeyMsg:
@@ -178,6 +178,11 @@ func (m logModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m logModel) View() string {
+	if m.err != nil {
+		return lipgloss.NewStyle().Foreground(ui.LocoRed).Render(
+			fmt.Sprintf("Error: %v", m.err),
+		)
+	}
 	return m.baseStyle.Render(m.table.View()) +
 		"\n[↑↓] Navigate • [esc] Toggle focus • [q] Quit"
 }

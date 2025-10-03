@@ -22,57 +22,121 @@ type User struct {
 	Email string `json:"email"`
 }
 
-func GithubTokenValidator() connect.UnaryInterceptorFunc {
-	interceptor := func(next connect.UnaryFunc) connect.UnaryFunc {
-		return connect.UnaryFunc(func(
-			ctx context.Context,
-			req connect.AnyRequest,
-		) (connect.AnyResponse, error) {
-			if req.Spec().Procedure == "/proto.oauth.v1.OAuthService/GithubOAuthDetails" {
-				return next(ctx, req)
-			}
+type githubAuthInterceptor struct{}
 
-			authHeader := req.Header().Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-				return nil, connect.NewError(
-					connect.CodeUnauthenticated,
-					errors.New("no token provided"),
-				)
-			}
-			token := strings.TrimPrefix(authHeader, "Bearer ")
+func NewGithubAuthInterceptor() *githubAuthInterceptor {
+	return &githubAuthInterceptor{}
+}
 
-			if cachedUser, found := TokenCache.Get(token); found {
-				usr := cachedUser.(string)
-				c := context.WithValue(ctx, "user", usr)
-				return next(c, req)
-			}
+func (i *githubAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return connect.UnaryFunc(func(
+		ctx context.Context,
+		req connect.AnyRequest,
+	) (connect.AnyResponse, error) {
+		if req.Spec().Procedure == "/proto.oauth.v1.OAuthService/GithubOAuthDetails" {
+			return next(ctx, req)
+		}
 
-			user := new(User)
-			resp, err := client.Resty.R().
-				SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
-				SetHeader("Accept", "application/vnd.github+json").
-				SetResult(user).
-				Get("https://api.github.com/user")
-			if err != nil {
-				slog.Error(err.Error())
-				return nil, connect.NewError(
-					connect.CodeInternal,
-					err,
-				)
-			}
+		authHeader := req.Header().Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			return nil, connect.NewError(
+				connect.CodeUnauthenticated,
+				errors.New("no token provided"),
+			)
+		}
+		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-			if resp.IsError() {
-				slog.Error(resp.String())
-				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
-			}
-
-			// cache the token
-			TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
-
-			// inject user login into context
-			c := context.WithValue(ctx, "user", user.Login)
+		if cachedUser, found := TokenCache.Get(token); found {
+			usr := cachedUser.(string)
+			c := context.WithValue(ctx, "user", usr)
 			return next(c, req)
-		})
-	}
-	return connect.UnaryInterceptorFunc(interceptor)
+		}
+
+		user := new(User)
+		resp, err := client.Resty.R().
+			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
+			SetHeader("Accept", "application/vnd.github+json").
+			SetResult(user).
+			Get("https://api.github.com/user")
+		if err != nil {
+			slog.Error(err.Error())
+			return nil, connect.NewError(
+				connect.CodeInternal,
+				err,
+			)
+		}
+
+		if resp.IsError() {
+			slog.Error(resp.String())
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
+		}
+
+		// cache the token
+		TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
+
+		// inject user login into context
+		c := context.WithValue(ctx, "user", user.Login)
+		return next(c, req)
+	})
+}
+
+func (i *githubAuthInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return connect.StreamingClientFunc(func(
+		ctx context.Context,
+		spec connect.Spec,
+	) connect.StreamingClientConn {
+		conn := next(ctx, spec)
+		return conn
+	})
+}
+
+func (i *githubAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return connect.StreamingHandlerFunc(func(
+		ctx context.Context,
+		conn connect.StreamingHandlerConn,
+	) error {
+		if conn.Spec().Procedure == "/proto.oauth.v1.OAuthService/GithubOAuthDetails" {
+			return next(ctx, conn)
+		}
+		authHeader := conn.RequestHeader().Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			return connect.NewError(
+				connect.CodeUnauthenticated,
+				errors.New("no token provided"),
+			)
+		}
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+
+		if cachedUser, found := TokenCache.Get(token); found {
+			usr := cachedUser.(string)
+			c := context.WithValue(ctx, "user", usr)
+			return next(c, conn)
+		}
+
+		user := new(User)
+		resp, err := client.Resty.R().
+			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
+			SetHeader("Accept", "application/vnd.github+json").
+			SetResult(user).
+			Get("https://api.github.com/user")
+		if err != nil {
+			slog.Error(err.Error())
+			return connect.NewError(
+				connect.CodeInternal,
+				err,
+			)
+		}
+
+		if resp.IsError() {
+			slog.Error(resp.String())
+			return connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
+		}
+
+		// cache the token
+		TokenCache.Set(token, user.Login, models.OAuthTokenTTL-(10*time.Minute))
+
+		// inject user login into context
+		c := context.WithValue(ctx, "user", user.Login)
+		return next(c, conn)
+	})
 }

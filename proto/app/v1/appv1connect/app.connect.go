@@ -44,7 +44,7 @@ const (
 // AppServiceClient is a client for the proto.app.v1.AppService service.
 type AppServiceClient interface {
 	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
-	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.Response[v1.LogsResponse], error)
+	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 }
 
@@ -93,8 +93,8 @@ func (c *appServiceClient) DeployApp(ctx context.Context, req *connect.Request[v
 }
 
 // Logs calls proto.app.v1.AppService.Logs.
-func (c *appServiceClient) Logs(ctx context.Context, req *connect.Request[v1.LogsRequest]) (*connect.Response[v1.LogsResponse], error) {
-	return c.logs.CallUnary(ctx, req)
+func (c *appServiceClient) Logs(ctx context.Context, req *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error) {
+	return c.logs.CallServerStream(ctx, req)
 }
 
 // Status calls proto.app.v1.AppService.Status.
@@ -105,7 +105,7 @@ func (c *appServiceClient) Status(ctx context.Context, req *connect.Request[v1.S
 // AppServiceHandler is an implementation of the proto.app.v1.AppService service.
 type AppServiceHandler interface {
 	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
-	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.Response[v1.LogsResponse], error)
+	Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 }
 
@@ -122,7 +122,7 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("DeployApp")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceLogsHandler := connect.NewUnaryHandler(
+	appServiceLogsHandler := connect.NewServerStreamHandler(
 		AppServiceLogsProcedure,
 		svc.Logs,
 		connect.WithSchema(appServiceMethods.ByName("Logs")),
@@ -155,8 +155,8 @@ func (UnimplementedAppServiceHandler) DeployApp(context.Context, *connect.Reques
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.app.v1.AppService.DeployApp is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.Response[v1.LogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.app.v1.AppService.Logs is not implemented"))
+func (UnimplementedAppServiceHandler) Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("proto.app.v1.AppService.Logs is not implemented"))
 }
 
 func (UnimplementedAppServiceHandler) Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {

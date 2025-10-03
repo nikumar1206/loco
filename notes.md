@@ -1,9 +1,6 @@
 ## High Priority
 
 - Flesh out the database structure (teams, users, apps, deployments, events)
-- Detect project language and build accordingly. build the docker file on our server.
-  - Python, Go, Javascript/TypeScript
-  - Cache Docker layers per project
 - Implement RBAC for strict permission control
   - this is more of a general statement than an actionable item.
 - Monitoring

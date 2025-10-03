@@ -573,7 +573,9 @@ func (x *LogsRequest) GetTail() int64 {
 
 type LogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	LogLine       []*LogLine             `protobuf:"bytes,1,rep,name=log_line,json=logLine,proto3" json:"log_line,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	Log           string                 `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -608,67 +610,21 @@ func (*LogsResponse) Descriptor() ([]byte, []int) {
 	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *LogsResponse) GetLogLine() []*LogLine {
-	if x != nil {
-		return x.LogLine
-	}
-	return nil
-}
-
-type LogLine struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
-	Log           string                 `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LogLine) Reset() {
-	*x = LogLine{}
-	mi := &file_proto_app_v1_app_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LogLine) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LogLine) ProtoMessage() {}
-
-func (x *LogLine) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_app_v1_app_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LogLine.ProtoReflect.Descriptor instead.
-func (*LogLine) Descriptor() ([]byte, []int) {
-	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *LogLine) GetTimestamp() *timestamppb.Timestamp {
+func (x *LogsResponse) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
 	}
 	return nil
 }
 
-func (x *LogLine) GetPodName() string {
+func (x *LogsResponse) GetPodName() string {
 	if x != nil {
 		return x.PodName
 	}
 	return ""
 }
 
-func (x *LogLine) GetLog() string {
+func (x *LogsResponse) GetLog() string {
 	if x != nil {
 		return x.Log
 	}
@@ -685,7 +641,7 @@ type StatusRequest struct {
 
 func (x *StatusRequest) Reset() {
 	*x = StatusRequest{}
-	mi := &file_proto_app_v1_app_proto_msgTypes[11]
+	mi := &file_proto_app_v1_app_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -697,7 +653,7 @@ func (x *StatusRequest) String() string {
 func (*StatusRequest) ProtoMessage() {}
 
 func (x *StatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_app_v1_app_proto_msgTypes[11]
+	mi := &file_proto_app_v1_app_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -710,7 +666,7 @@ func (x *StatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusRequest.ProtoReflect.Descriptor instead.
 func (*StatusRequest) Descriptor() ([]byte, []int) {
-	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{11}
+	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StatusRequest) GetAppName() string {
@@ -743,7 +699,7 @@ type StatusResponse struct {
 
 func (x *StatusResponse) Reset() {
 	*x = StatusResponse{}
-	mi := &file_proto_app_v1_app_proto_msgTypes[12]
+	mi := &file_proto_app_v1_app_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -755,7 +711,7 @@ func (x *StatusResponse) String() string {
 func (*StatusResponse) ProtoMessage() {}
 
 func (x *StatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_app_v1_app_proto_msgTypes[12]
+	mi := &file_proto_app_v1_app_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -768,7 +724,7 @@ func (x *StatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
 func (*StatusResponse) Descriptor() ([]byte, []int) {
-	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{12}
+	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StatusResponse) GetStatus() string {
@@ -923,10 +879,8 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"<\n" +
 	"\vLogsRequest\x12\x19\n" +
 	"\bapp_name\x18\x01 \x01(\tR\aappName\x12\x12\n" +
-	"\x04tail\x18\x02 \x01(\x03R\x04tail\"@\n" +
-	"\fLogsResponse\x120\n" +
-	"\blog_line\x18\x01 \x03(\v2\x15.proto.app.v1.LogLineR\alogLine\"p\n" +
-	"\aLogLine\x128\n" +
+	"\x04tail\x18\x02 \x01(\x03R\x04tail\"u\n" +
+	"\fLogsResponse\x128\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x19\n" +
 	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x10\n" +
 	"\x03log\x18\x03 \x01(\tR\x03log\"*\n" +
@@ -950,11 +904,11 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\fmin_replicas\x18\f \x01(\x05R\vminReplicas\x12!\n" +
 	"\fmax_replicas\x18\r \x01(\x05R\vmaxReplicas\x12)\n" +
 	"\x10desired_replicas\x18\x0e \x01(\x05R\x0fdesiredReplicas\x12%\n" +
-	"\x0eready_replicas\x18\x0f \x01(\x05R\rreadyReplicas2\xe4\x01\n" +
+	"\x0eready_replicas\x18\x0f \x01(\x05R\rreadyReplicas2\xe6\x01\n" +
 	"\n" +
 	"AppService\x12N\n" +
-	"\tDeployApp\x12\x1e.proto.app.v1.DeployAppRequest\x1a\x1f.proto.app.v1.DeployAppResponse\"\x00\x12?\n" +
-	"\x04Logs\x12\x19.proto.app.v1.LogsRequest\x1a\x1a.proto.app.v1.LogsResponse\"\x00\x12E\n" +
+	"\tDeployApp\x12\x1e.proto.app.v1.DeployAppRequest\x1a\x1f.proto.app.v1.DeployAppResponse\"\x00\x12A\n" +
+	"\x04Logs\x12\x19.proto.app.v1.LogsRequest\x1a\x1a.proto.app.v1.LogsResponse\"\x000\x01\x12E\n" +
 	"\x06Status\x12\x1b.proto.app.v1.StatusRequest\x1a\x1c.proto.app.v1.StatusResponse\"\x00B0Z.github.com/nikumar1206/loco/proto/app/v1;appv1b\x06proto3"
 
 var (
@@ -969,7 +923,7 @@ func file_proto_app_v1_app_proto_rawDescGZIP() []byte {
 	return file_proto_app_v1_app_proto_rawDescData
 }
 
-var file_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_app_v1_app_proto_goTypes = []any{
 	(*DeployAppRequest)(nil),      // 0: proto.app.v1.DeployAppRequest
 	(*LocoConfig)(nil),            // 1: proto.app.v1.LocoConfig
@@ -981,10 +935,9 @@ var file_proto_app_v1_app_proto_goTypes = []any{
 	(*DeployAppResponse)(nil),     // 7: proto.app.v1.DeployAppResponse
 	(*LogsRequest)(nil),           // 8: proto.app.v1.LogsRequest
 	(*LogsResponse)(nil),          // 9: proto.app.v1.LogsResponse
-	(*LogLine)(nil),               // 10: proto.app.v1.LogLine
-	(*StatusRequest)(nil),         // 11: proto.app.v1.StatusRequest
-	(*StatusResponse)(nil),        // 12: proto.app.v1.StatusResponse
-	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
+	(*StatusRequest)(nil),         // 10: proto.app.v1.StatusRequest
+	(*StatusResponse)(nil),        // 11: proto.app.v1.StatusResponse
+	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
 }
 var file_proto_app_v1_app_proto_depIdxs = []int32{
 	1,  // 0: proto.app.v1.DeployAppRequest.loco_config:type_name -> proto.app.v1.LocoConfig
@@ -993,20 +946,19 @@ var file_proto_app_v1_app_proto_depIdxs = []int32{
 	4,  // 3: proto.app.v1.LocoConfig.scalers:type_name -> proto.app.v1.Scalers
 	5,  // 4: proto.app.v1.LocoConfig.health:type_name -> proto.app.v1.Health
 	6,  // 5: proto.app.v1.LocoConfig.logs:type_name -> proto.app.v1.Logs
-	10, // 6: proto.app.v1.LogsResponse.log_line:type_name -> proto.app.v1.LogLine
-	13, // 7: proto.app.v1.LogLine.timestamp:type_name -> google.protobuf.Timestamp
-	13, // 8: proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
-	0,  // 9: proto.app.v1.AppService.DeployApp:input_type -> proto.app.v1.DeployAppRequest
-	8,  // 10: proto.app.v1.AppService.Logs:input_type -> proto.app.v1.LogsRequest
-	11, // 11: proto.app.v1.AppService.Status:input_type -> proto.app.v1.StatusRequest
-	7,  // 12: proto.app.v1.AppService.DeployApp:output_type -> proto.app.v1.DeployAppResponse
-	9,  // 13: proto.app.v1.AppService.Logs:output_type -> proto.app.v1.LogsResponse
-	12, // 14: proto.app.v1.AppService.Status:output_type -> proto.app.v1.StatusResponse
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	12, // 6: proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
+	12, // 7: proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
+	0,  // 8: proto.app.v1.AppService.DeployApp:input_type -> proto.app.v1.DeployAppRequest
+	8,  // 9: proto.app.v1.AppService.Logs:input_type -> proto.app.v1.LogsRequest
+	10, // 10: proto.app.v1.AppService.Status:input_type -> proto.app.v1.StatusRequest
+	7,  // 11: proto.app.v1.AppService.DeployApp:output_type -> proto.app.v1.DeployAppResponse
+	9,  // 12: proto.app.v1.AppService.Logs:output_type -> proto.app.v1.LogsResponse
+	11, // 13: proto.app.v1.AppService.Status:output_type -> proto.app.v1.StatusResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_proto_app_v1_app_proto_init() }
@@ -1020,7 +972,7 @@ func file_proto_app_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_app_v1_app_proto_rawDesc), len(file_proto_app_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

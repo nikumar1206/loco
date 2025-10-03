@@ -117,7 +117,7 @@ var testCmd = &cobra.Command{
 		go func() {
 			err := pollAuthToken(c, payload.ClientId, deviceTokenResponse.DeviceCode, deviceTokenResponse.Interval, tokenChan)
 			if err != nil {
-				fmt.Println("there was err", err.Error())
+				fmt.Println(err.Error())
 				errorChan <- err
 			}
 		}()

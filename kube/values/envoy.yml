@@ -1,0 +1,43 @@
+deployment:
+    envoyGateway:
+        resources:
+            limits:
+                cpu: 700m
+                memory: 128Mi
+            requests:
+                cpu: 10m
+                memory: 64Mi
+        ports:
+            - name: grpc
+              port: 18000
+              targetPort: 18000
+            - name: ratelimit
+              port: 18001
+              targetPort: 18001
+            - name: wasm
+              port: 18002
+              targetPort: 18002
+            - name: admin
+              port: 19000
+              targetPort: 19000
+            - name: metrics
+              port: 19001
+              targetPort: 19001
+            - name: webhook
+              port: 9443
+              targetPort: 9443
+opentelemetry-collector:
+    enabled: true
+
+config:
+    envoyGateway:
+        logging:
+            level:
+                default: info
+        admin:
+            address:
+                host: 0.0.0.0
+                port: 19000
+        telemetry:
+            prometheus:
+                disable: false

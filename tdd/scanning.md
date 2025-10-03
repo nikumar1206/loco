@@ -70,8 +70,8 @@
 
 * Install Trivy on server:
 
-  * Option A: Sidecar container in deployment job pod.
-  * Option B: Binary in a scanner worker image.
+  * Option A: Binary in a scanner worker image.
+  * Option B: Potentially a separate deployment engine is needed; separate container, can be a sep microservice?
 * Ensure network access to the registry.
 
 ### **3.2 API Changes**
@@ -175,7 +175,7 @@
 * Add scheduled scans for already deployed images.
     - In this case, do we want to potentially remove the affected deployment after some message back to the user.
 * Store historical vulnerabilities per image/tag.
-* Scanning and deployment, may need to move to a separate service, to avoid blowing up the loco-server.
+* Scanning and deployment, may need to move to a separate service or container, to avoid blowing up the loco-server.
     - Deploying an app should theoretically be an async process.
-    - Can be CPU/Memory intensive.
+    - Can be CPU/Memory intensive and you don't want it impacting some high read.
     - Better for separation of concerns, dep-management as rest of loco-api does not need the trivy binary.
