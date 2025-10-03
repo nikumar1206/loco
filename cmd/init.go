@@ -13,6 +13,7 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Loco project",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		parseAndSetDebugFlag(cmd)
 		err := config.CreateDefault()
 		if err != nil {
 			return fmt.Errorf("failed to create loco.toml: %w", err)

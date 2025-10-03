@@ -12,6 +12,7 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy an application deployment",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		parseAndSetDebugFlag(cmd)
 		// file, _ := cmd.Flags().GetString("file")
 		yes, _ := cmd.Flags().GetBool("yes")
 

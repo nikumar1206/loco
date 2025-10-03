@@ -35,6 +35,7 @@ func init() {
 }
 
 func deployCmdFunc(cmd *cobra.Command, _ []string) error {
+	parseAndSetDebugFlag(cmd)
 	var err error
 	var tokenResponse *connect.Response[registryv1.GitlabTokenResponse]
 

@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"log/slog"
 	"os/user"
 	"time"
 
 	"github.com/nikumar1206/loco/internal/keychain"
+	"github.com/spf13/cobra"
 )
 
 func determineHost(isDev bool) string {
@@ -31,4 +34,14 @@ func getLocoToken() (*keychain.UserToken, error) {
 	}
 
 	return locoToken, err
+}
+
+func parseAndSetDebugFlag(cmd *cobra.Command) {
+	isDebug, err := cmd.Flags().GetBool("debug")
+	if err != nil {
+		log.Fatalf("Error getting debug flag: %v", err)
+	}
+	if isDebug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
 }

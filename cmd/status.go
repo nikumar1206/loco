@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,6 +23,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show application status",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		parseAndSetDebugFlag(cmd)
 		file, _ := cmd.Flags().GetString("file")
 		output, _ := cmd.Flags().GetString("output")
 
@@ -47,7 +49,8 @@ var statusCmd = &cobra.Command{
 
 		locoToken, err := getLocoToken()
 		if err != nil {
-			return err
+			slog.Debug("Error retrieving loco token", "error", err)
+			return fmt.Errorf("loco token not found. Please login via `loco login`")
 		}
 		client := appv1connect.NewAppServiceClient(http.DefaultClient, host)
 

@@ -53,6 +53,7 @@ var testCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to loco via Github OAuth",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		parseAndSetDebugFlag(cmd)
 		user, err := user.Current()
 		if err != nil {
 			return err

@@ -4,7 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var dev bool
+var (
+	dev   bool
+	debug bool
+)
 
 var RootCmd = &cobra.Command{
 	Use:     "loco",
@@ -14,6 +17,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&dev, "dev", false, "Uses localhost. For development purposes only.")
+	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enables debug logging.")
 
 	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, testCmd)
 }
