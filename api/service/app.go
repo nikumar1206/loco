@@ -11,6 +11,7 @@ import (
 
 	"github.com/nikumar1206/loco/api/client"
 	"github.com/nikumar1206/loco/api/models"
+	locoConfig "github.com/nikumar1206/loco/internal/config"
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 )
 
@@ -31,15 +32,16 @@ func (s *AppServer) DeployApp(
 	request := req.Msg
 
 	// fill defaults and validate
-	client.FillSensibleDefaults(request.LocoConfig)
+	//
+	locoConfig.FillSensibleDefaults(request.LocoConfig)
 
-	if err := client.Validate(request.LocoConfig); err != nil {
+	if err := locoConfig.Validate(request.LocoConfig); err != nil {
 		slog.ErrorContext(ctx, "invalid locoConfig", "error", err.Error())
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid locoConfig: %w", err))
 	}
 
 	// check banned subdomain
-	if client.IsBannedSubDomain(request.LocoConfig.Subdomain) {
+	if locoConfig.IsBannedSubDomain(request.LocoConfig.Subdomain) {
 		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
 	}
@@ -50,7 +52,7 @@ func (s *AppServer) DeployApp(
 		return nil, connect.NewError(connect.CodeUnauthenticated, NoUserError)
 	}
 
-	app := client.NewLocoApp(
+	app := locoConfig.NewLocoApp(
 		request.LocoConfig.Name,
 		request.LocoConfig.Subdomain,
 		user,
@@ -177,7 +179,7 @@ func (s *AppServer) Logs(
 		return connect.NewError(connect.CodeUnauthenticated, NoUserError)
 	}
 
-	namespace := client.GenerateNameSpace(appName, user)
+	namespace := locoConfig.GenerateNameSpace(appName, user)
 	err := s.Kc.GetLogs(ctx, namespace, appName, user, nil, stream)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
@@ -199,7 +201,7 @@ func (s *AppServer) Status(
 		return nil, connect.NewError(connect.CodeUnauthenticated, NoUserError)
 	}
 
-	namespace := client.GenerateNameSpace(appName, user)
+	namespace := locoConfig.GenerateNameSpace(appName, user)
 
 	deploymentStatus, err := s.Kc.GetDeploymentStatus(ctx, namespace, appName)
 	if err != nil {
