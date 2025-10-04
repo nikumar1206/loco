@@ -24,7 +24,7 @@ go.work.sum
 # env file
 .env
 
-loco
+bin/*
 loco-api
 
 */tmp/*

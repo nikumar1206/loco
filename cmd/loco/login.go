@@ -55,6 +55,7 @@ var testCmd = &cobra.Command{
 	Short: "Login to loco via Github OAuth",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parseAndSetDebugFlag(cmd)
+		host := parseDevFlag(cmd)
 		user, err := user.Current()
 		if err != nil {
 			slog.Debug("failed to get current user", "error", err)
@@ -77,19 +78,6 @@ var testCmd = &cobra.Command{
 			slog.Debug("no token found in keychain", "error", err)
 		}
 		c := client.NewClient("https://github.com")
-
-		isDev, err := cmd.Flags().GetBool("dev")
-		if err != nil {
-			return fmt.Errorf("error reading dev flag: %w", err)
-		}
-
-		var host string
-		if isDev {
-			// for now hardcoding to connect RPC port.
-			host = "http://localhost:8000"
-		} else {
-			host = "https://loco.deploy-app.com"
-		}
 
 		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host)
 		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
