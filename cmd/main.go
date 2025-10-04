@@ -4,11 +4,10 @@ import (
 	"context"
 	"image/color"
 	"os"
-	"runtime/debug"
+	runtimeDebug "runtime/debug"
 
 	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/nikumar1206/loco/cmd"
 	"github.com/nikumar1206/loco/internal/ui"
 )
 
@@ -40,10 +39,10 @@ func LocoColorScheme() fang.ColorSchemeFunc {
 }
 
 func main() {
-	i, ok := debug.ReadBuildInfo()
+	i, ok := runtimeDebug.ReadBuildInfo()
 	if !ok {
-		i = &debug.BuildInfo{
-			Main: debug.Module{
+		i = &runtimeDebug.BuildInfo{
+			Main: runtimeDebug.Module{
 				Path:    "github.com/nikumar1206/loco",
 				Version: "v0.0.1",
 			},
@@ -51,7 +50,7 @@ func main() {
 	}
 
 	if err := fang.Execute(context.Background(),
-		cmd.RootCmd,
+		RootCmd,
 		fang.WithVersion(i.Main.Version),
 		fang.WithColorSchemeFunc(LocoColorScheme())); err != nil {
 		os.Exit(1)

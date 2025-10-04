@@ -1,7 +1,8 @@
-package cmd
+package main
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/config"
@@ -16,6 +17,7 @@ var initCmd = &cobra.Command{
 		parseAndSetDebugFlag(cmd)
 		err := config.CreateDefault()
 		if err != nil {
+			slog.Debug("failed to create default config", "error", err)
 			return fmt.Errorf("failed to create loco.toml: %w", err)
 		}
 

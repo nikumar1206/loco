@@ -1,9 +1,11 @@
 Name = "myapp"
-Port = 8000
 Subdomain = "myapp"
+
+Port = 8000
 DockerfilePath = "Dockerfile"
 EnvFile = ".env"
 ProjectPath = "."
+
 CPU = "100m"
 Memory = "512Mi"
 
@@ -23,3 +25,5 @@ Memory = "512Mi"
 [Logs]
   RetentionPeriod = "7d"
   Structured = true
+
+SchemaVersion = "0.1"

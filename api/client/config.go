@@ -3,11 +3,16 @@ package client
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 	app "github.com/nikumar1206/loco/proto/app/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
+
+var ALLOWED_SCHEMA_VERSIONS = []string{
+	"0.1",
+}
 
 var Default = app.LocoConfig{
 	Name:           "myapp",
@@ -95,6 +100,10 @@ func Validate(cfg *app.LocoConfig) error {
 
 	if cfg.Subdomain == "" {
 		return fmt.Errorf("subdomain must be set")
+	}
+
+	if !slices.Contains(ALLOWED_SCHEMA_VERSIONS, cfg.SchemaVersion) {
+		return fmt.Errorf("provided schema version is not allowed")
 	}
 
 	return validateResources(cfg.Cpu, cfg.Memory)

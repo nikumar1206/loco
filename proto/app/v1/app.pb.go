@@ -96,6 +96,7 @@ type LocoConfig struct {
 	Scalers        *Scalers               `protobuf:"bytes,9,opt,name=scalers,proto3" json:"scalers,omitempty"`
 	Health         *Health                `protobuf:"bytes,10,opt,name=health,proto3" json:"health,omitempty"`
 	Logs           *Logs                  `protobuf:"bytes,11,opt,name=logs,proto3" json:"logs,omitempty"`
+	SchemaVersion  string                 `protobuf:"bytes,12,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -205,6 +206,13 @@ func (x *LocoConfig) GetLogs() *Logs {
 		return x.Logs
 	}
 	return nil
+}
+
+func (x *LocoConfig) GetSchemaVersion() string {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return ""
 }
 
 type EnvVar struct {
@@ -841,7 +849,7 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\vloco_config\x18\x01 \x01(\v2\x18.proto.app.v1.LocoConfigR\n" +
 	"locoConfig\x12'\n" +
 	"\x0fcontainer_image\x18\x02 \x01(\tR\x0econtainerImage\x12/\n" +
-	"\benv_vars\x18\x03 \x03(\v2\x14.proto.app.v1.EnvVarR\aenvVars\"\xfb\x02\n" +
+	"\benv_vars\x18\x03 \x03(\v2\x14.proto.app.v1.EnvVarR\aenvVars\"\xa2\x03\n" +
 	"\n" +
 	"LocoConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
@@ -855,7 +863,8 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\ascalers\x18\t \x01(\v2\x15.proto.app.v1.ScalersR\ascalers\x12,\n" +
 	"\x06health\x18\n" +
 	" \x01(\v2\x14.proto.app.v1.HealthR\x06health\x12&\n" +
-	"\x04logs\x18\v \x01(\v2\x12.proto.app.v1.LogsR\x04logs\"2\n" +
+	"\x04logs\x18\v \x01(\v2\x12.proto.app.v1.LogsR\x04logs\x12%\n" +
+	"\x0eschema_version\x18\f \x01(\tR\rschemaVersion\"2\n" +
 	"\x06EnvVar\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\".\n" +

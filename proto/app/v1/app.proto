@@ -22,6 +22,7 @@ message LocoConfig {
     Scalers scalers = 9;
     Health health = 10;
     Logs logs = 11;
+    string schema_version = 12;
 }
 
 message EnvVar {

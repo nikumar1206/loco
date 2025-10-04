@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ func parseDevFlag(cmd *cobra.Command) string {
 	}
 
 	if isDev {
+		slog.Debug("using dev host")
 		return "http://localhost:8000"
 	}
 	return "https://loco.deploy-app.com"
@@ -26,14 +27,17 @@ func parseDevFlag(cmd *cobra.Command) string {
 func getLocoToken() (*keychain.UserToken, error) {
 	usr, err := user.Current()
 	if err != nil {
+		slog.Debug("failed to get current user", "error", err)
 		return nil, err
 	}
 	locoToken, err := keychain.GetGithubToken(usr.Name)
 	if err != nil {
+		slog.Debug("failed to get github token", "error", err)
 		return nil, err
 	}
 
 	if locoToken.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
+		slog.Debug("token is expired or will expire soon", "expires_at", locoToken.ExpiresAt)
 		return nil, fmt.Errorf("token is expired or will expire soon. Please re-login via `loco login`")
 	}
 

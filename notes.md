@@ -95,3 +95,15 @@
 - Somehow already need to start cleaning the code up.
   - API code is horrendous tbh
 - also gitlab fetch token is only valid at deployment. what if new node comes in and needs to pull down image, it cannot since gitlab token expires in like 5 mins.
+
+\*\*
+next thing i wanna work on is allowing for /prefix based routing instead of subdomain.
+
+so same subdomain lets say koko can deploy:
+koko.deploy-app.com / api
+koko.deploy-app.com / ui
+
+both should be deployable and routable to via just a single pyproject.toml
+so does that mean one needs sub builds?
+each build will need a separate docker file.
+is this 2 separate pods ? or just one kubernetes pod machine with 2 containers?

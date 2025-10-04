@@ -1,9 +1,10 @@
-package cmd
+package main
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os/user"
 	"time"
@@ -56,12 +57,12 @@ var testCmd = &cobra.Command{
 		parseAndSetDebugFlag(cmd)
 		user, err := user.Current()
 		if err != nil {
+			slog.Debug("failed to get current user", "error", err)
 			return err
 		}
 		t, err := keychain.GetGithubToken(user.Name)
 		if err == nil {
 			if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
-
 				checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
 				message := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Already logged in!")
 				subtext := lipgloss.NewStyle().
@@ -71,6 +72,9 @@ var testCmd = &cobra.Command{
 				fmt.Printf("%s %s\n%s\n", checkmark, message, subtext)
 				return nil
 			}
+			slog.Debug("token is expired or will expire soon", "expires_at", t.ExpiresAt)
+		} else {
+			slog.Debug("no token found in keychain", "error", err)
 		}
 		c := client.NewClient("https://github.com")
 
@@ -90,8 +94,10 @@ var testCmd = &cobra.Command{
 		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host)
 		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
+			slog.Debug("failed to get oauth details", "error", err)
 			return err
 		}
+		slog.Debug("retrieved oauth details", "client_id", resp.Msg.ClientId)
 
 		payload := DeviceCodeRequest{
 			ClientId: resp.Msg.ClientId,
@@ -103,12 +109,14 @@ var testCmd = &cobra.Command{
 			"Content-Type": "application/json",
 		})
 		if err != nil {
+			slog.Debug("failed to get device code", "error", err)
 			return err
 		}
 
 		deviceTokenResponse := new(DeviceCodeResponse)
 		err = json.Unmarshal(req, deviceTokenResponse)
 		if err != nil {
+			slog.Debug("failed to unmarshal device code response", "error", err)
 			return err
 		}
 
@@ -164,14 +172,18 @@ func pollAuthToken(c *client.Client, clientId string, deviceCode string, interva
 			if apiError, ok := err.(*client.APIError); ok {
 				switch apiError.StatusCode {
 				case 400:
+					slog.Debug("authorization pending", "status_code", apiError.StatusCode)
 					time.Sleep(time.Duration(interval) * time.Second)
 					continue
 				case 403: // rate limit or access denied
+					slog.Debug("access denied or rate limited", "status_code", apiError.StatusCode, "error", err)
 					return fmt.Errorf("access denied or rate limited: %w", err)
 				default:
+					slog.Debug("API error while polling for token", "status_code", apiError.StatusCode, "error", err)
 					return fmt.Errorf("API error: %w", err)
 				}
 			} else {
+				slog.Debug("network error while polling for token", "error", err)
 				return fmt.Errorf("network error: %w", err)
 			}
 		}
@@ -179,6 +191,7 @@ func pollAuthToken(c *client.Client, clientId string, deviceCode string, interva
 		authTokenResponse := new(AuthTokenResponse)
 		err = json.Unmarshal(resp, authTokenResponse)
 		if err != nil {
+			slog.Debug("failed to unmarshal auth token response", "error", err)
 			return fmt.Errorf("failed to unmarshal response: %w", err)
 		}
 

@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -39,6 +39,7 @@ var statusCmd = &cobra.Command{
 
 		cfg, err := config.Load(configPath)
 		if err != nil {
+			slog.Debug("failed to load config", "path", configPath, "error", err)
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
@@ -56,8 +57,10 @@ var statusCmd = &cobra.Command{
 
 		res, err := client.Status(context.Background(), req)
 		if err != nil {
+			slog.Debug("failed to get app status", "app_name", cfg.LocoConfig.Name, "error", err)
 			return err
 		}
+		slog.Debug("retrieved app status", "status", res.Msg.Status)
 
 		status := appStatus{
 			StatusResponse: res.Msg,

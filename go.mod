@@ -5,7 +5,6 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/bubbles v0.21.0
-	// cannot bump deps; updated fang/bubbletea cause CLI to hang
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/fang v0.4.3
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -22,7 +21,7 @@ require (
 
 require (
 	connectrpc.com/connect v1.19.0
-	github.com/nikumar1206/loco/proto v0.0.0-20251003002722-4bd7383c9b30
+	github.com/nikumar1206/loco/proto v0.0.0-20251003124344-0dc8b82ee743
 )
 
 require (

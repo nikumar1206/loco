@@ -1,8 +1,9 @@
-package cmd
+package main
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -25,6 +26,7 @@ var logsCmd = &cobra.Command{
 
 		locoToken, err := getLocoToken()
 		if err != nil {
+			slog.Debug("failed to get loco token", "error", err)
 			return err
 		}
 
@@ -38,6 +40,7 @@ var logsCmd = &cobra.Command{
 
 		cfg, err := config.Load(configPath)
 		if err != nil {
+			slog.Debug("failed to load config", "path", configPath, "error", err)
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
@@ -73,6 +76,7 @@ var logsCmd = &cobra.Command{
 		errChan := make(chan error)
 
 		go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
+		slog.Debug("streaming logs for app", "app_name", cfg.LocoConfig.Name)
 
 		m := logModel{
 			table:     t,
@@ -88,6 +92,7 @@ var logsCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error running log viewer: %v\n", err)
 			return err
 		} else if fm, ok := finalModel.(logModel); ok && fm.err != nil {
+			slog.Debug("log streaming failed", "error", fm.err)
 			return fm.err
 		}
 

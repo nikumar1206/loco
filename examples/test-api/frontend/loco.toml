@@ -1,0 +1,31 @@
+# Application Configuration
+Name = "test-frontend"
+Port = 80
+Subdomain = "test-api" # Will be deployed to test-api.deploy-app.com
+
+# Project Configuration
+DockerfilePath = "Dockerfile" # Relative to loco.toml path
+
+# Resource Allocation
+CPU = "100m" # CPU cores (e.g., this is 0.1 cores)
+Memory = "100Mi" # Memory allocation (e.g., "256Mi", "1Gi", "2Gi")
+
+# Scaling Configuration
+[Replicas]
+Max = 2 # Maximum number of replicas
+Min = 1 # Minimum number of replicas
+
+# Autoscaling Triggers
+[Scalers]
+CPUTarget = 70 # CPU utilization target percentage
+
+# Health Checks
+[Health]
+Interval = 30 # Check interval in seconds
+Path = "/"
+Timeout = 5 # Timeout in seconds
+
+# Logging Configuration
+[Logs]
+RetentionPeriod = "7d" # Log retention period
+Structured = false # Enable structured JSON logging
