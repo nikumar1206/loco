@@ -1,4 +1,4 @@
-package main
+package loco
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func LocoColorScheme() fang.ColorSchemeFunc {
 	}
 }
 
-func main() {
+func CLI() {
 	i, ok := runtimeDebug.ReadBuildInfo()
 	if !ok {
 		i = &runtimeDebug.BuildInfo{
