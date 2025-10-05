@@ -1,24 +1,28 @@
-## High Priority
+- Make loco multi-tenant, multi-app setup thats backed by a database.
+    - currently everything is stored in k8s; this needs to be moved to a Postgres or similar.
+    - db will source of truth, in case k8s goes down, loco should be rebuildable through the database.
+- Metrics/Logging/Tracing
+    - use [OpenObserve](https://openobserve.ai/) as the combined solution
+    - for Loco-API itself, we will use auto-instrumentation.
+    - All logs/tracing/metrics must include tenant and app-id combination
+    - can potentially create dashboards dynamically, or atleast pull the data down.
+    - deploy a self-hosted instance on monitoring.loco.deploy-app.com
+- Profiles
+    - introduce multi-profile deployments to handle dev, uat, prod deployments.
+    - `loco deploy --profile=dev`
+    - profiles should be specifiable in loco.toml.
+        ```toml
+        [Profile.dev]
+          CPU = "100m"
+          Memory = "128Mi"
+          BaseDomain = "dev.deploy-app.com"
 
-- Flesh out the database structure (teams, users, apps, deployments, events)
-- Implement RBAC for strict permission control
-  - this is more of a general statement than an actionable item.
-- Monitoring
-  - implement e2e monitoring, starting with envoy-proxy, loco-api.
-  - take what i learn and apply to user pod monitoring as well
-  - Switch to `kube-prometheus-stack` (remove `eg-addons`)
-  - Configure `ServiceMonitor` manually for Envoy
-  - Set up monitoring with non-emptyDir, idk what this means
-  - Stick to open standards: Prometheus / Grafana / OpenTelemetry
-- Logging
-  - implement e2e logging, starting with envoy-proxy, loco-api.
-  - take what i learn and apply to user pod logging as well
-  - logs should only be visible to the person owning the project.
-- theoretically need 2 clusters for loco development; a dev cluster, and a prod cluster.
+        [Profile.prod]
+          CPU = "500m"
+          Memory = "1Gi"
+          Replicas.Max = 5
+        ```
 
-  - should users have some sort of environment feature?
-
-- look into connectRPC for API server/client code generation. also supports streaming
 - logs cmd should take an output flag so they can be serialized as JSON and users can use jq
 
   - should also have a simple yank command to grab the whole log as json
@@ -107,3 +111,7 @@ both should be deployable and routable to via just a single pyproject.toml
 so does that mean one needs sub builds?
 each build will need a separate docker file.
 is this 2 separate pods ? or just one kubernetes pod machine with 2 containers?
+
+
+may be nice to have some sort of secrets integration? like pull ur aws ssm, vault, secrets,
+too much for MVP

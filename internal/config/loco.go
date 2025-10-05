@@ -13,6 +13,10 @@ import (
 	appv1 "github.com/nikumar1206/loco/proto/app/v1"
 )
 
+var ALLOWED_SCHEMA_VERSIONS = []string{
+	"0.1",
+}
+
 var BannedSubdomains = []string{
 	"api", "admin", "dashboard", "console",
 	"login", "auth", "user", "users", "support", "help", "loco", "monitoring",

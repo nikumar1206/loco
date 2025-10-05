@@ -1,29 +1,56 @@
-Name = "myapp"
-Subdomain = "myapp"
+[Metadata]
+ConfigVersion = "0.1" # loco.toml config version; optional, defaults to this value
+Description = "Optional description about the application" 
+Name = "myapp" 
+Subdomain = "myapp" 
 
-Port = 8000
-DockerfilePath = "Dockerfile"
-EnvFile = ".env"
-ProjectPath = "."
-
+[Resources]
 CPU = "100m"
 Memory = "512Mi"
 
-[Replicas]
-  Max = 1
-  Min = 1
+[Resources.Replicas]
+Max = 1
+Min = 1
 
-[Scalers]
-  CPUTarget = 70
-  MemoryTarget = 0
+[Resources.Scalers]
+CPUTarget = 70 # only one can be provided to avoid conflicting scaling
+Enabled = true 
+MemoryTarget = 0 
+
+[Build]
+DockerfilePath = "Dockerfile" # optional, defaults to this value
+type = "docker" # optional, defaults to this value
+
+[Routing]
+IdleTimeout = 60 
+PathPrefix = "/api" # optional, defaults to /
+Port = 8000 # optional, fallbacks to Dockerfile exposed ports
 
 [Health]
-  Interval = 30
-  Path = "/health"
-  Timeout = 5
+Interval = 30
+Path = "/health"
+StartupGracePeriod = 15
+Timeout = 5
 
-[Logs]
-  RetentionPeriod = "7d"
-  Structured = true
+[Env]
+File = ".env"
+Variables = {"LOG_LEVEL" = "info", "FEATURE_FLAG_X" = "true"}
 
-SchemaVersion = "0.1"
+[Obs.Logging]
+Enabled = true # will retain logs, or just provide ephemeral logs
+RetentionPeriod = "7d" 
+Structured = true 
+
+# can be optionally provided to view metrics for your service.
+# Note that your app must expose this port and metrics in Prometheus style
+[Obs.Metrics]
+Enabled = true # will scrape
+Path = "/metrics" 
+Port = 9090 
+
+# can be optionally provided to pull traces for the service.
+# will be automatically concatonated with the envoy traces?
+[Obs.Tracing]
+Enabled = true
+SampleRate = 0.25
+Tags = {"env" = "us-east-1"}# these tags are injected into all traces

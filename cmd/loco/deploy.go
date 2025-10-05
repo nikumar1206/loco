@@ -38,6 +38,7 @@ func init() {
 func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 	parseAndSetDebugFlag(cmd)
 	host := parseDevFlag(cmd)
+	configPath := parseLocoTomlPath(cmd)
 
 	var err error
 	var tokenResponse *connect.Response[registryv1.GitlabTokenResponse]
@@ -57,14 +58,6 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		slog.Debug("token is expired or will expire soon", "expires_at", locoToken.ExpiresAt)
 		return fmt.Errorf("token is expired or will expire soon. Please re-login via `loco login`")
 	}
-	configPath, err := cmd.Flags().GetString("config")
-	if err != nil {
-		return fmt.Errorf("failed to read config flag: %w", err)
-	}
-	if configPath == "" {
-		configPath = "loco.toml"
-	}
-
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		slog.Debug("failed to load config", "path", configPath, "error", err)

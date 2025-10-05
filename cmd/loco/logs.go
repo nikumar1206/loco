@@ -23,19 +23,12 @@ var logsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parseAndSetDebugFlag(cmd)
 		host := parseDevFlag(cmd)
+		configPath := parseLocoTomlPath(cmd)
 
 		locoToken, err := getLocoToken()
 		if err != nil {
 			slog.Debug("failed to get loco token", "error", err)
 			return err
-		}
-
-		configPath, err := cmd.Flags().GetString("config")
-		if err != nil {
-			return fmt.Errorf("failed to read config flag: %w", err)
-		}
-		if configPath == "" {
-			configPath = "loco.toml"
 		}
 
 		cfg, err := config.Load(configPath)

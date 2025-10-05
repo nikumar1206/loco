@@ -40,10 +40,21 @@ build-linux: clean ## Build the application for Linux
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v
 
 reload-api:
-	@(cd api && air --build.cmd "lsof -ti:8000 | xargs -r kill -9; go build -o loco-api ." --build.bin "./loco-api")
+	@echo "Starting API with live reload..."
+	@lsof -ti:8000 | xargs -r kill -15 2>/dev/null || true
+	@(air \
+		--root ./api \
+		--build.cmd "go build -o ./api/bin/loco-api ./api" \
+		--build.bin "./api/bin/loco-api" \
+		--build.exclude_dir "bin,archive")
 
+# Reload CLI with air
 reload-cli:
-	@(air --build.cmd "go build -o loco ." --build.bin "./loco")
+	@echo "Starting CLI with live reload..."
+	@(air \
+		--build.cmd "mkdir -p ./bin; go build -o ./bin/loco .; chmod +x ./bin/loco" \
+		--build.bin "./bin/loco" \
+		--build.exclude_dir "bin,api,archive")
 
 lint: clean
 	@(golangci-lint run)

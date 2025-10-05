@@ -24,18 +24,11 @@ var statusCmd = &cobra.Command{
 	Short: "Show application status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parseAndSetDebugFlag(cmd)
+		host := parseDevFlag(cmd)
+		configPath := parseLocoTomlPath(cmd)
+
 		file, _ := cmd.Flags().GetString("file")
 		output, _ := cmd.Flags().GetString("output")
-
-		host := parseDevFlag(cmd)
-
-		configPath, err := cmd.Flags().GetString("config")
-		if err != nil {
-			return fmt.Errorf("failed to read config flag: %w", err)
-		}
-		if configPath == "" {
-			configPath = "loco.toml"
-		}
 
 		cfg, err := config.Load(configPath)
 		if err != nil {

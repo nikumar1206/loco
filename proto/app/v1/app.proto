@@ -11,18 +11,63 @@ message DeployAppRequest {
 }
 
 message LocoConfig {
-    string name = 1;
-    int32 port = 2;
-    string subdomain = 3;
-    string dockerfile_path = 4;
-    string env_file = 5;
-    string cpu = 6;
-    string memory = 7;
-    Replicas replicas = 8;
-    Scalers scalers = 9;
-    Health health = 10;
-    Logs logs = 11;
-    string schema_version = 12;
+    Metadata metadata = 1;
+    Resources resources = 2;
+    Build build = 3;
+    Routing routing = 4;
+    Health health = 5;
+    Env env = 6;
+    Obs obs = 7;
+}
+
+// --- Sub-messages ---
+
+message Metadata {
+    string config_version = 1;
+    string description = 2;
+    string name = 3;
+    string subdomain = 4;
+}
+
+message Replicas {
+    int32 max = 1;
+    int32 min = 2;
+}
+
+message Scalers {
+    int32 cpu_target = 1;
+    int32 memory_target = 2;
+    bool enabled = 3;
+}
+
+message Resources {
+    string cpu = 1;
+    string memory = 2;
+    Replicas replicas = 3;
+    Scalers scalers = 4;
+}
+
+message Build {
+    string dockerfile_path = 1;
+    string type = 2;
+}
+
+message Routing {
+    int32 idle_timeout = 1;
+    string path_prefix = 2;
+    int32 port = 3;
+}
+
+message Health {
+    int32 interval = 1;
+    string path = 2;
+    int32 startup_grace_period = 3;
+    int32 timeout = 4;
+}
+
+message Env {
+    string file = 1;
+    repeated EnvVar variables = 2;
 }
 
 message EnvVar {
@@ -30,25 +75,28 @@ message EnvVar {
     string value = 2;
 }
 
-message Replicas {
-    int32 min = 1;
-    int32 max = 2;
+message Logging {
+    bool enabled = 1;
+    string retention_period = 2;
+    bool structured = 3;
 }
 
-message Scalers {
-    int32 cpu_target = 1;
-    int32 memory_target = 2;
-}
-
-message Health {
-    int32 interval = 1;
+message Metrics {
+    bool enabled = 1;
     string path = 2;
-    int32 timeout = 3;
+    int32 port = 3;
 }
 
-message Logs {
-    string retention_period = 1;
-    bool structured = 2;
+message Tracing {
+    bool enabled = 1;
+    double sample_rate = 2;
+    map<string, string> tags = 3;
+}
+
+message Obs {
+    Logging logging = 1;
+    Metrics metrics = 2;
+    Tracing tracing = 3;
 }
 
 message DeployAppResponse {

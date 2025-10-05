@@ -53,3 +53,14 @@ func parseAndSetDebugFlag(cmd *cobra.Command) {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 }
+
+func parseLocoTomlPath(cmd *cobra.Command) string {
+	configPath, err := cmd.Flags().GetString("config")
+	if err != nil {
+		log.Fatalf("Error getting config flag: %v", err)
+	}
+	if configPath == "" {
+		return "loco.toml"
+	}
+	return configPath
+}
