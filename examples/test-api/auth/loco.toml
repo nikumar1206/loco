@@ -1,7 +1,7 @@
 [Metadata]
 ConfigVersion = "0.1"
-Description = "Default Loco app configuration"
-Name = "frontend"
+Description = "Auth Service"
+Name = "auth"
 
 [Resources]
 Cpu = "100m"
@@ -21,8 +21,8 @@ Type = "docker"
 
 [Routing]
 IdleTimeout = 60
-PathPrefix = "/"
-Port = 8080
+PathPrefix = "/auth"
+Port = 8000
 Subdomain = "test-api"
 
 [Health]
@@ -32,9 +32,8 @@ StartupGracePeriod = 0
 Timeout = 5
 
 [Env]
-File = ""
+File = ".env"
 
-[Obs]
 [Obs.Logging]
 Enabled = true
 RetentionPeriod = "7d"
@@ -46,6 +45,5 @@ Path = "/metrics"
 Port = 9090
 
 [Obs.Tracing]
-
 Enabled = false
 SampleRate = 0.1

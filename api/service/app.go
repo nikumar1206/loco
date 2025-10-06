@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	NoUserError = errors.New("user could not be determined")
-	StatusError = errors.New("could not determine deployment status")
+	ErrNoUser   = errors.New("user could not be determined")
+	ErrNoStatus = errors.New("could not determine deployment status")
 )
 
 type AppServer struct {
@@ -32,7 +32,6 @@ func (s *AppServer) DeployApp(
 	request := req.Msg
 
 	// fill defaults and validate
-	//
 	locoConfig.FillSensibleDefaults(request.LocoConfig)
 
 	if err := locoConfig.Validate(request.LocoConfig); err != nil {
@@ -41,35 +40,32 @@ func (s *AppServer) DeployApp(
 	}
 
 	// check banned subdomain
-	if locoConfig.IsBannedSubDomain(request.LocoConfig.Subdomain) {
-		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Subdomain))
+	if locoConfig.IsBannedSubDomain(request.LocoConfig.Routing.Subdomain) {
+		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Routing.Subdomain))
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
 	}
 
 	user, ok := ctx.Value("user").(string)
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, NoUserError)
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
 	app := locoConfig.NewLocoApp(
-		request.LocoConfig.Name,
-		request.LocoConfig.Subdomain,
+		request.LocoConfig,
 		user,
 		request.ContainerImage,
 		request.EnvVars,
-		request.LocoConfig,
 	)
 
-	// Check if service exists
-	exists, err := s.Kc.CheckServiceExists(ctx, app.Namespace, app.Name)
+	// check if service exists; if exists update in-place else create new
+	serviceExists, err := s.Kc.CheckServiceExists(ctx, app.Namespace, app.Name)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check if service exists: %w", err))
 	}
 
-	if exists {
-		// Update in-place logic
+	if serviceExists {
 		slog.InfoContext(ctx, "service exists, updating in-place")
 
 		expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
@@ -88,7 +84,6 @@ func (s *AppServer) DeployApp(
 			Server:   s.AppConfig.RegistryURL,
 			Username: gitlabResp.Username,
 			Password: gitlabResp.Token,
-			Email:    "couldbeanything@gmail.com",
 		}
 
 		if err := s.Kc.UpdateDockerPullSecret(ctx, app, registry); err != nil {
@@ -126,7 +121,6 @@ func (s *AppServer) DeployApp(
 		Server:   s.AppConfig.RegistryURL,
 		Username: gitlabResp.Username,
 		Password: gitlabResp.Token,
-		Email:    "couldbeanything@gmail.com",
 	}
 
 	if err := s.Kc.CreateDockerPullSecret(ctx, app, registry); err != nil {
@@ -176,7 +170,7 @@ func (s *AppServer) Logs(
 	user, ok := ctx.Value("user").(string)
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return connect.NewError(connect.CodeUnauthenticated, NoUserError)
+		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
 	namespace := locoConfig.GenerateNameSpace(appName, user)
@@ -198,7 +192,7 @@ func (s *AppServer) Status(
 
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, NoUserError)
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
 	namespace := locoConfig.GenerateNameSpace(appName, user)
@@ -206,7 +200,7 @@ func (s *AppServer) Status(
 	deploymentStatus, err := s.Kc.GetDeploymentStatus(ctx, namespace, appName)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, StatusError)
+		return nil, connect.NewError(connect.CodeInternal, ErrNoStatus)
 	}
 
 	return connect.NewResponse(

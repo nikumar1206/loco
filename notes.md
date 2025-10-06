@@ -1,36 +1,89 @@
 - Make loco multi-tenant, multi-app setup thats backed by a database.
-    - currently everything is stored in k8s; this needs to be moved to a Postgres or similar.
-    - db will source of truth, in case k8s goes down, loco should be rebuildable through the database.
+  - currently everything is stored in k8s; this needs to be moved to a Postgres or similar.
+  - db will source of truth, in case k8s goes down, loco should be rebuildable through the database.
 - Metrics/Logging/Tracing
-    - use [OpenObserve](https://openobserve.ai/) as the combined solution
-    - for Loco-API itself, we will use auto-instrumentation.
-    - All logs/tracing/metrics must include tenant and app-id combination
-    - can potentially create dashboards dynamically, or atleast pull the data down.
-    - deploy a self-hosted instance on monitoring.loco.deploy-app.com
+  - use [OpenObserve](https://openobserve.ai/) as the combined solution
+  - for Loco-API itself, we will use auto-instrumentation.
+  - All logs/tracing/metrics must include tenant and app-id combination
+  - can potentially create dashboards dynamically, or atleast pull the data down.
+  - deploy a self-hosted instance on monitoring.loco.deploy-app.com
 - Profiles
-    - introduce multi-profile deployments to handle dev, uat, prod deployments.
-    - `loco deploy --profile=dev`
-    - profiles should be specifiable in loco.toml.
-        ```toml
-        [Profile.dev]
-          CPU = "100m"
-          Memory = "128Mi"
-          BaseDomain = "dev.deploy-app.com"
 
-        [Profile.prod]
-          CPU = "500m"
-          Memory = "1Gi"
-          Replicas.Max = 5
-        ```
+  - introduce multi-profile deployments to handle dev, uat, prod deployments.
+  - `loco deploy --profile=dev`
+  - profiles should be specifiable in loco.toml.
 
-- logs cmd should take an output flag so they can be serialized as JSON and users can use jq
+    ```toml
+    [Profile.dev]
+      CPU = "100m"
+      Memory = "128Mi"
+      BaseDomain = "dev.deploy-app.com"
 
-  - should also have a simple yank command to grab the whole log as json
-  - if we ever introduce streaming logs in real time, we should include a freeze
+    [Profile.prod]
+      CPU = "500m"
+      Memory = "1Gi"
+      Replicas.Max = 5
+    ```
 
-- Support and test different deployment types: UI, cache (Redis), DB, Blob
-- Tracing
-  - deferring for now, don't have an idea for this.
+- support for GRPC routes
+- support for grpc/http/cmd-baed health checks
+
+- Logs Command
+
+  - Support for following and tailing x logs.
+  - CLI table should support a simple freeze as well.
+  - -o should take json or table.
+
+- Deploy Command
+
+  - take a token non-interactively via std in, maybe with simple output as well. `loco deploy --non-interactive --token {GH-TOKEN}`
+  - take an image id, so that loco doesnt build the image and we get to skip some steps.
+  - introduce a wait command, that waits for everything to finish
+  - users should always get back some sort of deployment-id or eventid that can be presented for debugging purposes.
+
+- Scanning Docker Images; we have a TDD for this
+
+- Pre-deployment loco needs to check if we can sustain the requested deployment (atleast 2x the requested resources to be safe.)
+- Ensure nodes are in-ready before allowing loco deploy
+- Wait for new pod readiness before marking deploy as successful
+
+- New commands:
+
+  - loco web : opens loco website in browser.
+    - --dashboard, --traces? --logs, -- docs, --account
+  - loco env : syncs new env variables, without redeploying
+  - loco scale : updates compute
+    - --replicas, -- cpu, --memory
+  - loco map
+    - generates a map of user's deployments to loco or an app's compute.
+    - --appName or like tenantid name. this is just a nice to have.
+    - project name based?
+
+- Sometimes docker is sleeping; we need to give better errors, and maybe tell users to just specify --image-id if stuff keeps going wrong.
+- can we check if docker is sleeping before trying to build the image?
+- are we validating that subdomains have not been taken ?
+  - should be done on a per domain basis.
+  - wish we had a database!
+- introduce a project-id. Project id will be used to map loco.toml's together.
+- on update, we should update the service as well; my ports were different, but it didnt get applied.
+- debug flag on CLI actually scuffs the terminal output from bubbletea. We actually need to write to a log file.
+- In-Cluster Communication
+
+  - Lets inject service URL via env variables: LOCO\_<APP_NAME>\_URL . (multiple of these, scoped to the project)
+  - other env variables we can add:
+    - LOCO_APP_NAME
+    - LOCO_APP_VERSION ~ tied to git commit?
+    - LOCO_PROFILE
+    - LOCO_DEPLOYMENT_ID ~ loco's deployment id (once we have a DB and everything.)
+    - LOCO_VERSION ~ loco version ? idk if we need to provide this
+    - LOCO_TRACING_ENDPOINT ~ this is the openobserve endpoint to submit traces to
+    - LOCO_METRICS_ENDPOINT ~ this is where loco will be scraping metrics from
+
+- Resurrector
+  - deployed separately from the cluster
+  - continously monitors and pings cluster health status
+  - if not healthy, try to diagnose? and rebuild whats broken?
+  - needs to be done on a per provider basis
 
 ---
 
@@ -47,71 +100,42 @@
 
 ## Low Priority
 
-- Add potential CLI commands: `docs`, `env`, `account`
+- Cleanup
+  - that random config file that has too much? makes no sense
+  - timestamps should all be same fmt
+- Evaluate ArgoCD and others for better CD of kubernetes resources
+- Gitlab Container Registry Token is only procured on loco deploy; should be re-procured in case node expires, ...
+- Better handling of secrets related to Loco.
+  - Need to be autorotated; stored in some secrets vault.
+- Better handling of app secrets
+- Review API contracts to make sure they make sense
 
-- Make brew package for CLI with auto shell completions
-- Enable deployment to path prefixes (`/api`, `/`, etc.)
-- Auto-fill default `loco.toml` values if omitted
-- Centralize all timestamps
-- Deploy tokens should expire in 5 mins
-- Registry read tokens: max 10 mins
-- Use Terraform to create Kubernetes clusters/resources
-- Fix “already exists” errors gracefully in GitHub Actions
-- Generate namespace from user-app hash to avoid conflicts
-- Ensure nodes are ready before allowing loco deploy
-- SSE-based endpoint for deploying
-- Validate necessary resources before deploy
-- apiClient and locoConfig seem to be a shared object
-- Consider switching to private Docker Hub vs GitLab
-- Reuse deploy token instead of regenerating on backend
-- Potentially add artifact attestations to images
-- Kubernetes configmap of secrets needs to be created separately
-- Create RBAC to restrict secret visibility for env vars
-- Resolve paths for loco.toml
-- Wait for new pod readiness before marking deploy as successful
-- Add example to README
-- Provide example loco.toml path
-- Improve loco.toml scalability and visibility
-- Make loco CI-friendly via `loco deploy --non-interactive --token {GH-TOKEN}`
-- Add `loco env` command to update just .env
-- Respect/Allow specifying .dockerignore files / .gitignore files when building container images.
-- Add multi-port container support
-  - super low prio. i can see the usecase, but pref one entry point for simplicity
-- Unhappy paths should offer clear, actionable steps
+- Have the deployment endpoint stream back.
+- Docker image enhancements?
+
+  - Consider a private registry that has tag-prefix/name-prefix based access-controls.
+  - Potentially add artifact attestations to images
+
+- Secrets
+  - Kubernetes configmap of secrets needs to be created separately
+  - Create RBAC to restrict secret visibility for env vars
 
 ---
 
-## Next Steps
+Eventually...
 
-- Add endpoints for getting logs and app status
-- Enhance deploy endpoint to fail on redeploy (CLI side)
-- Investigate OOM issues
-- Evaluate whether to install metrics-server
-- Improve logging with contextual information
-- Cleanup deployApp and GitHub callback code
-- Ensure image build failures are correctly reported
-- Address cross-platform build errors and Docker issues
-- Add debug log file support to loco CLI
-- probably need a way to update the kube context for all deployments.
+- Support and test different deployment types: UI, cache (Redis), DB, Blob
+- Respect/Allow specifying .dockerignore files / .gitignore files when building container images.
+- Secrets integration
+
+  - Secrets need to be pulled and injected
+  - but user can also do this in their own container, just access aws ssm no?
+  - but how are they gonna get the aws secret key and whatnot?
+
 - how are we handling security patches?
-- loco versions will need to not break previous apps deployed.
-  - loco.toml should take in some sort of versioning ability
-- Somehow already need to start cleaning the code up.
-  - API code is horrendous tbh
+  - depends on provider config, they will be auto managed for us if using things like fargate, otherwise our issue.
+  - might need to do some sort of blue-green deployment for kubernetes.
 - also gitlab fetch token is only valid at deployment. what if new node comes in and needs to pull down image, it cannot since gitlab token expires in like 5 mins.
-
-\*\*
-next thing i wanna work on is allowing for /prefix based routing instead of subdomain.
-
-so same subdomain lets say koko can deploy:
-koko.deploy-app.com / api
-koko.deploy-app.com / ui
-
-both should be deployable and routable to via just a single pyproject.toml
-so does that mean one needs sub builds?
-each build will need a separate docker file.
-is this 2 separate pods ? or just one kubernetes pod machine with 2 containers?
-
 
 may be nice to have some sort of secrets integration? like pull ur aws ssm, vault, secrets,
 too much for MVP

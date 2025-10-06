@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,10 +26,12 @@ var BannedSubdomains = []string{
 }
 
 const (
-	LabelAppName       = "app.loco.io/name"
-	LabelAppInstance   = "app.loco.io/instance"
-	LabelAppVersion    = "app.loco.io/version"
-	LabelAppComponent  = "app.loco.io/component"
+	LabelAppName      = "app.loco.io/name"
+	LabelAppInstance  = "app.loco.io/instance"
+	LabelAppVersion   = "app.loco.io/version"
+	LabelAppComponent = "app.loco.io/component"
+
+	// todo: can we use this partof label for grouping apps into projects?
 	LabelAppPartOf     = "app.loco.io/part-of"
 	LabelAppManagedBy  = "app.loco.io/managed-by"
 	LabelAppCreatedFor = "app.loco.io/created-for"
@@ -43,32 +46,58 @@ type Config struct {
 }
 
 var Default = &appv1.LocoConfig{
-	Name:           "myapp",
-	Port:           8000,
-	Subdomain:      "myapp",
-	DockerfilePath: "Dockerfile",
-	EnvFile:        ".env",
-	Cpu:            "100m",
-	Memory:         "100Mi",
-	Replicas: &appv1.Replicas{
-		Min: 1,
-		Max: 1,
+	Metadata: &appv1.Metadata{
+		ConfigVersion: "0.1",
+		Description:   "Default Loco app configuration",
+		Name:          "<ENTER_APP_NAME>",
 	},
-	Scalers: &appv1.Scalers{
-		CpuTarget: 70,
+	Resources: &appv1.Resources{
+		Cpu:    "100m",
+		Memory: "256Mi",
+		Replicas: &appv1.Replicas{
+			Min: 1,
+			Max: 1,
+		},
+		Scalers: &appv1.Scalers{
+			Enabled:   true,
+			CpuTarget: 70,
+		},
+	},
+	Build: &appv1.Build{
+		DockerfilePath: "Dockerfile",
+		Type:           "docker",
+	},
+	Routing: &appv1.Routing{
+		IdleTimeout: 60, // 1 minute
+		PathPrefix:  "/",
+		Port:        8000,
 	},
 	Health: &appv1.Health{
-		Interval: 30,
-		Path:     "/health",
-		Timeout:  5,
+		Interval:           30,
+		Path:               "/health",
+		StartupGracePeriod: 0,
+		Timeout:            5,
 	},
-	Logs: &appv1.Logs{
-		Structured:      true,
-		RetentionPeriod: "7d",
+	Obs: &appv1.Obs{
+		Logging: &appv1.Logging{
+			Enabled:         true,
+			RetentionPeriod: "7d",
+			Structured:      false,
+		},
+		Metrics: &appv1.Metrics{
+			Enabled: false,
+			Path:    "/metrics",
+			Port:    9090,
+		},
+		Tracing: &appv1.Tracing{
+			Enabled:    false,
+			SampleRate: 0.1,
+			Tags:       map[string]string{},
+		},
 	},
 }
 
-func Create(c *appv1.LocoConfig) error {
+func Create(c *appv1.LocoConfig, dirName string) error {
 	if _, err := os.Stat("loco.toml"); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("file already exists")
 	}
@@ -78,6 +107,9 @@ func Create(c *appv1.LocoConfig) error {
 	}
 	defer file.Close()
 
+	c.Metadata.Name = dirName
+	c.Routing.Subdomain = dirName
+
 	encoder := toml.NewEncoder(file)
 	if err := encoder.Encode(c); err != nil {
 		return err
@@ -85,8 +117,8 @@ func Create(c *appv1.LocoConfig) error {
 	return nil
 }
 
-func CreateDefault() error {
-	return Create(Default)
+func CreateDefault(dirName string) error {
+	return Create(Default, dirName)
 }
 
 func Load(cfgPath string) (Config, error) {
@@ -110,23 +142,23 @@ func Load(cfgPath string) (Config, error) {
 		return config, err
 	}
 
-	config.LocoConfig.DockerfilePath = resolvePath(config.LocoConfig.DockerfilePath, cfgPathAbs)
-	config.LocoConfig.EnvFile = resolvePath(config.LocoConfig.EnvFile, cfgPathAbs)
+	config.LocoConfig.Build.DockerfilePath = resolvePath(config.LocoConfig.Build.DockerfilePath, cfgPathAbs)
+	config.LocoConfig.Env.File = resolvePath(config.LocoConfig.Env.File, cfgPathAbs)
 
 	return config, nil
 }
 
 func FillSensibleDefaults(cfg *appv1.LocoConfig) {
-	if cfg.DockerfilePath == "" {
-		cfg.DockerfilePath = Default.DockerfilePath
+	if cfg.Build.DockerfilePath == "" {
+		cfg.Build.DockerfilePath = Default.Build.DockerfilePath
 	}
 
-	if cfg.Cpu == "" {
-		cfg.Cpu = Default.Cpu
+	if cfg.Resources.Cpu == "" {
+		cfg.Resources.Cpu = Default.Resources.Cpu
 	}
 
-	if cfg.Memory == "" {
-		cfg.Memory = Default.Memory
+	if cfg.Resources.Memory == "" {
+		cfg.Resources.Memory = Default.Resources.Memory
 	}
 }
 
@@ -147,31 +179,152 @@ func resolvePath(path, baseDir string) string {
 // Validate ensures the locoConfig is accurate.
 // it also validates and resolves paths to env and Dockerfile
 func Validate(cfg *appv1.LocoConfig) error {
-	if cfg.Name == "" {
-		return fmt.Errorf("name must be set")
+	// --- Metadata ---
+	if cfg.Metadata.Name == "" {
+		return fmt.Errorf("metadata.name must be set")
 	}
 
-	if cfg.Port <= 1023 || cfg.Port > 65535 {
-		return fmt.Errorf("port must be between 1024 and 65535")
+	if cfg.Routing.Subdomain == "" {
+		return fmt.Errorf("routing.subdomain must be set")
 	}
 
-	if cfg.Subdomain == "" {
-		return fmt.Errorf("subdomain must be set")
+	// --- Routing ---
+	if cfg.Routing.Port <= 1023 || cfg.Routing.Port > 65535 {
+		return fmt.Errorf("routing.port must be between 1024 and 65535")
 	}
 
-	if !fileExists(cfg.DockerfilePath) {
-		return fmt.Errorf("provided Dockerfile path could not be resolved. Please provide path to a valid Dockerfile")
+	if cfg.Routing.PathPrefix == "" {
+		cfg.Routing.PathPrefix = "/"
+	} else if !strings.HasPrefix(cfg.Routing.PathPrefix, "/") {
+		return fmt.Errorf("routing.pathprefix must start with '/'")
 	}
 
-	if cfg.EnvFile != "" && !fileExists(cfg.EnvFile) {
-		return fmt.Errorf("provided env path could not be resolved. Please provide path to a valid environments file")
+	if cfg.Routing.IdleTimeout < 0 {
+		return fmt.Errorf("routing.idletimeout cannot be negative")
 	}
 
-	if cfg.Scalers.CpuTarget != 0 && cfg.Scalers.MemoryTarget != 0 {
-		return fmt.Errorf("only one scaler config should be provided")
+	// --- Build ---
+	if cfg.Build.DockerfilePath == "" {
+		cfg.Build.DockerfilePath = "Dockerfile"
+	}
+	if !fileExists(cfg.Build.DockerfilePath) {
+		return fmt.Errorf("provided Dockerfile path %q could not be resolved", cfg.Build.DockerfilePath)
+	}
+	if cfg.Build.Type == "" {
+		cfg.Build.Type = "docker"
+	}
+
+	// --- Env ---
+	if cfg.Env.File != "" && !fileExists(cfg.Env.File) {
+		return fmt.Errorf("provided env path %q could not be resolved", cfg.Env.File)
+	}
+
+	// --- Resources ---
+	if cfg.Resources.Cpu == "" {
+		return fmt.Errorf("resources.cpu must be set (e.g. '100m')")
+	}
+	if cfg.Resources.Memory == "" {
+		return fmt.Errorf("resources.memory must be set (e.g. '512Mi')")
+	}
+
+	// Replicas
+	if cfg.Resources.Replicas.Min <= 0 {
+		return fmt.Errorf("resources.replicas.min must be greater than 0")
+	}
+	if cfg.Resources.Replicas.Max <= 0 {
+		return fmt.Errorf("resources.replicas.max must be greater than 0")
+	}
+	if cfg.Resources.Replicas.Max < cfg.Resources.Replicas.Min {
+		return fmt.Errorf("resources.replicas.max must be greater than or equal to min")
+	}
+	if cfg.Resources.Replicas.Max > 50 {
+		return fmt.Errorf("resources.replicas.max cannot exceed 50 replicas")
+	}
+
+	// Scalers
+	if cfg.Resources.Scalers.Enabled {
+		if cfg.Resources.Scalers.CpuTarget == 0 && cfg.Resources.Scalers.MemoryTarget == 0 {
+			return fmt.Errorf("when scalers.enabled=true, either cpu_target or memory_target must be provided")
+		}
+		if cfg.Resources.Scalers.CpuTarget != 0 && cfg.Resources.Scalers.MemoryTarget != 0 {
+			return fmt.Errorf("only one of scalers.cpu_target or scalers.memory_target should be provided")
+		}
+		if cfg.Resources.Scalers.CpuTarget < 0 || cfg.Resources.Scalers.CpuTarget > 100 {
+			return fmt.Errorf("scalers.cpu_target must be between 1 and 100")
+		}
+		if cfg.Resources.Scalers.MemoryTarget < 0 || cfg.Resources.Scalers.MemoryTarget > 100 {
+			return fmt.Errorf("scalers.memory_target must be between 1 and 100")
+		}
+	}
+
+	// --- Health ---
+	if cfg.Health.Interval <= 0 {
+		return fmt.Errorf("health.interval must be greater than 0")
+	}
+	if cfg.Health.Path == "" {
+		return fmt.Errorf("health.path must be provided")
+	}
+	if !strings.HasPrefix(cfg.Health.Path, "/") {
+		return fmt.Errorf("health.path must start with '/'")
+	}
+	if cfg.Health.Timeout <= 0 {
+		return fmt.Errorf("health.timeout must be greater than 0")
+	}
+	if cfg.Health.StartupGracePeriod < 0 {
+		return fmt.Errorf("health.startupgraceperiod cannot be negative")
+	}
+
+	// --- Observability ---
+	// Logging
+	if cfg.Obs.Logging.Enabled {
+		if cfg.Obs.Logging.RetentionPeriod == "" {
+			cfg.Obs.Logging.RetentionPeriod = "7d"
+		}
+		duration, err := parseRetention(cfg.Obs.Logging.RetentionPeriod)
+		if err != nil || duration <= 0 {
+			return fmt.Errorf("invalid logging.retentionperiod: %q", cfg.Obs.Logging.RetentionPeriod)
+		}
+	}
+
+	// Metrics
+	if cfg.Obs.Metrics.Enabled {
+		if cfg.Obs.Metrics.Path == "" {
+			cfg.Obs.Metrics.Path = "/metrics"
+		}
+		if !strings.HasPrefix(cfg.Obs.Metrics.Path, "/") {
+			return fmt.Errorf("metrics.path must start with '/'")
+		}
+		if cfg.Obs.Metrics.Port <= 0 {
+			cfg.Obs.Metrics.Port = 9090
+		}
+		if cfg.Obs.Metrics.Port <= 1023 || cfg.Obs.Metrics.Port > 65535 {
+			return fmt.Errorf("metrics.port must be between 1024 and 65535")
+		}
+	}
+
+	// Tracing
+	if cfg.Obs.Tracing.Enabled {
+		if cfg.Obs.Tracing.SampleRate < 0 || cfg.Obs.Tracing.SampleRate > 1 {
+			return fmt.Errorf("tracing.samplerate must be between 0.0 and 1.0")
+		}
 	}
 
 	return nil
+}
+
+// --- Helper utilities ---
+
+func parseRetention(value string) (time.Duration, error) {
+	// supports formats like "7d", "24h"
+	if strings.HasSuffix(value, "d") {
+		daysStr := strings.TrimSuffix(value, "d")
+		days, err := strconv.Atoi(daysStr)
+		if err != nil {
+			return 0, err
+		}
+		return time.Hour * 24 * time.Duration(days), nil
+	}
+	return time.ParseDuration(value)
 }
 
 func fileExists(filePath string) bool {
@@ -194,15 +347,16 @@ type LocoApp struct {
 	Config         *appv1.LocoConfig
 }
 
-func NewLocoApp(name, subdomain, createdBy string, containerImage string, envVars []*appv1.EnvVar, config *appv1.LocoConfig) *LocoApp {
-	ns := GenerateNameSpace(name, createdBy)
+func NewLocoApp(config *appv1.LocoConfig, createdBy string, containerImage string, envVars []*appv1.EnvVar) *LocoApp {
+	ns := GenerateNameSpace(config.Metadata.Name, createdBy)
+	labels := generateLabels(config.Metadata.Name, ns, createdBy)
 	return &LocoApp{
-		Name:           name,
+		Name:           config.Metadata.Name,
 		Namespace:      ns,
-		Subdomain:      subdomain,
+		Subdomain:      config.Routing.Subdomain,
 		CreatedBy:      createdBy,
 		CreatedAt:      time.Now(),
-		Labels:         GenerateLabels(name, ns, createdBy),
+		Labels:         labels,
 		EnvVars:        envVars,
 		Config:         config,
 		ContainerImage: containerImage,
@@ -220,7 +374,7 @@ func GenerateNameSpace(name string, username string) string {
 	return appName + "-" + userName
 }
 
-func GenerateLabels(name, namespace, createdBy string) map[string]string {
+func generateLabels(name, namespace, createdBy string) map[string]string {
 	return map[string]string{
 		LabelAppName:       name,
 		LabelAppInstance:   namespace,

@@ -1,0 +1,59 @@
+[Metadata]
+ConfigVersion = "0.1" # loco.toml config version; optional, defaults to 0.1
+Description = "Optional description about the application" # optional, defaults to ""
+Name = "myapp" # required, this is the app name
+
+[Resources] # maps directly to k8s resource requests; https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+CPU = "100m" # optional, defaults to "100m"
+Memory = "512Mi" # optional, defaults to "512m"
+
+[Resources.Replicas]
+Max = 1 # required, setting to same number means no scaling occurs.
+Min = 1 # required, setting to same number means no scaling occurs. 
+
+[Resources.Scalers] # note, either cpu target or memory target must be provided, if enabled. this avoids conflicting rules
+CPUTarget = 70 # optional
+Enabled = true # optional, defaults to false
+MemoryTarget = 0 # optional
+
+[Build]
+DockerfilePath = "Dockerfile" # optional, defaults to "Dockerfile"
+type = "docker" # optional, defaults to "docker"
+
+[Routing]
+IdleTimeout = 60 # optional, defaults to 60
+PathPrefix = "/api" # optional, defaults to /
+Port = 8000 # required
+Subdomain = "myapp" # required, app will be deployed on myapp.deploy-app.com
+
+[Health]
+Interval = 30 
+Path = "/health" 
+StartupGracePeriod = 15 # optional, fallbacks to no grace period.
+Timeout = 5 
+
+[Env]
+File = ".env"
+Variables = {LOG_LEVEL = "info", FEATURE_FLAG_X = "true"}
+
+[Obs.Logging]
+Enabled = true # will retain logs, or just provide ephemeral logs
+RetentionPeriod = "7d" # optional, defaults to '7d'
+Structured = true # optional, defaults to false. if true, parses logs as JSON
+
+# can be optionally provided to view metrics for your service.
+# Note that your app must expose this port and metrics in Prometheus style
+[Obs.Metrics]
+Enabled = true # optional, defaults to false. if true, will scrape from provided path
+Path = "/metrics" # optional, defaults to /metrics
+Port = 9090 # optional, defaults to port 9090
+
+# can be optionally provided to pull traces for the service.
+# will be automatically concatonated with the envoy traces?
+[Obs.Tracing]
+Enabled = true # optional, defaults to false
+SampleRate = 0.1 # optional, defaults to 0.1
+Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.     
+
+# deploy settings, like regions, rollback settings, predeploy postdeploy scripts?
+# [Deploy]

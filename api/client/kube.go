@@ -213,7 +213,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 							},
 							Ports: []v1.ContainerPort{
 								{
-									ContainerPort: int32(locoApp.Config.Port),
+									ContainerPort: locoApp.Config.Routing.Port,
 								},
 							},
 
@@ -228,12 +228,12 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Cpu),
-									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Resources.Cpu),
+									v1.ResourceMemory: resourceMustParse(locoApp.Config.Resources.Memory),
 								},
 								Limits: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Cpu),
-									v1.ResourceMemory: resourceMustParse(locoApp.Config.Memory),
+									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Resources.Cpu),
+									v1.ResourceMemory: resourceMustParse(locoApp.Config.Resources.Memory),
 								},
 							},
 						},
@@ -291,7 +291,7 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConf
 					Name:       locoApp.Name,
 					Protocol:   v1.ProtocolTCP,
 					Port:       80,
-					TargetPort: intstr.FromInt32(locoApp.Config.Port),
+					TargetPort: intstr.FromInt32(locoApp.Config.Routing.Port),
 				},
 			},
 		},
@@ -372,7 +372,7 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoCo
 						{
 							Path: &v1Gateway.HTTPPathMatch{
 								Type:  &pathType,
-								Value: ptrToString("/"),
+								Value: ptrToString(locoApp.Config.Routing.PathPrefix),
 							},
 						},
 					},
@@ -392,7 +392,13 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoCo
 		},
 	}
 
-	return kc.GatewaySet.GatewayV1().HTTPRoutes(route.Namespace).Create(ctx, route, metaV1.CreateOptions{})
+	createdRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(locoApp.Namespace).Create(ctx, route, metaV1.CreateOptions{})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to create HTTPRoute", "name", locoApp.Name, "error", err)
+		return nil, err
+	}
+	slog.InfoContext(ctx, "HTTPRoute created", "name", locoApp.Name, "hostname", hostname)
+	return createdRoute, nil
 }
 
 func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *locoConfig.LocoApp, registry DockerRegistryConfig) error {

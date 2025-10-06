@@ -2,6 +2,7 @@ package loco
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -21,76 +22,135 @@ var logsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View application logs",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		parseAndSetDebugFlag(cmd)
-		host := parseDevFlag(cmd)
-		configPath := parseLocoTomlPath(cmd)
+		output, _ := cmd.Flags().GetString("output")
 
-		locoToken, err := getLocoToken()
-		if err != nil {
-			slog.Debug("failed to get loco token", "error", err)
-			return err
+		switch output {
+		case "json":
+			return streamLogsAsJson(cmd, args)
+		case "table":
+			return streamLogsInteractive(cmd, args)
+		case "": // default
+			return streamLogsInteractive(cmd, args)
+		default:
+			return fmt.Errorf("invalid output format: %s", output)
 		}
-
-		cfg, err := config.Load(configPath)
-		if err != nil {
-			slog.Debug("failed to load config", "path", configPath, "error", err)
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		c := client.NewClient(host)
-		ctx, cancel := context.WithCancel(context.Background())
-
-		columns := []table.Column{
-			{Title: "Time", Width: 20},
-			{Title: "Level", Width: 8},
-			{Title: "Message", Width: 100},
-		}
-
-		t := table.New(
-			table.WithColumns(columns),
-			table.WithRows([]table.Row{}),
-			table.WithFocused(true),
-			table.WithHeight(20),
-		)
-
-		s := table.DefaultStyles()
-		s.Header = s.Header.
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(ui.LocoMuted).
-			BorderBottom(true).
-			Bold(false)
-		s.Selected = s.Selected.
-			Foreground(ui.LocoWhite).
-			Background(ui.LocoGreen).
-			Bold(false)
-		t.SetStyles(s)
-
-		logsChan := make(chan client.LogEntry)
-		errChan := make(chan error)
-
-		go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Name}, logsChan, errChan)
-		slog.Debug("streaming logs for app", "app_name", cfg.LocoConfig.Name)
-
-		m := logModel{
-			table:     t,
-			baseStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(ui.LocoGreyish),
-			logs:      []table.Row{},
-			logsChan:  logsChan,
-			errChan:   errChan,
-			ctx:       ctx,
-			cancel:    cancel,
-		}
-
-		if finalModel, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running log viewer: %v\n", err)
-			return err
-		} else if fm, ok := finalModel.(logModel); ok && fm.err != nil {
-			slog.Debug("log streaming failed", "error", fm.err)
-			return fm.err
-		}
-
-		return nil
 	},
+}
+
+func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
+	parseAndSetDebugFlag(cmd)
+	host := parseDevFlag(cmd)
+	configPath := parseLocoTomlPath(cmd)
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		slog.Debug("failed to get loco token", "error", err)
+		return err
+	}
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		slog.Debug("failed to load config", "path", configPath, "error", err)
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	c := client.NewClient(host)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logsChan := make(chan client.LogEntry)
+	errChan := make(chan error)
+
+	go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Metadata.Name}, logsChan, errChan)
+
+	for {
+		select {
+		case logEntry := <-logsChan:
+			jsonLog, err := json.Marshal(logEntry)
+			if err != nil {
+				slog.Debug("failed to marshal log entry to json", "error", err)
+				fmt.Fprintf(os.Stderr, "Error marshaling log: %v\n", err)
+				continue
+			}
+			fmt.Println(string(jsonLog))
+		case err := <-errChan:
+			return err
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
+	parseAndSetDebugFlag(cmd)
+	host := parseDevFlag(cmd)
+	configPath := parseLocoTomlPath(cmd)
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		slog.Debug("failed to get loco token", "error", err)
+		return err
+	}
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		slog.Debug("failed to load config", "path", configPath, "error", err)
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	c := client.NewClient(host)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	columns := []table.Column{
+		{Title: "Time", Width: 20},
+		{Title: "Level", Width: 8},
+		{Title: "Message", Width: 100},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows([]table.Row{}),
+		table.WithFocused(true),
+		table.WithHeight(20),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(ui.LocoMuted).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(ui.LocoWhite).
+		Background(ui.LocoGreen).
+		Bold(false)
+	t.SetStyles(s)
+
+	logsChan := make(chan client.LogEntry)
+	errChan := make(chan error)
+
+	go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Metadata.Name}, logsChan, errChan)
+	slog.Debug("streaming logs for app", "app_name", cfg.LocoConfig.Metadata.Name)
+
+	m := logModel{
+		table:     t,
+		baseStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(ui.LocoGreyish),
+		logs:      []table.Row{},
+		logsChan:  logsChan,
+		errChan:   errChan,
+		ctx:       ctx,
+		cancel:    cancel,
+	}
+
+	if finalModel, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running log viewer: %v\n", err)
+		return err
+	} else if fm, ok := finalModel.(logModel); ok && fm.err != nil {
+		slog.Debug("log streaming failed", "error", fm.err)
+		return fm.err
+	}
+
+	return nil
 }
 
 type logMsg struct {
@@ -185,4 +245,5 @@ func init() {
 	logsCmd.Flags().StringP("config", "c", "", "Path to loco.toml config file")
 	logsCmd.Flags().BoolP("follow", "f", false, "Follow log output")
 	logsCmd.Flags().IntP("lines", "n", 0, "Number of lines to show")
+	logsCmd.Flags().StringP("output", "o", "", "Output format (json, table). Defaults to table.")
 }

@@ -14,8 +14,8 @@ import (
 
 func (c *Client) DeployApp(config config.Config, containerImage string, locoToken string, logf func(string)) error {
 	envVars := map[string]string{}
-	if config.LocoConfig.EnvFile != "" {
-		f, err := os.Open(config.LocoConfig.EnvFile)
+	if config.LocoConfig.Env.File != "" {
+		f, err := os.Open(config.LocoConfig.Env.File)
 		if err != nil {
 			return err
 		}

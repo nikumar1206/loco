@@ -26,7 +26,6 @@ message Metadata {
     string config_version = 1;
     string description = 2;
     string name = 3;
-    string subdomain = 4;
 }
 
 message Replicas {
@@ -56,6 +55,7 @@ message Routing {
     int32 idle_timeout = 1;
     string path_prefix = 2;
     int32 port = 3;
+    string subdomain = 4;
 }
 
 message Health {

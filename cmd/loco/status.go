@@ -44,13 +44,13 @@ var statusCmd = &cobra.Command{
 		client := appv1connect.NewAppServiceClient(http.DefaultClient, host)
 
 		req := connect.NewRequest(&appv1.StatusRequest{
-			AppName: cfg.LocoConfig.Name,
+			AppName: cfg.LocoConfig.Metadata.Name,
 		})
 		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
 
 		res, err := client.Status(context.Background(), req)
 		if err != nil {
-			slog.Debug("failed to get app status", "app_name", cfg.LocoConfig.Name, "error", err)
+			slog.Debug("failed to get app status", "app_name", cfg.LocoConfig.Metadata.Name, "error", err)
 			return err
 		}
 		slog.Debug("retrieved app status", "status", res.Msg.Status)
@@ -58,7 +58,7 @@ var statusCmd = &cobra.Command{
 		status := appStatus{
 			StatusResponse: res.Msg,
 			File:           file,
-			AppName:        cfg.LocoConfig.Name,
+			AppName:        cfg.LocoConfig.Metadata.Name,
 			Environment:    "production",
 		}
 

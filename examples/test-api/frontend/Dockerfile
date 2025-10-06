@@ -1,11 +1,13 @@
 # Use a lightweight web server
-FROM nginx:1.29.1-alpine
+FROM python:3.13.7-alpine3.22
 
 # Copy the built frontend assets
-COPY . /usr/share/nginx/html
+COPY . .
 
 # Expose port 80
-EXPOSE 80
+EXPOSE 8080
+
+USER 99
 
 # Start the server
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["python", "-m",  "http.server",  "8080"]

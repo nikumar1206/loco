@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
@@ -114,18 +115,21 @@ func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error 
 	}
 	defer buildContext.Close()
 
-	relDockerfilePath, err := filepath.Rel(c.cfg.ProjectPath, c.cfg.LocoConfig.DockerfilePath)
+	slog.Debug("built docker context", slog.String("project", c.cfg.ProjectPath))
+	relDockerfilePath, err := filepath.Rel(c.cfg.ProjectPath, c.cfg.LocoConfig.Build.DockerfilePath)
 	if err != nil {
 		return err
 	}
 
+	slog.Debug("dockerfile path", slog.String("path", relDockerfilePath))
 	options := build.ImageBuildOptions{
 		Tags:       []string{c.ImageName},
 		Dockerfile: relDockerfilePath,
 		Remove:     true, // remove intermediate containers
 		Platform:   "linux/amd64",
-		// todo: should we have memory limits or similar for the build process?
+		Version:    build.BuilderBuildKit,
 	}
+	// todo: should we have memory limits or similar for the build process?
 
 	response, err := c.dockerClient.ImageBuild(ctx, buildContext, options)
 	if err != nil {
@@ -166,7 +170,7 @@ func (c *DockerClient) PushImage(ctx context.Context, logf func(string), usernam
 func (c *DockerClient) GenerateImageTag(imageBase string) string {
 	imageNameBase := imageBase
 
-	tag := fmt.Sprintf("%s-%s", c.cfg.LocoConfig.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
+	tag := fmt.Sprintf("%s-%s", c.cfg.LocoConfig.Metadata.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
 
 	if !strings.Contains(imageNameBase, ":") {
 		imageNameBase += ":" + tag

@@ -10,7 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
-	"github.com/dusted-go/logging/prettylog"
+	charmLog "github.com/charmbracelet/log"
 	"github.com/nikumar1206/loco/api/client"
 	"github.com/nikumar1206/loco/api/middleware"
 	"github.com/nikumar1206/loco/api/models"
@@ -53,7 +53,7 @@ func main() {
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "Loco Service is Running")
+		fmt.Fprintln(w, "Server is healthy.")
 	})
 
 	kubernetesClient := client.NewKubernetesClient(ac.Env)
@@ -74,10 +74,10 @@ func main() {
 		appv1connect.AppServiceStatusProcedure,
 	)
 
+	// mount both old and new reflectors for backwards compatibility
 	mux.Handle(grpcreflect.NewHandlerV1(reflector))
-	// Many tools still expect the older version of the server reflection API, so
-	// most servers should mount both handlers.
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
+
 	mux.Handle(oauthPath, oauthHandler)
 	mux.Handle(registryPath, registryHandler)
 	mux.Handle(appPath, appHandler)
@@ -99,10 +99,5 @@ func getLoggerHandler(ac *models.AppConfig) slog.Handler {
 			AddSource: true,
 		})
 	}
-
-	return prettylog.NewHandler(&slog.HandlerOptions{
-		Level:       ac.LogLevel,
-		AddSource:   true,
-		ReplaceAttr: nil,
-	})
+	return charmLog.New(os.Stderr)
 }

@@ -3,6 +3,8 @@ package loco
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/config"
@@ -15,7 +17,14 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a new Loco project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parseAndSetDebugFlag(cmd)
-		err := config.CreateDefault()
+		workingDir, err := os.Getwd()
+		if err != nil {
+			slog.Debug("failed to get working directory", "error", err)
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
+
+		_, dirName := filepath.Split(workingDir)
+		err = config.CreateDefault(dirName)
 		if err != nil {
 			slog.Debug("failed to create default config", "error", err)
 			return fmt.Errorf("failed to create loco.toml: %w", err)

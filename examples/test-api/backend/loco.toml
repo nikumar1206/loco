@@ -1,33 +1,50 @@
-# Application Configuration
-Name = "test-api"
+[Metadata]
+ConfigVersion = "0.1"
+Description = "Backend Service"
+Name = "backend"
+
+[Resources]
+Cpu = "100m"
+Memory = "256Mi"
+
+[Resources.Replicas]
+Max = 1
+Min = 1
+
+[Resources.Scalers]
+CpuTarget = 70
+Enabled = true
+
+[Build]
+DockerfilePath = "Dockerfile"
+Type = "docker"
+
+[Routing]
+IdleTimeout = 60
+PathPrefix = "/api"
 Port = 8000
-Subdomain = "test-api" # Will be deployed to test-api.deploy-app.com
+Subdomain = "test-api"
 
-# Project Configuration
-DockerfilePath = "Dockerfile" # Relative to loco.toml path
-EnvFile = ".env" # Relative to loco.toml path
-
-# Resource Allocation
-CPU = "100m" # CPU cores (e.g., this is 0.1 cores)
-Memory = "100Mi" # Memory allocation (e.g., "256Mi", "1Gi", "2Gi")
-
-# Scaling Configuration
-[Replicas]
-Max = 2 # Maximum number of replicas
-Min = 1 # Minimum number of replicas
-
-# Autoscaling Triggers
-[Scalers]
-CPUTarget = 70 # CPU utilization target percentage
-# MemoryTarget = 80 # Memory utilization target percentage
-
-# Health Checks
 [Health]
-Interval = 30 # Check interval in seconds
-Path = "/health" # Health check endpoint
-Timeout = 5 # Timeout in seconds
+Interval = 30
+Path = "/health"
+StartupGracePeriod = 0
+Timeout = 5
 
-# Logging Configuration
-[Logs]
-RetentionPeriod = "7d" # Log retention period
-Structured = true # Enable structured JSON logging
+[Env]
+File = ".env"
+
+[Obs.Logging]
+Enabled = true
+RetentionPeriod = "7d"
+Structured = false
+
+[Obs.Metrics]
+Enabled = false
+Path = "/metrics"
+Port = 9090
+
+[Obs.Tracing]
+Enabled = false
+SampleRate = 0.1
+[Obs.Tracing.Tags]

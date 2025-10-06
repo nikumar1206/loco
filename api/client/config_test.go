@@ -15,17 +15,36 @@ func TestCreateAndLoadConfig(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "loco.toml")
 
 	cfg := appv1.LocoConfig{
-		Name:           "testapp",
-		Port:           8080,
-		Subdomain:      "testsub",
-		DockerfilePath: "Dockerfile",
-		EnvFile:        ".env",
-		Cpu:            "200m",
-		Memory:         "256Mi",
-		Replicas:       &appv1.Replicas{Min: 1, Max: 2},
-		Scalers:        &appv1.Scalers{CpuTarget: 60, MemoryTarget: 70},
-		Health:         &appv1.Health{Interval: 10, Path: "/health", Timeout: 3},
-		Logs:           &appv1.Logs{RetentionPeriod: "3d", Structured: false},
+		Metadata: &appv1.Metadata{
+			Name:          "testapp",
+			ConfigVersion: "0.1",
+			Description:   "Test application",
+		},
+		Resources: &appv1.Resources{
+			Cpu:      "250m",
+			Memory:   "512Mi",
+			Replicas: &appv1.Replicas{Min: 1, Max: 2},
+			Scalers:  &appv1.Scalers{CpuTarget: 60, MemoryTarget: 70},
+		},
+		Build: &appv1.Build{
+			DockerfilePath: "Dockerfile",
+			Type:           "docker",
+		},
+		Routing: &appv1.Routing{
+			Port:      8080,
+			Subdomain: "testsub",
+		},
+		Env: &appv1.Env{
+			File: ".env",
+		},
+		Health: &appv1.Health{
+			Interval: 10,
+			Timeout:  3,
+			Path:     "/health",
+		},
+		Obs: &appv1.Obs{
+			Logging: &appv1.Logging{RetentionPeriod: "7d", Structured: true},
+		},
 	}
 
 	file, err := os.Create(configPath)
@@ -43,7 +62,9 @@ func TestCreateAndLoadConfig(t *testing.T) {
 		t.Fatalf("failed to load config: %v", err)
 	}
 
-	if loaded.LocoConfig.Name != cfg.Name || loaded.LocoConfig.Port != cfg.Port || loaded.LocoConfig.Subdomain != cfg.Subdomain {
+	if loaded.LocoConfig.Metadata.Name != cfg.Metadata.Name ||
+		loaded.LocoConfig.Routing.Port != cfg.Routing.Port ||
+		loaded.LocoConfig.Routing.Subdomain != cfg.Routing.Subdomain {
 		t.Errorf("loaded config does not match original")
 	}
 }
@@ -54,7 +75,7 @@ func TestCreateDefault(t *testing.T) {
 	defer os.Chdir(oldWd)
 	os.Chdir(tmpDir)
 
-	err := config.CreateDefault()
+	err := config.CreateDefault("testapp")
 	if err != nil {
 		t.Fatalf("CreateDefault failed: %v", err)
 	}
@@ -67,53 +88,53 @@ func TestCreateDefault(t *testing.T) {
 func TestFillSensibleDefaults(t *testing.T) {
 	cfg := &appv1.LocoConfig{}
 	config.FillSensibleDefaults(cfg)
-	if cfg.DockerfilePath != config.Default.DockerfilePath {
+	if cfg.Build.DockerfilePath != config.Default.Build.DockerfilePath {
 		t.Errorf("DockerfilePath not set to default")
 	}
 
-	if cfg.Cpu != config.Default.Cpu {
+	if cfg.Resources.Cpu != config.Default.Resources.Cpu {
 		t.Errorf("CPU not set to default")
 	}
-	if cfg.Memory != config.Default.Memory {
+	if cfg.Resources.Memory != config.Default.Resources.Memory {
 		t.Errorf("Memory not set to default")
 	}
 }
 
 func TestValidate(t *testing.T) {
 	valid := config.Default
-	valid.Name = "valid"
-	valid.Port = 8080
-	valid.Subdomain = "sub"
+	valid.Metadata.Name = "valid"
+	valid.Routing.Port = 8080
+	valid.Routing.Subdomain = "sub"
 	if err := config.Validate(valid); err != nil {
 		t.Errorf("expected valid config, got error: %v", err)
 	}
 
 	invalid := valid
-	invalid.Name = ""
+	invalid.Metadata.Name = ""
 	if err := config.Validate(invalid); err == nil {
 		t.Errorf("expected error for empty name")
 	}
 
 	invalid = valid
-	invalid.Port = 80
+	invalid.Routing.Port = 8080
 	if err := config.Validate(invalid); err == nil {
 		t.Errorf("expected error for invalid port")
 	}
 
 	invalid = valid
-	invalid.Subdomain = ""
+	invalid.Routing.Subdomain = ""
 	if err := config.Validate(invalid); err == nil {
 		t.Errorf("expected error for empty subdomain")
 	}
 
 	invalid = valid
-	invalid.Cpu = "1000m"
+	invalid.Resources.Cpu = "1000m"
 	if err := config.Validate(invalid); err == nil {
 		t.Errorf("expected error for CPU > 500m")
 	}
 
 	invalid = valid
-	invalid.Memory = "2Gi"
+	invalid.Resources.Memory = "2Gi"
 	if err := config.Validate(invalid); err == nil {
 		t.Errorf("expected error for Memory > 1Gi")
 	}
