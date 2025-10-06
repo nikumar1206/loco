@@ -146,3 +146,13 @@ Eventually...
 
 may be nice to have some sort of secrets integration? like pull ur aws ssm, vault, secrets,
 too much for MVP
+
+- Next Steps:
+  - Respect more of the loco.toml
+    - set timeouts
+    - set health check settings, and startup probe settings as well
+    - allow setting GRPCServices and if provided, create a GRPC route, maybe we need a GRPCport?
+  - loco init is chunky, introduce minimal vs full flag.
+  - dare i say, we go back to metrics?
+  - start design on profiles?
+  - review API design; i think we are doing some funky things
