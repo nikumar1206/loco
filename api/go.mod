@@ -61,8 +61,8 @@ require (
 
 require (
 	github.com/charmbracelet/log v0.4.2
-	github.com/nikumar1206/loco v0.0.0-20251005193652-ccb68669b212
-	github.com/nikumar1206/loco/proto v0.0.0-20251003124344-0dc8b82ee743
+	github.com/nikumar1206/loco v0.0.0-20251006165437-d599adac6ac9
+	github.com/nikumar1206/loco/proto v0.0.0-20251006165437-d599adac6ac9
 )
 
 require (
@@ -79,6 +79,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 )

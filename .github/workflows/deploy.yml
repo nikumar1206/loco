@@ -79,11 +79,11 @@ jobs:
             # can comment back if needed, but no reason to re-apply one time resources
             # - name: Apply base resources
             #   run: |
-            #       kubectl apply -f ./kube/namespace.yml
-            #       kubectl apply -f ./kube/gateway.yml
-            #       kubectl apply -f ./kube/loco_route.yml
-            #       kubectl apply -f ./kube/cert_manager.yml
-            #       kubectl apply -f ./kube/certificate.yml
+                  # kubectl apply -f ./kube/namespace.yml
+                  # kubectl apply -f ./kube/gateway.yml
+                  # kubectl apply -f ./kube/loco_route.yml
+                  # kubectl apply -f ./kube/cert_manager.yml
+                  # kubectl apply -f ./kube/certificate.yml
 
             # can comment back in if needed
             # - name: Enable Observability

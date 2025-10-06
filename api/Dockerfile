@@ -1,4 +1,4 @@
-FROM golang:1.24.4-alpine AS builder
+FROM golang:1.25.1-alpine3.22 AS builder
 
 ENV CGO_ENABLED=0 \
     GOOS=linux \
@@ -6,12 +6,12 @@ ENV CGO_ENABLED=0 \
 
 WORKDIR /app
 
-COPY service/go.mod service/go.sum ./
+COPY api/go.mod api/go.sum ./
 
 
 RUN go mod download
 
-COPY service/ .
+COPY api/ .
 
 RUN go build -o loco-api .
 

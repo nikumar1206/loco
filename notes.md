@@ -26,6 +26,7 @@
     ```
 
 - support for GRPC routes
+  - there is potential this can only be tested
 - support for grpc/http/cmd-baed health checks
 
 - Logs Command
@@ -59,11 +60,17 @@
     - --appName or like tenantid name. this is just a nice to have.
     - project name based?
 
+- seem to be some issues ensuring im grabbing the latest version of my own local packages.
 - Sometimes docker is sleeping; we need to give better errors, and maybe tell users to just specify --image-id if stuff keeps going wrong.
 - can we check if docker is sleeping before trying to build the image?
 - are we validating that subdomains have not been taken ?
+- similarly for grpc, we need to validate GRPC routes have not been taken
+
   - should be done on a per domain basis.
   - wish we had a database!
+
+- the user provided idle timeouts need to be translated into a BackendTrafficPolicy.
+
 - introduce a project-id. Project id will be used to map loco.toml's together.
 - on update, we should update the service as well; my ports were different, but it didnt get applied.
 - debug flag on CLI actually scuffs the terminal output from bubbletea. We actually need to write to a log file.
