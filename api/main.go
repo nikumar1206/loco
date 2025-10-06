@@ -86,7 +86,7 @@ func main() {
 	muxWContext := middleware.SetContext(muxWTiming)
 
 	log.Fatal(http.ListenAndServe(
-		"localhost:8000",
+		":8000",
 		// use h2c so we can serve HTTP/2 without TLS.
 		h2c.NewHandler(muxWContext, &http2.Server{}),
 	))

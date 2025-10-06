@@ -24,6 +24,7 @@ spec:
             containers:
                 - name: loco-api
                   image: ghcr.io/nikumar1206/loco:main
+                  imagePullPolicy: Always
                   envFrom:
                       - secretRef:
                             name: env-config
