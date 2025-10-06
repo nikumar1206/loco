@@ -86,3 +86,56 @@ spec:
 #                     socketAddress:
 #                         address: 0.0.0.0
 #                         portValue: 19000 # <-- proxy admin
+---
+# todo: need to validate this envoy patch policy. https://github.com/connectrpc/envoy-demo/tree/main
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyPatchPolicy
+# metadata:
+#   name: grpc-filters
+#   namespace: loco-system
+# spec:
+#   targetRef:
+#     group: gateway.networking.k8s.io
+#     kind: Gateway
+#     name: eg
+#   type: JSONPatch
+#   jsonPatches:
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-443
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/0"
+#         value:
+#           name: envoy.filters.http.connect_grpc_bridge
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.connect_grpc_bridge.v3.FilterConfig
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-443
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/1"
+#         value:
+#           name: envoy.filters.http.grpc_web
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-80
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/0"
+#         value:
+#           name: envoy.filters.http.connect_grpc_bridge
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.connect_grpc_bridge.v3.FilterConfig
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-80
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/1"
+#         value:
+#           name: envoy.filters.http.grpc_web
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
