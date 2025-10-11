@@ -89,7 +89,7 @@ type LocoConfig struct {
 	Resources     *Resources             `protobuf:"bytes,2,opt,name=resources,proto3" json:"resources,omitempty"`
 	Build         *Build                 `protobuf:"bytes,3,opt,name=build,proto3" json:"build,omitempty"`
 	Routing       *Routing               `protobuf:"bytes,4,opt,name=routing,proto3" json:"routing,omitempty"`
-	Health        *Health                `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
+	Health        *HealthCheck           `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
 	Env           *Env                   `protobuf:"bytes,6,opt,name=env,proto3" json:"env,omitempty"`
 	Obs           *Obs                   `protobuf:"bytes,7,opt,name=obs,proto3" json:"obs,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -154,7 +154,7 @@ func (x *LocoConfig) GetRouting() *Routing {
 	return nil
 }
 
-func (x *LocoConfig) GetHealth() *Health {
+func (x *LocoConfig) GetHealth() *HealthCheck {
 	if x != nil {
 		return x.Health
 	}
@@ -535,30 +535,31 @@ func (x *Routing) GetSubdomain() string {
 	return ""
 }
 
-type Health struct {
+type HealthCheck struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Interval           int32                  `protobuf:"varint,1,opt,name=interval,proto3" json:"interval,omitempty"`
 	Path               string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	StartupGracePeriod int32                  `protobuf:"varint,3,opt,name=startup_grace_period,json=startupGracePeriod,proto3" json:"startup_grace_period,omitempty"`
 	Timeout            int32                  `protobuf:"varint,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	FailThreshold      int32                  `protobuf:"varint,5,opt,name=fail_threshold,json=failThreshold,proto3" json:"fail_threshold,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *Health) Reset() {
-	*x = Health{}
+func (x *HealthCheck) Reset() {
+	*x = HealthCheck{}
 	mi := &file_proto_app_v1_app_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Health) String() string {
+func (x *HealthCheck) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Health) ProtoMessage() {}
+func (*HealthCheck) ProtoMessage() {}
 
-func (x *Health) ProtoReflect() protoreflect.Message {
+func (x *HealthCheck) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_app_v1_app_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -570,35 +571,42 @@ func (x *Health) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Health.ProtoReflect.Descriptor instead.
-func (*Health) Descriptor() ([]byte, []int) {
+// Deprecated: Use HealthCheck.ProtoReflect.Descriptor instead.
+func (*HealthCheck) Descriptor() ([]byte, []int) {
 	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *Health) GetInterval() int32 {
+func (x *HealthCheck) GetInterval() int32 {
 	if x != nil {
 		return x.Interval
 	}
 	return 0
 }
 
-func (x *Health) GetPath() string {
+func (x *HealthCheck) GetPath() string {
 	if x != nil {
 		return x.Path
 	}
 	return ""
 }
 
-func (x *Health) GetStartupGracePeriod() int32 {
+func (x *HealthCheck) GetStartupGracePeriod() int32 {
 	if x != nil {
 		return x.StartupGracePeriod
 	}
 	return 0
 }
 
-func (x *Health) GetTimeout() int32 {
+func (x *HealthCheck) GetTimeout() int32 {
 	if x != nil {
 		return x.Timeout
+	}
+	return 0
+}
+
+func (x *HealthCheck) GetFailThreshold() int32 {
+	if x != nil {
+		return x.FailThreshold
 	}
 	return 0
 }
@@ -1313,14 +1321,14 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\vloco_config\x18\x01 \x01(\v2\x18.proto.app.v1.LocoConfigR\n" +
 	"locoConfig\x12'\n" +
 	"\x0fcontainer_image\x18\x02 \x01(\tR\x0econtainerImage\x12/\n" +
-	"\benv_vars\x18\x03 \x03(\v2\x14.proto.app.v1.EnvVarR\aenvVars\"\xcb\x02\n" +
+	"\benv_vars\x18\x03 \x03(\v2\x14.proto.app.v1.EnvVarR\aenvVars\"\xd0\x02\n" +
 	"\n" +
 	"LocoConfig\x122\n" +
 	"\bmetadata\x18\x01 \x01(\v2\x16.proto.app.v1.MetadataR\bmetadata\x125\n" +
 	"\tresources\x18\x02 \x01(\v2\x17.proto.app.v1.ResourcesR\tresources\x12)\n" +
 	"\x05build\x18\x03 \x01(\v2\x13.proto.app.v1.BuildR\x05build\x12/\n" +
-	"\arouting\x18\x04 \x01(\v2\x15.proto.app.v1.RoutingR\arouting\x12,\n" +
-	"\x06health\x18\x05 \x01(\v2\x14.proto.app.v1.HealthR\x06health\x12#\n" +
+	"\arouting\x18\x04 \x01(\v2\x15.proto.app.v1.RoutingR\arouting\x121\n" +
+	"\x06health\x18\x05 \x01(\v2\x19.proto.app.v1.HealthCheckR\x06health\x12#\n" +
 	"\x03env\x18\x06 \x01(\v2\x11.proto.app.v1.EnvR\x03env\x12#\n" +
 	"\x03obs\x18\a \x01(\v2\x11.proto.app.v1.ObsR\x03obs\"g\n" +
 	"\bMetadata\x12%\n" +
@@ -1348,12 +1356,13 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\vpath_prefix\x18\x02 \x01(\tR\n" +
 	"pathPrefix\x12\x12\n" +
 	"\x04port\x18\x03 \x01(\x05R\x04port\x12\x1c\n" +
-	"\tsubdomain\x18\x04 \x01(\tR\tsubdomain\"\x84\x01\n" +
-	"\x06Health\x12\x1a\n" +
+	"\tsubdomain\x18\x04 \x01(\tR\tsubdomain\"\xb0\x01\n" +
+	"\vHealthCheck\x12\x1a\n" +
 	"\binterval\x18\x01 \x01(\x05R\binterval\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x120\n" +
 	"\x14startup_grace_period\x18\x03 \x01(\x05R\x12startupGracePeriod\x12\x18\n" +
-	"\atimeout\x18\x04 \x01(\x05R\atimeout\"M\n" +
+	"\atimeout\x18\x04 \x01(\x05R\atimeout\x12%\n" +
+	"\x0efail_threshold\x18\x05 \x01(\x05R\rfailThreshold\"M\n" +
 	"\x03Env\x12\x12\n" +
 	"\x04file\x18\x01 \x01(\tR\x04file\x122\n" +
 	"\tvariables\x18\x02 \x03(\v2\x14.proto.app.v1.EnvVarR\tvariables\"2\n" +
@@ -1440,7 +1449,7 @@ var file_proto_app_v1_app_proto_goTypes = []any{
 	(*Resources)(nil),             // 5: proto.app.v1.Resources
 	(*Build)(nil),                 // 6: proto.app.v1.Build
 	(*Routing)(nil),               // 7: proto.app.v1.Routing
-	(*Health)(nil),                // 8: proto.app.v1.Health
+	(*HealthCheck)(nil),           // 8: proto.app.v1.HealthCheck
 	(*Env)(nil),                   // 9: proto.app.v1.Env
 	(*EnvVar)(nil),                // 10: proto.app.v1.EnvVar
 	(*Logging)(nil),               // 11: proto.app.v1.Logging
@@ -1462,7 +1471,7 @@ var file_proto_app_v1_app_proto_depIdxs = []int32{
 	5,  // 3: proto.app.v1.LocoConfig.resources:type_name -> proto.app.v1.Resources
 	6,  // 4: proto.app.v1.LocoConfig.build:type_name -> proto.app.v1.Build
 	7,  // 5: proto.app.v1.LocoConfig.routing:type_name -> proto.app.v1.Routing
-	8,  // 6: proto.app.v1.LocoConfig.health:type_name -> proto.app.v1.Health
+	8,  // 6: proto.app.v1.LocoConfig.health:type_name -> proto.app.v1.HealthCheck
 	9,  // 7: proto.app.v1.LocoConfig.env:type_name -> proto.app.v1.Env
 	14, // 8: proto.app.v1.LocoConfig.obs:type_name -> proto.app.v1.Obs
 	3,  // 9: proto.app.v1.Resources.replicas:type_name -> proto.app.v1.Replicas

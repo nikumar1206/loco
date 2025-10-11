@@ -15,7 +15,7 @@ message LocoConfig {
     Resources resources = 2;
     Build build = 3;
     Routing routing = 4;
-    Health health = 5;
+    HealthCheck health = 5;
     Env env = 6;
     Obs obs = 7;
 }
@@ -58,11 +58,12 @@ message Routing {
     string subdomain = 4;
 }
 
-message Health {
+message HealthCheck {
     int32 interval = 1;
     string path = 2;
     int32 startup_grace_period = 3;
     int32 timeout = 4;
+    int32 fail_threshold = 5;
 }
 
 message Env {

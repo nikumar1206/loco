@@ -26,8 +26,9 @@ Port = 8000
 Subdomain = "test-api"
 
 [Health]
-Interval = 30
-Path = "/health"
+FailThreshold = 2
+Interval = 5
+Path = "/api/health"
 StartupGracePeriod = 0
 Timeout = 5
 

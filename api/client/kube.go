@@ -237,6 +237,20 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 									v1.ResourceMemory: resourceMustParse(locoApp.Config.Resources.Memory),
 								},
 							},
+							LivenessProbe: &v1.Probe{
+								InitialDelaySeconds:           locoApp.Config.Health.StartupGracePeriod,
+								TimeoutSeconds:                locoApp.Config.Health.Timeout,
+								PeriodSeconds:                 locoApp.Config.Health.Interval,
+								TerminationGracePeriodSeconds: ptrtoInt64(60),
+								SuccessThreshold:              1,
+								FailureThreshold:              locoApp.Config.Health.FailThreshold,
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: locoApp.Config.Health.Path,
+										Port: intstr.FromInt32(locoApp.Config.Routing.Port),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -855,6 +869,7 @@ func resourceMustParse(value string) resource.Quantity {
 }
 
 func ptrToString(s string) *string { return &s }
+func ptrtoInt64(i int64) *int64    { return &i }
 
 func ptrToPortNumber(p int) *v1Gateway.PortNumber {
 	n := v1Gateway.PortNumber(p)

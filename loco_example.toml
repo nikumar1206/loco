@@ -27,10 +27,11 @@ Port = 8000 # required
 Subdomain = "myapp" # required, app will be deployed on myapp.deploy-app.com
 
 [Health]
-Interval = 30 
-Path = "/health" 
+FailThreshold = 2 # number of healthchecks that need to fail before app gets restarted
+Interval = 30 # how often to run the healthcheck
+Path = "/health" # healthcheck endpoint
 StartupGracePeriod = 15 # optional, fallbacks to no grace period.
-Timeout = 5 
+Timeout = 5 # how long to wait for the healthcheck to respond, defaults to 5 seconds. 
 
 [Env]
 File = ".env"
@@ -53,7 +54,7 @@ Port = 9090 # optional, defaults to port 9090
 [Obs.Tracing]
 Enabled = true # optional, defaults to false
 SampleRate = 0.1 # optional, defaults to 0.1
-Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.      
+Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.             
 
 # deploy settings, like regions, rollback settings, predeploy postdeploy scripts?
 # [Deploy]

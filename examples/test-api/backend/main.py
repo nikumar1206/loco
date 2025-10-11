@@ -16,10 +16,15 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
+
+@app.get("/api/health")
 async def health():
     return {"status": "server is healthy"}
 
+@app.get("/api/fail")
+async def fail():
+    while True:
+        time.sleep(30)
 
 @app.post("/api/echo")
 async def echo(request: Request):

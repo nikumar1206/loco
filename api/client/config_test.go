@@ -37,7 +37,7 @@ func TestCreateAndLoadConfig(t *testing.T) {
 		Env: &appv1.Env{
 			File: ".env",
 		},
-		Health: &appv1.Health{
+		Health: &appv1.HealthCheck{
 			Interval: 10,
 			Timeout:  3,
 			Path:     "/health",

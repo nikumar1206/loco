@@ -72,7 +72,7 @@ var Default = &appv1.LocoConfig{
 		PathPrefix:  "/",
 		Port:        8000,
 	},
-	Health: &appv1.Health{
+	Health: &appv1.HealthCheck{
 		Interval:           30,
 		Path:               "/health",
 		StartupGracePeriod: 0,
