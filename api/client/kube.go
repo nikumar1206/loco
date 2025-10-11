@@ -10,6 +10,7 @@ import (
 	"log"
 	"log/slog"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -348,8 +349,9 @@ func (kc *KubernetesClient) UpdateSecret(ctx context.Context, locoApp *locoConfi
 // Creates an HTTPRoute given the prov
 func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1Gateway.HTTPRoute, error) {
 	hostname := fmt.Sprintf("%s.deploy-app.com", locoApp.Subdomain)
-
 	pathType := v1Gateway.PathMatchPathPrefix
+	timeout := strconv.Itoa(int(locoApp.Config.Routing.IdleTimeout)) + "s"
+
 	route := &v1Gateway.HTTPRoute{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      locoApp.Name,
@@ -375,6 +377,9 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoCo
 								Value: ptrToString(locoApp.Config.Routing.PathPrefix),
 							},
 						},
+					},
+					Timeouts: &v1Gateway.HTTPRouteTimeouts{
+						Request: ptrToDuration(timeout),
 					},
 					BackendRefs: []v1Gateway.HTTPBackendRef{
 						{
@@ -859,6 +864,11 @@ func ptrToPortNumber(p int) *v1Gateway.PortNumber {
 func ptrToNamespace(n string) *v1Gateway.Namespace {
 	ns := v1Gateway.Namespace(n)
 	return &ns
+}
+
+func ptrToDuration(d string) *v1Gateway.Duration {
+	t := v1Gateway.Duration(d)
+	return &t
 }
 
 func ptrToKind(k string) *v1Gateway.Kind {

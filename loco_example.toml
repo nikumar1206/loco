@@ -11,7 +11,7 @@ Memory = "512Mi" # optional, defaults to "512m"
 Max = 1 # required, setting to same number means no scaling occurs.
 Min = 1 # required, setting to same number means no scaling occurs. 
 
-[Resources.Scalers] # note, either cpu target or memory target must be provided, if enabled. this avoids conflicting rules
+[Resources.Scalers] # note, either cpu target or memory target must be provided, if enabled. this avoids conflicting scaling events
 CPUTarget = 70 # optional
 Enabled = true # optional, defaults to false
 MemoryTarget = 0 # optional
@@ -53,7 +53,7 @@ Port = 9090 # optional, defaults to port 9090
 [Obs.Tracing]
 Enabled = true # optional, defaults to false
 SampleRate = 0.1 # optional, defaults to 0.1
-Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.     
+Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.      
 
 # deploy settings, like regions, rollback settings, predeploy postdeploy scripts?
 # [Deploy]

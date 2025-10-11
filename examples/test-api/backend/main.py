@@ -1,3 +1,4 @@
+import asyncio
 import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +38,7 @@ async def echo_get(request: Request):
     async with httpx.AsyncClient() as c:
         SERVICE_BASE_URL = "http://auth.auth-nikumar1206.svc.cluster.local:80"
         BALANCER_BASE_URL = "http://test-api.deploy-app.com"
-
+        await asyncio.sleep(1)
         start_time = time.perf_counter()
         try:
             balancer_r = await c.get(BALANCER_BASE_URL + "/auth")
