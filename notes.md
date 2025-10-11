@@ -149,7 +149,6 @@ too much for MVP
 
 - Next Steps:
   - Respect more of the loco.toml
-    - set health check settings, and startup probe settings as well
     - allow setting GRPCServices and if provided, create a GRPC route, maybe we need a GRPCport?
   - loco init is chunky, introduce minimal vs full flag.
   - dare i say, we go back to metrics?

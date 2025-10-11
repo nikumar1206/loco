@@ -77,6 +77,7 @@ var Default = &appv1.LocoConfig{
 		Path:               "/health",
 		StartupGracePeriod: 0,
 		Timeout:            5,
+		FailThreshold:      3,
 	},
 	Obs: &appv1.Obs{
 		Logging: &appv1.Logging{
