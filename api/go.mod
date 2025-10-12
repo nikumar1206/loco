@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	connectrpc.com/connect v1.19.0
+	connectrpc.com/connect v1.19.1
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
@@ -40,10 +40,10 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/net v0.44.0
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/net v0.46.0
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
@@ -61,8 +61,8 @@ require (
 
 require (
 	github.com/charmbracelet/log v0.4.2
-	github.com/nikumar1206/loco v0.0.0-20251006165437-d599adac6ac9
-	github.com/nikumar1206/loco/proto v0.0.0-20251006165437-d599adac6ac9
+	github.com/nikumar1206/loco v0.0.0-20251011222312-40684bc3ce20
+	github.com/nikumar1206/loco/proto v0.0.0-20251011222312-40684bc3ce20
 )
 
 require (
