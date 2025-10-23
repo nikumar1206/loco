@@ -1,0 +1,46 @@
+[Metadata]
+  ConfigVersion = "0.1"
+  Description = "Default Loco app configuration"
+  Name = "metrics-server"
+
+[Resources]
+  Cpu = "100m"
+  Memory = "256Mi"
+  [Resources.Replicas]
+    Max = 1
+    Min = 1
+  [Resources.Scalers]
+    CpuTarget = 70
+    MemoryTarget = 0
+    Enabled = true
+
+[Build]
+  DockerfilePath = "Dockerfile"
+  Type = "docker"
+
+[Routing]
+  IdleTimeout = 60
+  PathPrefix = "/"
+  Port = 8000
+  Subdomain = "metrics-server"
+
+[Health]
+  Interval = 30
+  Path = "/health"
+  StartupGracePeriod = 0
+  Timeout = 5
+  FailThreshold = 3
+
+[Obs]
+  [Obs.Logging]
+    Enabled = true
+    RetentionPeriod = "7d"
+    Structured = false
+  [Obs.Metrics]
+    Enabled = false
+    Path = "/metrics"
+    Port = 9090
+  [Obs.Tracing]
+    Enabled = false
+    SampleRate = 0.1
+    [Obs.Tracing.Tags]
