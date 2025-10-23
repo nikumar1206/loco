@@ -15,7 +15,7 @@ Loco is a container orchestration platform that simplifies application deploymen
 
 ## Architecture Diagram
 
-![Architecture Diagram](./arch-light.png)
+![Architecture Diagram](./assets/arch-light.png)
 
 ## Quick Start
 

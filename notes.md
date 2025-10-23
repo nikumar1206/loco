@@ -178,3 +178,4 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - resource management needs to be evaluated. how many resources are we using ? what are we wasting ?
 
 - wondering if there is value in tests where we actually literally spin up a docker container and we start running stuff on it. like literally use minikube and firing away at tests, atleast i think thats the most accurate way to test the deployment piece.
+- improve ci/cd pipelines for testing purposes
