@@ -65,11 +65,7 @@ To be added later.
 
 **Note:** This project is primarily educational, created so I can learn more about Kubernetes, networking, and security.
 
-`
 “Engines warming up…”
-
 “Switching tracks…”
-
 “Pushing to the mainline…”
-
 “Pods aligned. Ready for departure.”
