@@ -1,0 +1,141 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+    name: eg
+spec:
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+    name: eg
+    namespace: loco-system
+spec:
+    infrastructure:
+        annotations:
+            # necessary for network load balancer on DO
+            service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
+    gatewayClassName: eg
+    listeners:
+        - name: https
+          hostname: "*.deploy-app.com"
+          protocol: HTTPS
+          port: 443
+          allowedRoutes:
+              namespaces:
+                  from: Selector
+                  selector:
+                      matchLabels:
+                          expose-via-gw: "true"
+          tls:
+              mode: Terminate
+              certificateRefs:
+                  - name: loco-tls
+                    kind: Secret
+                    group: ""
+        - name: http
+          hostname: "*.deploy-app.com"
+          protocol: HTTP
+          port: 80
+          allowedRoutes:
+              namespaces:
+                  from: All
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+    name: enable-http3
+    namespace: loco-system
+spec:
+    http3: {}
+    targetRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: eg
+---
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyPatchPolicy
+# metadata:
+#   name: include-envoy-headers
+#   namespace: loco-system
+# spec:
+#   targetRef:
+#     group: gateway.networking.k8s.io
+#     kind: Gateway
+#     name: eg
+#   type: JSONPatch
+#   jsonPatches:
+#   - type: "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+#     name: header-patch
+#     operation:
+#       op: replace
+#       path: /typedPerFilterConfig/envoy.filters.http.router
+#       value:
+#         suppress_envoy_headers: falsea
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyProxy
+# metadata:
+#     name: eg-proxy
+#     namespace: envoy-gateway-system
+# spec:
+#     bootstrap:
+#         type: Replace
+#         value: |
+#             admin:
+#                 address:
+#                     socketAddress:
+#                         address: 0.0.0.0
+#                         portValue: 19000 # <-- proxy admin
+---
+# todo: need to validate this envoy patch policy. https://github.com/connectrpc/envoy-demo/tree/main
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: EnvoyPatchPolicy
+# metadata:
+#   name: grpc-filters
+#   namespace: loco-system
+# spec:
+#   targetRef:
+#     group: gateway.networking.k8s.io
+#     kind: Gateway
+#     name: eg
+#   type: JSONPatch
+#   jsonPatches:
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-443
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/0"
+#         value:
+#           name: envoy.filters.http.connect_grpc_bridge
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.connect_grpc_bridge.v3.FilterConfig
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-443
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/1"
+#         value:
+#           name: envoy.filters.http.grpc_web
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-80
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/0"
+#         value:
+#           name: envoy.filters.http.connect_grpc_bridge
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.connect_grpc_bridge.v3.FilterConfig
+    
+#     - type: "type.googleapis.com/envoy.config.listener.v3.Listener"
+#       name: tcp-80
+#       operation:
+#         op: add
+#         path: "/default_filter_chain/filters/0/typed_config/http_filters/1"
+#         value:
+#           name: envoy.filters.http.grpc_web
+#           typed_config:
+#             "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb

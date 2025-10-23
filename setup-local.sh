@@ -29,6 +29,17 @@ if ! command -v helm &> /dev/null; then
     rm get_helm.sh
 fi
 
+# Add helm repos
+echo "Adding helm repos..."
+helm repo add cilium https://helm.cilium.io/
+helm repo add jetstack https://charts.jetstack.io
+helm repo add hyperdx https://hyperdxio.github.io/helm-charts
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+
+# Install Cilium
+echo "Installing Cilium..."
+helm upgrade --install cilium cilium/cilium --namespace kube-system -f kube/values/cilium.yml
 
 # Install Envoy Gateway, todo: bump to 1.4 once supported
 echo "Installing Envoy Gateway + Gateway Crds..."
@@ -37,13 +48,32 @@ helm upgrade eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system 
 
 # Install cert-manager
 echo "Installing cert-manager..."
-helm repo add jetstack https://charts.jetstack.io --force-update
-helm repo update
 helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true -i
+
+# Install ClickStack
+echo "Installing ClickStack for observability..."
+
+echo "Installing local path provisioner for MongoDB..."
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+
+echo "Installing ClickStack..."
+helm install clickstack hyperdx/hdx-oss-v2 --set clickhouse.enabled=true --set clickhouse.persistence.enabled=true --set otel.enabled=false -n observability --create-namespace
+
+echo "Creating OpenTelemetry ConfigMap..."
+kubectl create configmap otel-config-vars \
+ --from-literal=OTEL_COLLECTOR_ENDPOINT="http://clickstack-hdx-oss-v2-clickhouse.observability.svc.cluster.local:8123" \
+ -n observability --dry-run=client -o yaml | kubectl apply -f -
+
+echo "Installing OpenTelemetry Operator..."
+helm install opentelemetry-operator open-telemetry/opentelemetry-operator --create-namespace --namespace opentelemetry-operator-system
+
+echo "Installing OpenTelemetry collectors..."
+helm install clickhouse-otel-ds open-telemetry/opentelemetry-collector --values kube/values/clickhouse-otel-daemonset.yml --namespace observability
+helm install clickhouse-otel-deploy open-telemetry/opentelemetry-collector --values kube/values/clickhouse-otel-deployment.yml --namespace observability
 
 
 # create loco namespace
-kubectl apply -f kube/loco_namespace.yml
+kubectl apply -f kube/loco/namespace.yml
 # Create self-signed issuer
 
 echo "Creating self-signed issuer..."
@@ -76,9 +106,9 @@ EOF
 
 # Apply base resources
 echo "Applying base resources..."
-kubectl apply -f kube/gateway.yml
-kubectl apply -f kube/loco_routes.yml
-kubectl apply -f kube/loco_rbac.yml
+kubectl apply -f kube/gateway/gateway.yml
+kubectl apply -f kube/loco/routes.yml
+kubectl apply -f kube/loco/rbac.yml
 
 # Build and load image
 echo "Building loco image..."
@@ -104,7 +134,7 @@ kubectl create secret generic env-config \
   -n loco-system --dry-run=client -o yaml | kubectl apply -f -
 
 # Update deployment to use local image
-kubectl apply -f kube/loco_service.yml
+kubectl apply -f kube/loco/service.yml
 echo "Updating deployment image..."
 kubectl set image -n loco-system deployment/loco-api loco-api=loco-api:latest
 kubectl patch deployment loco-api -n loco-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}]'

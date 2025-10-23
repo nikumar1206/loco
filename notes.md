@@ -172,4 +172,9 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - there is value to having an admin dashboard, for those who are planning to bring your own cloud. but need to figure out keys and roles and whatnot.
 
 - some sort of env for configuring deployment behavior:
+
   - max_concurrent_app_deployments => 3
+
+- resource management needs to be evaluated. how many resources are we using ? what are we wasting ?
+
+- wondering if there is value in tests where we actually literally spin up a docker container and we start running stuff on it. like literally use minikube and firing away at tests, atleast i think thats the most accurate way to test the deployment piece.
