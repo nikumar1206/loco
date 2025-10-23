@@ -69,8 +69,6 @@
   - should be done on a per domain basis.
   - wish we had a database!
 
-- the user provided idle timeouts need to be translated into a BackendTrafficPolicy.
-
 - introduce a project-id. Project id will be used to map loco.toml's together.
 - on update, we should update the service as well; my ports were different, but it didnt get applied.
 - debug flag on CLI actually scuffs the terminal output from bubbletea. We actually need to write to a log file.
@@ -148,9 +146,30 @@ may be nice to have some sort of secrets integration? like pull ur aws ssm, vaul
 too much for MVP
 
 - Next Steps:
+
   - Respect more of the loco.toml
     - allow setting GRPCServices and if provided, create a GRPC route, maybe we need a GRPCport?
   - loco init is chunky, introduce minimal vs full flag.
-  - dare i say, we go back to metrics?
+
   - start design on profiles?
   - review API design; i think we are doing some funky things
+
+---
+
+we finally have basic logs/metrics popping up.
+
+- organization/different streams, segregated dashboards for like workspace? project scope
+- customized dashboards one for each service inside the project,
+- maybe even eventually add alerts to an email.
+- loco root password will need to be auto-rotated.
+- switch to using grpc instead of http?
+- tracing will be final step, if we even implement that piece. railway/heroku dont support tracing
+
+sleep mode; if app not used in last 7 days or something. deployment is removed; can be recreated on request.
+
+- who sleeps the app/ who rebuilds the app?
+- actually maybe u point to actually the loco backend, and path rewrite to /revive-app?app-name=foobar123&og_url=foobar123.loco.deploy-app.com/cheesecake, and this revives app, and then redirects you to the correct domain again
+- there is value to having an admin dashboard, for those who are planning to bring your own cloud. but need to figure out keys and roles and whatnot.
+
+- some sort of env for configuring deployment behavior:
+  - max_concurrent_app_deployments => 3
