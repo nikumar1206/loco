@@ -22,7 +22,10 @@ var logsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View application logs",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		output, _ := cmd.Flags().GetString("output")
+		output, err := cmd.Flags().GetString("output")
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+		}
 
 		switch output {
 		case "json":
@@ -38,9 +41,17 @@ var logsCmd = &cobra.Command{
 }
 
 func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
-	parseAndSetDebugFlag(cmd)
-	host := parseDevFlag(cmd)
-	configPath := parseLocoTomlPath(cmd)
+	if err := parseAndSetDebugFlag(cmd); err != nil {
+		return err
+	}
+	host, err := getHost(cmd)
+	if err != nil {
+		return err
+	}
+	configPath, err := parseLocoTomlPath(cmd)
+	if err != nil {
+		return err
+	}
 
 	locoToken, err := getLocoToken()
 	if err != nil {
@@ -82,9 +93,17 @@ func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
 }
 
 func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
-	parseAndSetDebugFlag(cmd)
-	host := parseDevFlag(cmd)
-	configPath := parseLocoTomlPath(cmd)
+	if err := parseAndSetDebugFlag(cmd); err != nil {
+		return err
+	}
+	host, err := getHost(cmd)
+	if err != nil {
+		return err
+	}
+	configPath, err := parseLocoTomlPath(cmd)
+	if err != nil {
+		return err
+	}
 
 	locoToken, err := getLocoToken()
 	if err != nil {
@@ -162,16 +181,14 @@ type logMsg struct {
 type errMsg struct{ error }
 
 type logModel struct {
+	logs      []table.Row
+	err       error
+	ctx       context.Context
+	cancel    context.CancelFunc
+	logsChan  chan client.LogEntry
+	errChan   chan error
 	table     table.Model
 	baseStyle lipgloss.Style
-	logs      []table.Row
-
-	logsChan chan client.LogEntry
-	errChan  chan error
-	err      error
-
-	ctx    context.Context
-	cancel context.CancelFunc
 }
 
 func (m logModel) Init() tea.Cmd {

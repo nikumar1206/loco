@@ -17,7 +17,7 @@ endif
 all: test build
 
 build: ## Build the application
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) -o bin/$(BINARY_NAME) -v
 
 vet:
 	@$(GOCMD) vet ./...

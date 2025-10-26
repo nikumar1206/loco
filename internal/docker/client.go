@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
+
 	json "github.com/goccy/go-json"
 
 	"github.com/docker/docker/api/types/build"
@@ -22,6 +24,8 @@ import (
 	"github.com/nikumar1206/loco/internal/config"
 )
 
+// MINIMUM_DOCKER_ENGINE_VERSION is the lowest allowed docker version.
+// should be the limited to the last major docker version
 var MINIMUM_DOCKER_ENGINE_VERSION = "28.0.0"
 
 type DockerClient struct {
@@ -157,7 +161,6 @@ func (c *DockerClient) PushImage(ctx context.Context, logf func(string), usernam
 	pushOptions := image.PushOptions{
 		RegistryAuth: authStr,
 	}
-
 	rc, err := c.dockerClient.ImagePush(ctx, c.ImageName, pushOptions)
 	if err != nil {
 		return fmt.Errorf("error when pushing image: %v", err)
@@ -167,7 +170,29 @@ func (c *DockerClient) PushImage(ctx context.Context, logf func(string), usernam
 	return printDockerOutput(rc, logf)
 }
 
-func (c *DockerClient) GenerateImageTag(imageBase string) string {
+func (c *DockerClient) ValidateImage(ctx context.Context, imageID string, logf func(string)) error {
+	// placeholder implementation, i think we need to come back to this
+	logf(fmt.Sprintf("Validating image: %s", imageID))
+	_, err := c.dockerClient.ImageInspect(ctx, imageID)
+	if err != nil {
+		if cerrdefs.IsNotFound(err) {
+			return fmt.Errorf("image %q not found locally", imageID)
+		}
+		return fmt.Errorf("failed to inspect image %q: %w", imageID, err)
+	}
+	logf(fmt.Sprintf("Image %q found locally", imageID))
+	return nil
+}
+
+func (c *DockerClient) ImageTag(ctx context.Context, imageID string) error {
+	return c.dockerClient.ImageTag(ctx, imageID, c.ImageName)
+}
+
+func (c *DockerClient) GenerateImageTag(imageBase string, imageid string) string {
+	if imageid != "" {
+		return imageid
+	}
+
 	imageNameBase := imageBase
 
 	tag := fmt.Sprintf("%s-%s", c.cfg.LocoConfig.Metadata.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
@@ -175,12 +200,13 @@ func (c *DockerClient) GenerateImageTag(imageBase string) string {
 	if !strings.Contains(imageNameBase, ":") {
 		imageNameBase += ":" + tag
 	}
-	c.ImageName = imageNameBase
 	return imageNameBase
 }
 
 func GenerateRand(n int) string {
 	token := make([]byte, n)
-	rand.Read(token)
+	if _, err := rand.Read(token); err != nil {
+		panic(err)
+	}
 	return fmt.Sprintf("%x", token)
 }

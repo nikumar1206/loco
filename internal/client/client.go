@@ -28,8 +28,9 @@ func NewClient(baseURL string) *Client {
 }
 
 type APIError struct {
-	StatusCode int
 	Body       string
+	StatusCode int
+	RequestID  string
 }
 
 func (e *APIError) Error() string {
@@ -47,11 +48,15 @@ func (e *APIError) Error() string {
 		msg = e.Body
 	}
 
+	if e.RequestID != "" {
+		msg = fmt.Sprintf("%s (Request-Id: %s)", msg, e.RequestID)
+	}
+
 	switch {
 	case e.StatusCode >= 400 && e.StatusCode < 500:
 		return fmt.Sprintf("client error: %s", msg)
 	case e.StatusCode >= 500:
-		return fmt.Sprintf("server error: %s", msg)
+		return fmt.Sprintf("unhealthy response from Loco API. Request-Id: %s", e.RequestID)
 	default:
 		return fmt.Sprintf("unexpected error: %s", msg)
 	}
@@ -83,11 +88,14 @@ func (c *Client) doRequest(method, path string, body io.Reader, headers map[stri
 	}
 	defer resp.Body.Close()
 
+	requestID := resp.Header.Get("X-Loco-Request-Id")
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Body:       fmt.Sprintf("failed to read response body: %v", err),
+			RequestID:  requestID,
 		}
 	}
 
@@ -95,6 +103,7 @@ func (c *Client) doRequest(method, path string, body io.Reader, headers map[stri
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
+			RequestID:  requestID,
 		}
 	}
 

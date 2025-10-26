@@ -12,6 +12,7 @@ import (
 )
 
 type DeployTokenResponse struct {
+	Scopes    []string `json:"scopes"`
 	Username  string   `json:"username"`
 	Password  string   `json:"password"`
 	Registry  string   `json:"registry"`
@@ -19,7 +20,6 @@ type DeployTokenResponse struct {
 	ExpiresAt string   `json:"expiresAt"`
 	Revoked   bool     `json:"revoked"`
 	Expired   bool     `json:"expired"`
-	Scopes    []string `json:"scopes"`
 }
 
 type LoginResponse struct {
@@ -27,8 +27,8 @@ type LoginResponse struct {
 	SessionID string `json:"sessionId"`
 }
 type StatusResp struct {
-	Status string  `json:"status"`
 	Token  *string `json:"token"`
+	Status string  `json:"status"`
 }
 
 func (c *Client) GetDeployToken(locoToken string) (DeployTokenResponse, error) {
@@ -56,7 +56,7 @@ func (c *Client) Login() (string, error) {
 	}
 
 	var loginResp LoginResponse
-	if err := json.Unmarshal(resp, &loginResp); err != nil {
+	if err = json.Unmarshal(resp, &loginResp); err != nil {
 		return "", fmt.Errorf("failed to parse login response: %v", err)
 	}
 
@@ -82,7 +82,9 @@ func (c *Client) Login() (string, error) {
 
 		if statusResp.Status == "completed" {
 
-			keychain.SetGithubToken("", keychain.UserToken{Token: "", ExpiresAt: time.Now()})
+			if err := keychain.SetGithubToken("", keychain.UserToken{Token: "", ExpiresAt: time.Now()}); err != nil {
+				return "", err
+			}
 			fmt.Println("Login completed!")
 			return *statusResp.Token, nil
 		}

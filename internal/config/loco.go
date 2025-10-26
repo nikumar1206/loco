@@ -99,9 +99,6 @@ var Default = &appv1.LocoConfig{
 }
 
 func Create(c *appv1.LocoConfig, dirName string) error {
-	if _, err := os.Stat("loco.toml"); !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("file already exists")
-	}
 	file, err := os.Create("loco.toml")
 	if err != nil {
 		return err
@@ -143,6 +140,17 @@ func Load(cfgPath string) (Config, error) {
 		return config, err
 	}
 
+	if config.LocoConfig.GetBuild() == nil {
+		config.LocoConfig.Build = &appv1.Build{
+			DockerfilePath: "Dockerfile",
+			Type:           "docker",
+		}
+	}
+
+	if config.LocoConfig.Env == nil {
+		config.LocoConfig.Env = &appv1.Env{}
+	}
+
 	config.LocoConfig.Build.DockerfilePath = resolvePath(config.LocoConfig.Build.DockerfilePath, cfgPathAbs)
 	config.LocoConfig.Env.File = resolvePath(config.LocoConfig.Env.File, cfgPathAbs)
 
@@ -181,8 +189,16 @@ func resolvePath(path, baseDir string) string {
 // it also validates and resolves paths to env and Dockerfile
 func Validate(cfg *appv1.LocoConfig) error {
 	// --- Metadata ---
+	if cfg.GetMetadata() == nil {
+		return fmt.Errorf("metadata section is required")
+	}
+
 	if cfg.Metadata.Name == "" {
 		return fmt.Errorf("metadata.name must be set")
+	}
+
+	if cfg.GetRouting() == nil {
+		return fmt.Errorf("routing section is required")
 	}
 
 	if cfg.Routing.Subdomain == "" {
@@ -208,9 +224,11 @@ func Validate(cfg *appv1.LocoConfig) error {
 	if cfg.Build.DockerfilePath == "" {
 		cfg.Build.DockerfilePath = "Dockerfile"
 	}
-	if !fileExists(cfg.Build.DockerfilePath) {
-		return fmt.Errorf("provided Dockerfile path %q could not be resolved", cfg.Build.DockerfilePath)
-	}
+
+	// todo: re-enable this check, but its not needed if imageid is passed
+	// if !fileExists(cfg.Build.DockerfilePath) {
+	// 	return fmt.Errorf("provided Dockerfile path %q could not be resolved", cfg.Build.DockerfilePath)
+	// }
 	if cfg.Build.Type == "" {
 		cfg.Build.Type = "docker"
 	}
@@ -221,6 +239,10 @@ func Validate(cfg *appv1.LocoConfig) error {
 	}
 
 	// --- Resources ---
+	if cfg.GetResources() == nil {
+		return fmt.Errorf("resources section is required")
+	}
+
 	if cfg.Resources.Cpu == "" {
 		return fmt.Errorf("resources.cpu must be set (e.g. '100m')")
 	}
@@ -337,14 +359,14 @@ func fileExists(filePath string) bool {
 }
 
 type LocoApp struct {
+	EnvVars        []*appv1.EnvVar
+	CreatedAt      time.Time
 	Name           string
 	Namespace      string
 	CreatedBy      string
-	CreatedAt      time.Time
-	Labels         map[string]string
 	ContainerImage string
 	Subdomain      string
-	EnvVars        []*appv1.EnvVar
+	Labels         map[string]string
 	Config         *appv1.LocoConfig
 }
 

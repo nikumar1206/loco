@@ -24,7 +24,10 @@ func init() {
 }
 
 func validateCmdFunc(cmd *cobra.Command, _ []string) error {
-	configPath := parseLocoTomlPath(cmd)
+	configPath, err := parseLocoTomlPath(cmd)
+	if err != nil {
+		return err
+	}
 
 	cfg, err := config.Load(configPath)
 	if err != nil {

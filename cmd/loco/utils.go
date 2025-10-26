@@ -2,8 +2,8 @@ package loco
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
+	"os"
 	"os/user"
 	"time"
 
@@ -11,17 +11,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func parseDevFlag(cmd *cobra.Command) string {
-	isDev, err := cmd.Flags().GetBool("dev")
+const locoProdHost = "https://loco.deploy-app.com"
+
+func getHost(cmd *cobra.Command) (string, error) {
+	host, err := cmd.Flags().GetString("host")
 	if err != nil {
-		log.Fatalf("Error getting dev flag: %v", err)
+		return "", fmt.Errorf("error reading host flag: %w", err)
+	}
+	if host != "" {
+		slog.Debug("using host from flag")
+		return host, nil
 	}
 
-	if isDev {
-		slog.Debug("using dev host")
-		return "http://localhost:8000"
+	host = os.Getenv("LOCO__HOST")
+	if host != "" {
+		slog.Debug("using host from environment variable")
+		return host, nil
 	}
-	return "https://loco.deploy-app.com"
+
+	return locoProdHost, nil
 }
 
 func getLocoToken() (*keychain.UserToken, error) {
@@ -44,23 +52,32 @@ func getLocoToken() (*keychain.UserToken, error) {
 	return locoToken, err
 }
 
-func parseAndSetDebugFlag(cmd *cobra.Command) {
+func parseAndSetDebugFlag(cmd *cobra.Command) error {
 	isDebug, err := cmd.Flags().GetBool("debug")
 	if err != nil {
-		log.Fatalf("Error getting debug flag: %v", err)
+		return fmt.Errorf("error reading debug flag: %w", err)
 	}
 	if isDebug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
+	return nil
 }
 
-func parseLocoTomlPath(cmd *cobra.Command) string {
+func parseLocoTomlPath(cmd *cobra.Command) (string, error) {
 	configPath, err := cmd.Flags().GetString("config")
 	if err != nil {
-		log.Fatalf("Error getting config flag: %v", err)
+		return "", fmt.Errorf("error reading config flag: %w", err)
 	}
 	if configPath == "" {
-		return "loco.toml"
+		return "loco.toml", nil
 	}
-	return configPath
+	return configPath, nil
+}
+
+func parseImageId(cmd *cobra.Command) (string, error) {
+	imageId, err := cmd.Flags().GetString("image")
+	if err != nil {
+		return "", fmt.Errorf("error reading image flag: %w", err)
+	}
+	return imageId, nil
 }

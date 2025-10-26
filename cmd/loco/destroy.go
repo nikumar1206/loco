@@ -12,9 +12,14 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy an application deployment",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		parseAndSetDebugFlag(cmd)
-		// file, _ := cmd.Flags().GetString("file")
-		yes, _ := cmd.Flags().GetBool("yes")
+		if err := parseAndSetDebugFlag(cmd); err != nil {
+			return fmt.Errorf("%w: %w", ErrCommandFailed, err)
+		}
+
+		yes, err := cmd.Flags().GetBool("yes")
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+		}
 
 		// Lipgloss styles
 		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoRed)

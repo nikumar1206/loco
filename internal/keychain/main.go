@@ -10,8 +10,8 @@ import (
 var Service = "loco"
 
 type UserToken struct {
-	Token     string
 	ExpiresAt time.Time
+	Token     string
 }
 
 func SetGithubToken(user string, t UserToken) error {

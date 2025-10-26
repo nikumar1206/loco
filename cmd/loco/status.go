@@ -23,12 +23,26 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show application status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		parseAndSetDebugFlag(cmd)
-		host := parseDevFlag(cmd)
-		configPath := parseLocoTomlPath(cmd)
+		if err := parseAndSetDebugFlag(cmd); err != nil {
+			return err
+		}
+		host, err := getHost(cmd)
+		if err != nil {
+			return err
+		}
+		configPath, err := parseLocoTomlPath(cmd)
+		if err != nil {
+			return err
+		}
 
-		file, _ := cmd.Flags().GetString("file")
-		output, _ := cmd.Flags().GetString("output")
+		file, err := cmd.Flags().GetString("file")
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+		}
+		output, err := cmd.Flags().GetString("output")
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+		}
 
 		cfg, err := config.Load(configPath)
 		if err != nil {

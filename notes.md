@@ -61,7 +61,7 @@
     - project name based?
 
 - seem to be some issues ensuring im grabbing the latest version of my own local packages.
-- Sometimes docker is sleeping; we need to give better errors, and maybe tell users to just specify --image-id if stuff keeps going wrong.
+- Sometimes docker is sleeping; we need to give better errors, and maybe tell users to just specify --image if stuff keeps going wrong.
 - can we check if docker is sleeping before trying to build the image?
 - are we validating that subdomains have not been taken ?
 - similarly for grpc, we need to validate GRPC routes have not been taken

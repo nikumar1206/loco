@@ -50,12 +50,17 @@ type TokenDetails struct {
 	TokenTTL float64 `json:"tokenTTL"`
 }
 
-var testCmd = &cobra.Command{
+var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to loco via Github OAuth",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		parseAndSetDebugFlag(cmd)
-		host := parseDevFlag(cmd)
+		if err := parseAndSetDebugFlag(cmd); err != nil {
+			return err
+		}
+		host, err := getHost(cmd)
+		if err != nil {
+			return err
+		}
 		user, err := user.Current()
 		if err != nil {
 			slog.Debug("failed to get current user", "error", err)
@@ -112,10 +117,10 @@ var testCmd = &cobra.Command{
 		errorChan := make(chan error, 1)
 
 		go func() {
-			err := pollAuthToken(c, payload.ClientId, deviceTokenResponse.DeviceCode, deviceTokenResponse.Interval, tokenChan)
-			if err != nil {
-				fmt.Println(err.Error())
-				errorChan <- err
+			pollErr := pollAuthToken(c, payload.ClientId, deviceTokenResponse.DeviceCode, deviceTokenResponse.Interval, tokenChan)
+			if pollErr != nil {
+				fmt.Println(pollErr.Error())
+				errorChan <- pollErr
 			}
 		}()
 
@@ -127,17 +132,22 @@ var testCmd = &cobra.Command{
 			return err
 		}
 
-		finalM := fm.(model)
+		finalM, ok := fm.(model)
+		if !ok {
+			return fmt.Errorf("%w: unexpected model type", ErrCommandFailed)
+		}
 
 		if finalM.err != nil {
 			return finalM.err
 		}
 		if finalM.tokenResp != nil {
-			keychain.SetGithubToken(user.Name, keychain.UserToken{
+			if err := keychain.SetGithubToken(user.Name, keychain.UserToken{
 				Token: finalM.tokenResp.AccessToken,
 				// subtract 10 mins?
 				ExpiresAt: time.Now().Add(time.Duration(resp.Msg.TokenTtl)*time.Second - (10 * time.Minute)),
-			})
+			}); err != nil {
+				return fmt.Errorf("%w: %w", ErrAuthFailed, err)
+			}
 		}
 
 		return nil
@@ -219,16 +229,16 @@ func waitForError(errorChan <-chan error) tea.Cmd {
 }
 
 type model struct {
+	loadingFrames   []string
 	userCode        string
 	verificationURI string
-	loadingFrames   []string
-	frameIndex      int
-	polling         bool
-	done            bool
 	err             error
 	tokenChan       <-chan AuthTokenResponse
 	errorChan       <-chan error
 	tokenResp       *AuthTokenResponse
+	frameIndex      int
+	polling         bool
+	done            bool
 }
 
 func initialModel(userCode string, verificationUri string, tokenChan <-chan AuthTokenResponse, errorChan <-chan error) model {

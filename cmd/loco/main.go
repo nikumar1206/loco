@@ -38,7 +38,7 @@ func LocoColorScheme() fang.ColorSchemeFunc {
 	}
 }
 
-func CLI() {
+func Cli() {
 	i, ok := runtimeDebug.ReadBuildInfo()
 	if !ok {
 		i = &runtimeDebug.BuildInfo{

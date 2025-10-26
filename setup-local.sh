@@ -56,20 +56,24 @@ echo "Installing ClickStack for observability..."
 echo "Installing local path provisioner for MongoDB..."
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
 
+SECRET=$(openssl rand -base64 16)
+
+kubectl create secret generic hyperdx-secret --from-literal=HYPERDX_API_KEY="$SECRET" -n observability
+
 echo "Installing ClickStack..."
-helm install clickstack hyperdx/hdx-oss-v2 --set clickhouse.enabled=true --set clickhouse.persistence.enabled=true --set otel.enabled=false -n observability --create-namespace
+helm install clickstack hyperdx/hdx-oss-v2 --values kube/values/clickhouse.yml --set hyperdx.apiKey="$SECRET" -n observability --create-namespace
 
 echo "Creating OpenTelemetry ConfigMap..."
 kubectl create configmap otel-config-vars \
- --from-literal=OTEL_COLLECTOR_ENDPOINT="http://clickstack-hdx-oss-v2-clickhouse.observability.svc.cluster.local:8123" \
+ --from-literal=OTEL_COLLECTOR_ENDPOINT="http://clickstack-hdx-oss-v2-otel-collector.observability.svc.cluster.local:4318" \
  -n observability --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Installing OpenTelemetry Operator..."
 helm install opentelemetry-operator open-telemetry/opentelemetry-operator --create-namespace --namespace opentelemetry-operator-system
 
 echo "Installing OpenTelemetry collectors..."
-helm install clickhouse-otel-ds open-telemetry/opentelemetry-collector --values kube/values/clickhouse-otel-daemonset.yml --namespace observability
-helm install clickhouse-otel-deploy open-telemetry/opentelemetry-collector --values kube/values/clickhouse-otel-deployment.yml --namespace observability
+helm install clickhouse-otel-ds open-telemetry/opentelemetry-collector --values kube/values/otel-daemonset.yml --namespace observability
+helm install clickhouse-otel-deploy open-telemetry/opentelemetry-collector --values kube/values/otel-deployment.yml --namespace observability
 
 
 # create loco namespace
