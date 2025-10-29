@@ -32,10 +32,6 @@ var statusCmd = &cobra.Command{
 			return err
 		}
 
-		file, err := cmd.Flags().GetString("file")
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
-		}
 		output, err := cmd.Flags().GetString("output")
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
@@ -68,7 +64,6 @@ var statusCmd = &cobra.Command{
 
 		status := appStatus{
 			StatusResponse: res.Msg,
-			File:           file,
 			AppName:        cfg.LocoConfig.Metadata.Name,
 			Environment:    "production",
 		}
@@ -87,8 +82,7 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
-	statusCmd.Flags().StringP("file", "f", "", "Load configuration from FILE")
-	statusCmd.Flags().StringP("output", "o", "ux", "Output format: ux | json")
+	statusCmd.Flags().StringP("output", "o", "table", "Output format: table | json")
 	statusCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
 }
 
@@ -96,21 +90,12 @@ func init() {
 
 type appStatus struct {
 	*appv1.StatusResponse
-	File        string `json:"file"`
-	AppName     string `json:"appName"`
-	Environment string `json:"environment"`
-	// Status       string `json:"status"`
-	// Pods         int    `json:"pods"`
-	// CPUUsage     string `json:"cpuUsage"`
-	// MemUsage     string `json:"memUsage"`
-	// AvgLatency   string `json:"avgLatency"`
-	// ExternalURL  string `json:"externalUrl"`
-	// DeployedAt   string `json:"deployedAt"`
-	// DeployedBy   string `json:"deployedBy"`
-	// TLSStatus    string `json:"tlsStatus"`
-	// HealthStatus string `json:"healthStatus"`
-	// Autoscaling  string `json:"autoscaling"`
-	// Replicas     string `json:"replicas"`
+	AppName     string   `json:"appName"`
+	Environment string   `json:"environment"`
+	Status      string   `json:"status"`
+	Replicas    int      `json:"replicas"`
+	ExternalURL string   `json:"externalUrl"`
+	Events      []string `json:"events"`
 }
 
 func printJSON(status appStatus) error {

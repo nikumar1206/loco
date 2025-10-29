@@ -5,27 +5,34 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
-	host    string
-	logPath string
+	host      string
+	logPath   string
+	startTime time.Time
 )
 
 var RootCmd = &cobra.Command{
 	Use:   "loco",
 	Short: "A CLI for managing loco deployments",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		startTime = time.Now()
 		if err := initLogger(cmd); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
 			os.Exit(1)
 		}
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-		fmt.Fprintf(os.Stderr, "Logs written to: %s\n", logPath)
+		slog.Info(
+			"command finished",
+			"command", cmd.Name(),
+			"duration", time.Since(startTime),
+		)
 	},
 }
 
@@ -35,7 +42,7 @@ func initLogger(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	logsDir := filepath.Join(home, ".loco", "logs")
+	logsDir := filepath.Join(home, ".loco")
 	logPath = filepath.Join(logsDir, "loco.log")
 
 	output := &lumberjack.Logger{
@@ -50,8 +57,11 @@ func initLogger(cmd *cobra.Command) error {
 		Level: slog.LevelDebug,
 	}))
 	slog.SetDefault(logger)
-	initLog := fmt.Sprintf("new loco run; cmd name: %s", cmd.Use)
-	slog.Info(initLog)
+	slog.Info(
+		"new loco run",
+		"version", cmd.Root().Version,
+		"args", os.Args,
+	)
 	return nil
 }
 

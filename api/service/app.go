@@ -17,7 +17,7 @@ import (
 
 var (
 	ErrNoUser   = errors.New("user could not be determined")
-	ErrNoStatus = errors.New("could not determine deployment status")
+	ErrNoStatus = errors.New("could not determine app status")
 )
 
 type AppServer struct {
