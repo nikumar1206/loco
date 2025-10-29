@@ -23,6 +23,7 @@ require (
 	connectrpc.com/connect v1.19.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/nikumar1206/loco/proto v0.0.0-20251003124344-0dc8b82ee743
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

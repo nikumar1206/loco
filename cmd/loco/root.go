@@ -2,19 +2,16 @@ package loco
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
 	host    string
-	debug   bool
-	logFile *os.File
 	logPath string
 )
 
@@ -28,52 +25,37 @@ var RootCmd = &cobra.Command{
 		}
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-		if logFile != nil {
-			if closeErr := logFile.Close(); closeErr != nil {
-				fmt.Fprintf(os.Stderr, "failed to close log file: %v\n", closeErr)
-			}
-			fmt.Fprintf(os.Stderr, "Debug logs written to: %s\n", logPath)
-		}
+		fmt.Fprintf(os.Stderr, "Logs written to: %s\n", logPath)
 	},
 }
 
 func initLogger(cmd *cobra.Command) error {
-	var logger *slog.Logger
-	if debug {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
-		}
-
-		logsDir := filepath.Join(home, ".loco", "logs")
-		if err = os.MkdirAll(logsDir, 0o755); err != nil {
-			return fmt.Errorf("failed to create logs directory: %w", err)
-		}
-
-		timestamp := time.Now().Format("20060102_150405")
-		logPath = filepath.Join(logsDir, fmt.Sprintf("loco_%s_%s.log", cmd.Name(), timestamp))
-
-		logFile, err = os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
-		if err != nil {
-			return fmt.Errorf("failed to open log file: %w", err)
-		}
-
-		logger = slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
-		slog.SetDefault(logger)
-		slog.Info("Debug logging enabled.")
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		}))
-		slog.SetDefault(logger)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
+
+	logsDir := filepath.Join(home, ".loco", "logs")
+	logPath = filepath.Join(logsDir, "loco.log")
+
+	output := &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 3,
+		MaxAge:     30, // days
+		Compress:   false,
+	}
+
+	logger := slog.New(slog.NewTextHandler(output, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(logger)
+	initLog := fmt.Sprintf("new loco run; cmd name: %s", cmd.Use)
+	slog.Info(initLog)
 	return nil
 }
 
 func init() {
 	RootCmd.PersistentFlags().StringVar(&host, "host", "", "Set the host URL")
-	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enables debug logging.")
 	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd)
 }
