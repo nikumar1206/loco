@@ -29,6 +29,7 @@ func getHost(cmd *cobra.Command) (string, error) {
 		return host, nil
 	}
 
+	slog.Debug("defaulting to prod url")
 	return locoProdHost, nil
 }
 
@@ -50,17 +51,6 @@ func getLocoToken() (*keychain.UserToken, error) {
 	}
 
 	return locoToken, err
-}
-
-func parseAndSetDebugFlag(cmd *cobra.Command) error {
-	isDebug, err := cmd.Flags().GetBool("debug")
-	if err != nil {
-		return fmt.Errorf("error reading debug flag: %w", err)
-	}
-	if isDebug {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
-	}
-	return nil
 }
 
 func parseLocoTomlPath(cmd *cobra.Command) (string, error) {

@@ -41,9 +41,6 @@ var logsCmd = &cobra.Command{
 }
 
 func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
-	if err := parseAndSetDebugFlag(cmd); err != nil {
-		return err
-	}
 	host, err := getHost(cmd)
 	if err != nil {
 		return err
@@ -93,9 +90,6 @@ func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
 }
 
 func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
-	if err := parseAndSetDebugFlag(cmd); err != nil {
-		return err
-	}
 	host, err := getHost(cmd)
 	if err != nil {
 		return err

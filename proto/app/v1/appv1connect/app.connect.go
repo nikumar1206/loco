@@ -39,6 +39,8 @@ const (
 	AppServiceLogsProcedure = "/proto.app.v1.AppService/Logs"
 	// AppServiceStatusProcedure is the fully-qualified name of the AppService's Status RPC.
 	AppServiceStatusProcedure = "/proto.app.v1.AppService/Status"
+	// AppServiceDestroyAppProcedure is the fully-qualified name of the AppService's DestroyApp RPC.
+	AppServiceDestroyAppProcedure = "/proto.app.v1.AppService/DestroyApp"
 )
 
 // AppServiceClient is a client for the proto.app.v1.AppService service.
@@ -46,6 +48,7 @@ type AppServiceClient interface {
 	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
 	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
+	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
 }
 
 // NewAppServiceClient constructs a client for the proto.app.v1.AppService service. By default, it
@@ -77,14 +80,21 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(appServiceMethods.ByName("Status")),
 			connect.WithClientOptions(opts...),
 		),
+		destroyApp: connect.NewClient[v1.DestroyAppRequest, v1.DestroyAppResponse](
+			httpClient,
+			baseURL+AppServiceDestroyAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("DestroyApp")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // appServiceClient implements AppServiceClient.
 type appServiceClient struct {
-	deployApp *connect.Client[v1.DeployAppRequest, v1.DeployAppResponse]
-	logs      *connect.Client[v1.LogsRequest, v1.LogsResponse]
-	status    *connect.Client[v1.StatusRequest, v1.StatusResponse]
+	deployApp  *connect.Client[v1.DeployAppRequest, v1.DeployAppResponse]
+	logs       *connect.Client[v1.LogsRequest, v1.LogsResponse]
+	status     *connect.Client[v1.StatusRequest, v1.StatusResponse]
+	destroyApp *connect.Client[v1.DestroyAppRequest, v1.DestroyAppResponse]
 }
 
 // DeployApp calls proto.app.v1.AppService.DeployApp.
@@ -102,11 +112,17 @@ func (c *appServiceClient) Status(ctx context.Context, req *connect.Request[v1.S
 	return c.status.CallUnary(ctx, req)
 }
 
+// DestroyApp calls proto.app.v1.AppService.DestroyApp.
+func (c *appServiceClient) DestroyApp(ctx context.Context, req *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error) {
+	return c.destroyApp.CallUnary(ctx, req)
+}
+
 // AppServiceHandler is an implementation of the proto.app.v1.AppService service.
 type AppServiceHandler interface {
 	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
 	Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
+	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
 }
 
 // NewAppServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -134,6 +150,12 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("Status")),
 		connect.WithHandlerOptions(opts...),
 	)
+	appServiceDestroyAppHandler := connect.NewUnaryHandler(
+		AppServiceDestroyAppProcedure,
+		svc.DestroyApp,
+		connect.WithSchema(appServiceMethods.ByName("DestroyApp")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/proto.app.v1.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AppServiceDeployAppProcedure:
@@ -142,6 +164,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 			appServiceLogsHandler.ServeHTTP(w, r)
 		case AppServiceStatusProcedure:
 			appServiceStatusHandler.ServeHTTP(w, r)
+		case AppServiceDestroyAppProcedure:
+			appServiceDestroyAppHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -161,4 +185,8 @@ func (UnimplementedAppServiceHandler) Logs(context.Context, *connect.Request[v1.
 
 func (UnimplementedAppServiceHandler) Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.app.v1.AppService.Status is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.app.v1.AppService.DestroyApp is not implemented"))
 }

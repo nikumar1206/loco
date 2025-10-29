@@ -134,6 +134,18 @@ func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *locoConfig.Loco
 	return ns, nil
 }
 
+// DeleteNS deletes a namespace in the Kubernetes cluster.
+func (kc *KubernetesClient) DeleteNS(c context.Context, namespace string) error {
+	slog.InfoContext(c, "Deleting namespace", "namespace", namespace)
+	err := kc.ClientSet.CoreV1().Namespaces().Delete(c, namespace, metaV1.DeleteOptions{})
+	if err != nil {
+		slog.ErrorContext(c, "Failed to delete namespace", "namespace", namespace, "error", err)
+		return err
+	}
+	slog.InfoContext(c, "Namespace deleted", "namespace", namespace)
+	return nil
+}
+
 // CheckDeploymentExists checks if a deployment exists in the specified namespace.
 func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace string, deploymentName string) (bool, error) {
 	slog.DebugContext(c, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)

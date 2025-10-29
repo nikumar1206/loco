@@ -23,9 +23,6 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show application status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := parseAndSetDebugFlag(cmd); err != nil {
-			return err
-		}
 		host, err := getHost(cmd)
 		if err != nil {
 			return err

@@ -30,13 +30,10 @@ var deployCmd = &cobra.Command{
 func init() {
 	deployCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
 	deployCmd.Flags().BoolP("yes", "y", false, "Assume yes to all prompts")
-	deployCmd.Flags().String("image", "", "image tag to use for deployment")
+	deployCmd.Flags().StringP("image", "i", "", "image tag to use for deployment")
 }
 
 func deployCmdFunc(cmd *cobra.Command, _ []string) error {
-	if err := parseAndSetDebugFlag(cmd); err != nil {
-		return err
-	}
 	host, err := getHost(cmd)
 	if err != nil {
 		return err

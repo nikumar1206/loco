@@ -22,14 +22,6 @@ var RootCmd = &cobra.Command{
 	Use:   "loco",
 	Short: "A CLI for managing loco deployments",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		isDebug, err := cmd.Flags().GetBool("debug")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to parse debug flag: %v\n", err)
-			os.Exit(1)
-		}
-		if !isDebug {
-			return
-		}
 		if err := initLogger(cmd); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
 			os.Exit(1)
@@ -72,7 +64,9 @@ func initLogger(cmd *cobra.Command) error {
 		slog.SetDefault(logger)
 		slog.Info("Debug logging enabled.")
 	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
 		slog.SetDefault(logger)
 	}
 	return nil

@@ -141,8 +141,19 @@ message StatusResponse {
 }
 
 
+
+// --- destroy app ---
+message DestroyAppRequest {
+    string name = 1;
+}
+
+message DestroyAppResponse {
+    string message = 1;
+}
+
 service AppService {
   rpc DeployApp(DeployAppRequest) returns (DeployAppResponse) {}
   rpc Logs(LogsRequest) returns (stream LogsResponse) {}
   rpc Status(StatusRequest) returns (StatusResponse) {}
+  rpc DestroyApp(DestroyAppRequest) returns (DestroyAppResponse) {}
 }

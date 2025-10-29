@@ -223,3 +223,27 @@ func (s *AppServer) Status(
 		},
 	), nil
 }
+
+func (s *AppServer) DestroyApp(
+	ctx context.Context,
+	req *connect.Request[appv1.DestroyAppRequest],
+) (*connect.Response[appv1.DestroyAppResponse], error) {
+	appName := req.Msg.Name
+
+	user, ok := ctx.Value("user").(string)
+	if !ok {
+		slog.ErrorContext(ctx, "could not determine user. should never happen")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+	}
+
+	namespace := locoConfig.GenerateNameSpace(appName, user)
+
+	if err := s.Kc.DeleteNS(ctx, namespace); err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app does not exist"))
+	}
+
+	return connect.NewResponse(&appv1.DestroyAppResponse{
+		Message: "App destruction initiated successfully",
+	}), nil
+}

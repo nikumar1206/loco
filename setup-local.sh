@@ -60,7 +60,6 @@ SECRET=$(openssl rand -base64 16)
 
 kubectl create secret generic hyperdx-secret --from-literal=HYPERDX_API_KEY="$SECRET" -n observability
 
-echo "Installing ClickStack..."
 helm install clickstack hyperdx/hdx-oss-v2 --values kube/values/clickhouse.yml --set hyperdx.apiKey="$SECRET" -n observability --create-namespace
 
 echo "Creating OpenTelemetry ConfigMap..."

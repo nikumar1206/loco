@@ -54,9 +54,6 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to loco via Github OAuth",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := parseAndSetDebugFlag(cmd); err != nil {
-			return err
-		}
 		host, err := getHost(cmd)
 		if err != nil {
 			return err
@@ -84,7 +81,7 @@ var loginCmd = &cobra.Command{
 		}
 		c := client.NewClient("https://github.com")
 
-		oAuthClient := oauthv1connect.NewOAuthServiceClient(http.DefaultClient, host)
+		oAuthClient := oauthv1connect.NewOAuthServiceClient(&http.Client{}, host)
 		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
 			slog.Debug("failed to get oauth details", "error", err)

@@ -15,9 +15,6 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Loco project",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := parseAndSetDebugFlag(cmd); err != nil {
-			return fmt.Errorf("%w: %w", ErrCommandFailed, err)
-		}
 
 		force, err := cmd.Flags().GetBool("force")
 		if err != nil {
