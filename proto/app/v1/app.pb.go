@@ -1163,7 +1163,7 @@ type StatusResponse struct {
 	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
 	DeployedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=deployed_at,json=deployedAt,proto3" json:"deployed_at,omitempty"`
 	Health        string                 `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
-	Events        []string               `protobuf:"bytes,6,rep,name=events,proto3" json:"events,omitempty"`
+	Events        []*Event               `protobuf:"bytes,6,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1233,9 +1233,77 @@ func (x *StatusResponse) GetHealth() string {
 	return ""
 }
 
-func (x *StatusResponse) GetEvents() []string {
+func (x *StatusResponse) GetEvents() []*Event {
 	if x != nil {
 		return x.Events
+	}
+	return nil
+}
+
+type Event struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	mi := &file_proto_app_v1_app_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_app_v1_app_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Event) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *Event) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *Event) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *Event) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
 	}
 	return nil
 }
@@ -1250,7 +1318,7 @@ type DestroyAppRequest struct {
 
 func (x *DestroyAppRequest) Reset() {
 	*x = DestroyAppRequest{}
-	mi := &file_proto_app_v1_app_proto_msgTypes[20]
+	mi := &file_proto_app_v1_app_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1330,7 @@ func (x *DestroyAppRequest) String() string {
 func (*DestroyAppRequest) ProtoMessage() {}
 
 func (x *DestroyAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_app_v1_app_proto_msgTypes[20]
+	mi := &file_proto_app_v1_app_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1275,7 +1343,7 @@ func (x *DestroyAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DestroyAppRequest.ProtoReflect.Descriptor instead.
 func (*DestroyAppRequest) Descriptor() ([]byte, []int) {
-	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{20}
+	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DestroyAppRequest) GetName() string {
@@ -1294,7 +1362,7 @@ type DestroyAppResponse struct {
 
 func (x *DestroyAppResponse) Reset() {
 	*x = DestroyAppResponse{}
-	mi := &file_proto_app_v1_app_proto_msgTypes[21]
+	mi := &file_proto_app_v1_app_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1374,7 @@ func (x *DestroyAppResponse) String() string {
 func (*DestroyAppResponse) ProtoMessage() {}
 
 func (x *DestroyAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_app_v1_app_proto_msgTypes[21]
+	mi := &file_proto_app_v1_app_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1387,7 @@ func (x *DestroyAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DestroyAppResponse.ProtoReflect.Descriptor instead.
 func (*DestroyAppResponse) Descriptor() ([]byte, []int) {
-	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{21}
+	return file_proto_app_v1_app_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DestroyAppResponse) GetMessage() string {
@@ -1418,15 +1486,20 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x10\n" +
 	"\x03log\x18\x03 \x01(\tR\x03log\"*\n" +
 	"\rStatusRequest\x12\x19\n" +
-	"\bapp_name\x18\x01 \x01(\tR\aappName\"\xc3\x01\n" +
+	"\bapp_name\x18\x01 \x01(\tR\aappName\"\xd8\x01\n" +
 	"\x0eStatusResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1a\n" +
 	"\breplicas\x18\x02 \x01(\x05R\breplicas\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12;\n" +
 	"\vdeployed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"deployedAt\x12\x16\n" +
-	"\x06health\x18\x05 \x01(\tR\x06health\x12\x16\n" +
-	"\x06events\x18\x06 \x03(\tR\x06events\"'\n" +
+	"\x06health\x18\x05 \x01(\tR\x06health\x12+\n" +
+	"\x06events\x18\x06 \x03(\v2\x13.proto.app.v1.EventR\x06events\"\x87\x01\n" +
+	"\x05Event\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x128\n" +
+	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"'\n" +
 	"\x11DestroyAppRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\".\n" +
 	"\x12DestroyAppResponse\x12\x18\n" +
@@ -1451,7 +1524,7 @@ func file_proto_app_v1_app_proto_rawDescGZIP() []byte {
 	return file_proto_app_v1_app_proto_rawDescData
 }
 
-var file_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_proto_app_v1_app_proto_goTypes = []any{
 	(*DeployAppRequest)(nil),      // 0: proto.app.v1.DeployAppRequest
 	(*LocoConfig)(nil),            // 1: proto.app.v1.LocoConfig
@@ -1473,10 +1546,11 @@ var file_proto_app_v1_app_proto_goTypes = []any{
 	(*LogsResponse)(nil),          // 17: proto.app.v1.LogsResponse
 	(*StatusRequest)(nil),         // 18: proto.app.v1.StatusRequest
 	(*StatusResponse)(nil),        // 19: proto.app.v1.StatusResponse
-	(*DestroyAppRequest)(nil),     // 20: proto.app.v1.DestroyAppRequest
-	(*DestroyAppResponse)(nil),    // 21: proto.app.v1.DestroyAppResponse
-	nil,                           // 22: proto.app.v1.Tracing.TagsEntry
-	(*timestamppb.Timestamp)(nil), // 23: google.protobuf.Timestamp
+	(*Event)(nil),                 // 20: proto.app.v1.Event
+	(*DestroyAppRequest)(nil),     // 21: proto.app.v1.DestroyAppRequest
+	(*DestroyAppResponse)(nil),    // 22: proto.app.v1.DestroyAppResponse
+	nil,                           // 23: proto.app.v1.Tracing.TagsEntry
+	(*timestamppb.Timestamp)(nil), // 24: google.protobuf.Timestamp
 }
 var file_proto_app_v1_app_proto_depIdxs = []int32{
 	1,  // 0: proto.app.v1.DeployAppRequest.loco_config:type_name -> proto.app.v1.LocoConfig
@@ -1491,25 +1565,27 @@ var file_proto_app_v1_app_proto_depIdxs = []int32{
 	3,  // 9: proto.app.v1.Resources.replicas:type_name -> proto.app.v1.Replicas
 	4,  // 10: proto.app.v1.Resources.scalers:type_name -> proto.app.v1.Scalers
 	10, // 11: proto.app.v1.Env.variables:type_name -> proto.app.v1.EnvVar
-	22, // 12: proto.app.v1.Tracing.tags:type_name -> proto.app.v1.Tracing.TagsEntry
+	23, // 12: proto.app.v1.Tracing.tags:type_name -> proto.app.v1.Tracing.TagsEntry
 	11, // 13: proto.app.v1.Obs.logging:type_name -> proto.app.v1.Logging
 	12, // 14: proto.app.v1.Obs.metrics:type_name -> proto.app.v1.Metrics
 	13, // 15: proto.app.v1.Obs.tracing:type_name -> proto.app.v1.Tracing
-	23, // 16: proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
-	23, // 17: proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
-	0,  // 18: proto.app.v1.AppService.DeployApp:input_type -> proto.app.v1.DeployAppRequest
-	16, // 19: proto.app.v1.AppService.Logs:input_type -> proto.app.v1.LogsRequest
-	18, // 20: proto.app.v1.AppService.Status:input_type -> proto.app.v1.StatusRequest
-	20, // 21: proto.app.v1.AppService.DestroyApp:input_type -> proto.app.v1.DestroyAppRequest
-	15, // 22: proto.app.v1.AppService.DeployApp:output_type -> proto.app.v1.DeployAppResponse
-	17, // 23: proto.app.v1.AppService.Logs:output_type -> proto.app.v1.LogsResponse
-	19, // 24: proto.app.v1.AppService.Status:output_type -> proto.app.v1.StatusResponse
-	21, // 25: proto.app.v1.AppService.DestroyApp:output_type -> proto.app.v1.DestroyAppResponse
-	22, // [22:26] is the sub-list for method output_type
-	18, // [18:22] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	24, // 16: proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
+	24, // 17: proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
+	20, // 18: proto.app.v1.StatusResponse.events:type_name -> proto.app.v1.Event
+	24, // 19: proto.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	0,  // 20: proto.app.v1.AppService.DeployApp:input_type -> proto.app.v1.DeployAppRequest
+	16, // 21: proto.app.v1.AppService.Logs:input_type -> proto.app.v1.LogsRequest
+	18, // 22: proto.app.v1.AppService.Status:input_type -> proto.app.v1.StatusRequest
+	21, // 23: proto.app.v1.AppService.DestroyApp:input_type -> proto.app.v1.DestroyAppRequest
+	15, // 24: proto.app.v1.AppService.DeployApp:output_type -> proto.app.v1.DeployAppResponse
+	17, // 25: proto.app.v1.AppService.Logs:output_type -> proto.app.v1.LogsResponse
+	19, // 26: proto.app.v1.AppService.Status:output_type -> proto.app.v1.StatusResponse
+	22, // 27: proto.app.v1.AppService.DestroyApp:output_type -> proto.app.v1.DestroyAppResponse
+	24, // [24:28] is the sub-list for method output_type
+	20, // [20:24] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_proto_app_v1_app_proto_init() }
@@ -1523,7 +1599,7 @@ func file_proto_app_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_app_v1_app_proto_rawDesc), len(file_proto_app_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -128,7 +128,14 @@ message StatusResponse {
     string url = 3;
     google.protobuf.Timestamp deployed_at = 4;
     string health = 5;
-    repeated string events = 6;
+    repeated Event events = 6;
+}
+
+message Event {
+    string type = 1;
+    string reason = 2;
+    string message = 3;
+    google.protobuf.Timestamp timestamp = 4;
 }
 
 

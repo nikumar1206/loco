@@ -746,16 +746,23 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}
 
-	fmt.Println("what is namespace", namespace)
 	events, err := kc.ClientSet.CoreV1().Events(namespace).List(ctx, metaV1.ListOptions{})
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to get events", "error", err)
 	}
 
-	fmt.Println("what are events", events.Items)
-	var eventStrings []string
+	var eventMessages []*appv1.Event
 	for _, event := range events.Items {
-		eventStrings = append(eventStrings, fmt.Sprintf("Type: %s, Reason: %s, Message: %s", event.Type, event.Reason, event.Message))
+		// Filter for important events
+		switch event.Reason {
+		case "ScalingReplicaSet", "Unhealthy", "Healthy", "Failed", "Killing":
+			eventMessages = append(eventMessages, &appv1.Event{
+				Type:      event.Type,
+				Reason:    event.Reason,
+				Message:   event.Message,
+				Timestamp: timestamppb.New(event.LastTimestamp.Time),
+			})
+		}
 	}
 
 	httpRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(namespace).Get(ctx, appName, metaV1.GetOptions{})
@@ -781,7 +788,6 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 			}
 		}
 	}
-	fmt.Println("what are eventStrings", eventStrings)
 
 	return &appv1.StatusResponse{
 		Status:     status,
@@ -789,7 +795,7 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		Url:        fmt.Sprintf("https://%s", hostname),
 		DeployedAt: timestamppb.New(createdAt),
 		Health:     health,
-		Events:     eventStrings,
+		Events:     eventMessages,
 	}, nil
 }
 
