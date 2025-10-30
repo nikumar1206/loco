@@ -203,25 +203,7 @@ func (s *AppServer) Status(
 		return nil, connect.NewError(connect.CodeInternal, ErrNoStatus)
 	}
 
-	return connect.NewResponse(
-		&appv1.StatusResponse{
-			Status:          deploymentStatus.Status,
-			Pods:            int32(deploymentStatus.Pods),
-			CpuUsage:        deploymentStatus.CpuUsage,
-			MemoryUsage:     deploymentStatus.MemoryUsage,
-			Latency:         deploymentStatus.Latency,
-			Url:             deploymentStatus.Url,
-			DeployedAt:      deploymentStatus.DeployedAt,
-			DeployedBy:      deploymentStatus.DeployedBy,
-			Tls:             deploymentStatus.Tls,
-			Health:          deploymentStatus.Health,
-			Autoscaling:     deploymentStatus.Autoscaling,
-			MinReplicas:     deploymentStatus.MinReplicas,
-			MaxReplicas:     deploymentStatus.MaxReplicas,
-			DesiredReplicas: deploymentStatus.DesiredReplicas,
-			ReadyReplicas:   deploymentStatus.ReadyReplicas,
-		},
-	), nil
+	return connect.NewResponse(deploymentStatus), nil
 }
 
 func (s *AppServer) DestroyApp(

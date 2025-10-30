@@ -725,7 +725,6 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		return nil, fmt.Errorf("failed to get deployment: %v", err)
 	}
 
-	createdBy := deployment.Labels[locoConfig.LabelAppCreatedFor]
 	createdAtStr := deployment.Labels[locoConfig.LabelAppCreatedAt]
 
 	var createdAt time.Time
@@ -747,6 +746,18 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}
 
+	fmt.Println("what is namespace", namespace)
+	events, err := kc.ClientSet.CoreV1().Events(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to get events", "error", err)
+	}
+
+	fmt.Println("what are events", events.Items)
+	var eventStrings []string
+	for _, event := range events.Items {
+		eventStrings = append(eventStrings, fmt.Sprintf("Type: %s, Reason: %s, Message: %s", event.Type, event.Reason, event.Message))
+	}
+
 	httpRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(namespace).Get(ctx, appName, metaV1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTTPRoute: %v", err)
@@ -754,17 +765,6 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 	hostname := ""
 	if len(httpRoute.Spec.Hostnames) > 0 {
 		hostname = string(httpRoute.Spec.Hostnames[0])
-	}
-
-	hpa, err := kc.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(ctx, appName, metaV1.GetOptions{})
-	autoscalingEnabled := false
-	var minReplicas, maxReplicas int32
-	if err == nil {
-		autoscalingEnabled = true
-		if hpa.Spec.MinReplicas != nil {
-			minReplicas = *hpa.Spec.MinReplicas
-		}
-		maxReplicas = hpa.Spec.MaxReplicas
 	}
 
 	status := "Running"
@@ -781,31 +781,15 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 			}
 		}
 	}
-
-	certExpiry := "Unknown"
-	expiryTime, err := kc.GetCertificateExpiry(ctx, namespace, appName)
-	if err == nil {
-		certExpiry = expiryTime.Format("2006-01-02")
-	} else {
-		slog.WarnContext(ctx, "Failed to get certificate expiry", "error", err)
-	}
+	fmt.Println("what are eventStrings", eventStrings)
 
 	return &appv1.StatusResponse{
-		Status:          status,
-		Pods:            int32(len(pods.Items)),
-		CpuUsage:        "N/A",
-		MemoryUsage:     "N/A",
-		Latency:         "N/A",
-		Url:             fmt.Sprintf("https://%s", hostname),
-		DeployedAt:      timestamppb.New(createdAt),
-		DeployedBy:      createdBy,
-		Tls:             fmt.Sprintf("Secured (Expires: %s)", certExpiry),
-		Health:          health,
-		Autoscaling:     autoscalingEnabled,
-		MinReplicas:     minReplicas,
-		MaxReplicas:     maxReplicas,
-		DesiredReplicas: *deployment.Spec.Replicas,
-		ReadyReplicas:   deployment.Status.ReadyReplicas,
+		Status:     status,
+		Replicas:   int32(len(pods.Items)),
+		Url:        fmt.Sprintf("https://%s", hostname),
+		DeployedAt: timestamppb.New(createdAt),
+		Health:     health,
+		Events:     eventStrings,
 	}, nil
 }
 

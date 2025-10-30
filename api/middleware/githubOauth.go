@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/nikumar1206/loco/api/client"
+	json "github.com/goccy/go-json"
 	"github.com/nikumar1206/loco/api/models"
 	"github.com/patrickmn/go-cache"
 )
@@ -52,12 +53,9 @@ func (i *githubAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryF
 			return next(c, req)
 		}
 
+		hc := http.Client{Timeout: 10 * time.Second}
 		user := new(User)
-		resp, err := client.Resty.R().
-			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
-			SetHeader("Accept", "application/vnd.github+json").
-			SetResult(user).
-			Get("https://api.github.com/user")
+		githubReq, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 		if err != nil {
 			slog.Error(err.Error())
 			return nil, connect.NewError(
@@ -66,9 +64,31 @@ func (i *githubAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryF
 			)
 		}
 
-		if resp.IsError() {
-			slog.Error(resp.String())
+		githubReq.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+		githubReq.Header.Add("Accept", "application/vnd.github+json")
+
+		resp, err := hc.Do(githubReq)
+		if err != nil {
+			slog.Error(err.Error())
+			return nil, connect.NewError(
+				connect.CodeInternal,
+				err,
+			)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode > 299 {
+			slog.Error(fmt.Sprintf("received an unexpected status code: %d", resp.StatusCode))
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
+		}
+
+		err = json.NewDecoder(resp.Body).Decode(user)
+		if err != nil {
+			slog.Error(err.Error())
+			return nil, connect.NewError(
+				connect.CodeInternal,
+				errors.New("could not decode response from github"),
+			)
 		}
 
 		// cache the token
@@ -113,12 +133,11 @@ func (i *githubAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandl
 			return next(c, conn)
 		}
 
+		hc := http.Client{
+			Timeout: 10 * time.Second,
+		}
 		user := new(User)
-		resp, err := client.Resty.R().
-			SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
-			SetHeader("Accept", "application/vnd.github+json").
-			SetResult(user).
-			Get("https://api.github.com/user")
+		req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 		if err != nil {
 			slog.Error(err.Error())
 			return connect.NewError(
@@ -127,9 +146,31 @@ func (i *githubAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandl
 			)
 		}
 
-		if resp.IsError() {
-			slog.Error(resp.String())
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header.Add("Accept", "application/vnd.github+json")
+
+		resp, err := hc.Do(req)
+		if err != nil {
+			slog.Error(err.Error())
+			return connect.NewError(
+				connect.CodeInternal,
+				err,
+			)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode > 299 {
+			slog.Error(fmt.Sprintf("received an unexpected status code: %d", resp.StatusCode))
 			return connect.NewError(connect.CodeUnauthenticated, errors.New("Could not confirm identity"))
+		}
+
+		err = json.NewDecoder(resp.Body).Decode(user)
+		if err != nil {
+			slog.Error(err.Error())
+			return connect.NewError(
+				connect.CodeInternal,
+				errors.New("could not decode response from github"),
+			)
 		}
 
 		// cache the token

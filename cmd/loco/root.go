@@ -58,7 +58,7 @@ func initLogger(cmd *cobra.Command) error {
 	}))
 	slog.SetDefault(logger)
 	slog.Info(
-		"new loco run",
+		"new run",
 		"version", cmd.Root().Version,
 		"args", os.Args,
 	)
@@ -67,5 +67,5 @@ func initLogger(cmd *cobra.Command) error {
 
 func init() {
 	RootCmd.PersistentFlags().StringVar(&host, "host", "", "Set the host URL")
-	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd)
+	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd)
 }

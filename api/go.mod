@@ -13,7 +13,6 @@ require (
 	// cannot upgrade: https://github.com/kubernetes-sigs/gateway-api/issues/4055
 	k8s.io/apimachinery v0.33.2
 	k8s.io/client-go v0.33.2
-	resty.dev/v3 v3.0.0-beta.3
 	sigs.k8s.io/gateway-api v1.3.0
 )
 

@@ -1157,24 +1157,15 @@ func (x *StatusRequest) GetAppName() string {
 }
 
 type StatusResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Status          string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Pods            int32                  `protobuf:"varint,2,opt,name=pods,proto3" json:"pods,omitempty"`
-	CpuUsage        string                 `protobuf:"bytes,3,opt,name=cpu_usage,json=cpuUsage,proto3" json:"cpu_usage,omitempty"`
-	MemoryUsage     string                 `protobuf:"bytes,4,opt,name=memory_usage,json=memoryUsage,proto3" json:"memory_usage,omitempty"`
-	Latency         string                 `protobuf:"bytes,5,opt,name=latency,proto3" json:"latency,omitempty"`
-	Url             string                 `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
-	DeployedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=deployed_at,json=deployedAt,proto3" json:"deployed_at,omitempty"`
-	DeployedBy      string                 `protobuf:"bytes,8,opt,name=deployed_by,json=deployedBy,proto3" json:"deployed_by,omitempty"`
-	Tls             string                 `protobuf:"bytes,9,opt,name=tls,proto3" json:"tls,omitempty"`
-	Health          string                 `protobuf:"bytes,10,opt,name=health,proto3" json:"health,omitempty"`
-	Autoscaling     bool                   `protobuf:"varint,11,opt,name=autoscaling,proto3" json:"autoscaling,omitempty"`
-	MinReplicas     int32                  `protobuf:"varint,12,opt,name=min_replicas,json=minReplicas,proto3" json:"min_replicas,omitempty"`
-	MaxReplicas     int32                  `protobuf:"varint,13,opt,name=max_replicas,json=maxReplicas,proto3" json:"max_replicas,omitempty"`
-	DesiredReplicas int32                  `protobuf:"varint,14,opt,name=desired_replicas,json=desiredReplicas,proto3" json:"desired_replicas,omitempty"`
-	ReadyReplicas   int32                  `protobuf:"varint,15,opt,name=ready_replicas,json=readyReplicas,proto3" json:"ready_replicas,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`      // whether deployment is up or down
+	Replicas      int32                  `protobuf:"varint,2,opt,name=replicas,proto3" json:"replicas,omitempty"` // healthy active replicas
+	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	DeployedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=deployed_at,json=deployedAt,proto3" json:"deployed_at,omitempty"`
+	Health        string                 `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
+	Events        []string               `protobuf:"bytes,6,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StatusResponse) Reset() {
@@ -1214,32 +1205,11 @@ func (x *StatusResponse) GetStatus() string {
 	return ""
 }
 
-func (x *StatusResponse) GetPods() int32 {
+func (x *StatusResponse) GetReplicas() int32 {
 	if x != nil {
-		return x.Pods
+		return x.Replicas
 	}
 	return 0
-}
-
-func (x *StatusResponse) GetCpuUsage() string {
-	if x != nil {
-		return x.CpuUsage
-	}
-	return ""
-}
-
-func (x *StatusResponse) GetMemoryUsage() string {
-	if x != nil {
-		return x.MemoryUsage
-	}
-	return ""
-}
-
-func (x *StatusResponse) GetLatency() string {
-	if x != nil {
-		return x.Latency
-	}
-	return ""
 }
 
 func (x *StatusResponse) GetUrl() string {
@@ -1256,20 +1226,6 @@ func (x *StatusResponse) GetDeployedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *StatusResponse) GetDeployedBy() string {
-	if x != nil {
-		return x.DeployedBy
-	}
-	return ""
-}
-
-func (x *StatusResponse) GetTls() string {
-	if x != nil {
-		return x.Tls
-	}
-	return ""
-}
-
 func (x *StatusResponse) GetHealth() string {
 	if x != nil {
 		return x.Health
@@ -1277,39 +1233,11 @@ func (x *StatusResponse) GetHealth() string {
 	return ""
 }
 
-func (x *StatusResponse) GetAutoscaling() bool {
+func (x *StatusResponse) GetEvents() []string {
 	if x != nil {
-		return x.Autoscaling
+		return x.Events
 	}
-	return false
-}
-
-func (x *StatusResponse) GetMinReplicas() int32 {
-	if x != nil {
-		return x.MinReplicas
-	}
-	return 0
-}
-
-func (x *StatusResponse) GetMaxReplicas() int32 {
-	if x != nil {
-		return x.MaxReplicas
-	}
-	return 0
-}
-
-func (x *StatusResponse) GetDesiredReplicas() int32 {
-	if x != nil {
-		return x.DesiredReplicas
-	}
-	return 0
-}
-
-func (x *StatusResponse) GetReadyReplicas() int32 {
-	if x != nil {
-		return x.ReadyReplicas
-	}
-	return 0
+	return nil
 }
 
 // --- destroy app ---
@@ -1490,26 +1418,15 @@ const file_proto_app_v1_app_proto_rawDesc = "" +
 	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x10\n" +
 	"\x03log\x18\x03 \x01(\tR\x03log\"*\n" +
 	"\rStatusRequest\x12\x19\n" +
-	"\bapp_name\x18\x01 \x01(\tR\aappName\"\xea\x03\n" +
+	"\bapp_name\x18\x01 \x01(\tR\aappName\"\xc3\x01\n" +
 	"\x0eStatusResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x12\n" +
-	"\x04pods\x18\x02 \x01(\x05R\x04pods\x12\x1b\n" +
-	"\tcpu_usage\x18\x03 \x01(\tR\bcpuUsage\x12!\n" +
-	"\fmemory_usage\x18\x04 \x01(\tR\vmemoryUsage\x12\x18\n" +
-	"\alatency\x18\x05 \x01(\tR\alatency\x12\x10\n" +
-	"\x03url\x18\x06 \x01(\tR\x03url\x12;\n" +
-	"\vdeployed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"deployedAt\x12\x1f\n" +
-	"\vdeployed_by\x18\b \x01(\tR\n" +
-	"deployedBy\x12\x10\n" +
-	"\x03tls\x18\t \x01(\tR\x03tls\x12\x16\n" +
-	"\x06health\x18\n" +
-	" \x01(\tR\x06health\x12 \n" +
-	"\vautoscaling\x18\v \x01(\bR\vautoscaling\x12!\n" +
-	"\fmin_replicas\x18\f \x01(\x05R\vminReplicas\x12!\n" +
-	"\fmax_replicas\x18\r \x01(\x05R\vmaxReplicas\x12)\n" +
-	"\x10desired_replicas\x18\x0e \x01(\x05R\x0fdesiredReplicas\x12%\n" +
-	"\x0eready_replicas\x18\x0f \x01(\x05R\rreadyReplicas\"'\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1a\n" +
+	"\breplicas\x18\x02 \x01(\x05R\breplicas\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12;\n" +
+	"\vdeployed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"deployedAt\x12\x16\n" +
+	"\x06health\x18\x05 \x01(\tR\x06health\x12\x16\n" +
+	"\x06events\x18\x06 \x03(\tR\x06events\"'\n" +
 	"\x11DestroyAppRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\".\n" +
 	"\x12DestroyAppResponse\x12\x18\n" +

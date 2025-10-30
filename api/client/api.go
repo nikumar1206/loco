@@ -8,10 +8,7 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
-	"resty.dev/v3"
 )
-
-var Resty = resty.New()
 
 type Client struct {
 	BaseURL    string

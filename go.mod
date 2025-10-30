@@ -9,20 +9,19 @@ require (
 	github.com/charmbracelet/fang v0.4.3
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
-	github.com/docker/docker v28.5.0+incompatible
+	github.com/docker/docker v28.5.1+incompatible
 	github.com/goccy/go-json v0.10.5
 	github.com/joho/godotenv v1.5.1
 	github.com/moby/go-archive v0.1.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/spf13/cobra v1.10.1
 	github.com/zalando/go-keyring v0.2.6
-	resty.dev/v3 v3.0.0-beta.3
 )
 
 require (
-	connectrpc.com/connect v1.19.0
+	connectrpc.com/connect v1.19.1
 	github.com/containerd/errdefs v1.0.0
-	github.com/nikumar1206/loco/proto v0.0.0-20251003124344-0dc8b82ee743
+	github.com/nikumar1206/loco/proto v0.0.0-20251029124612-d3f330787e15
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -35,10 +34,11 @@ require (
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/x/ansi v0.10.2 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251002185555-b6045cb4669e // indirect
-	github.com/charmbracelet/x/exp/color v0.0.0-20251002185555-b6045cb4669e // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251028133951-21a390f3cede // indirect
+	github.com/charmbracelet/x/exp/color v0.0.0-20251006100439-2151805163c8 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
+	github.com/clipperhouse/stringish v0.1.1 // indirect
+	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
@@ -86,8 +86,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	golang.org/x/time v0.13.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )

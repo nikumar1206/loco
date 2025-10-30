@@ -7,10 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
 
 	"connectrpc.com/connect"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
@@ -65,18 +63,14 @@ var statusCmd = &cobra.Command{
 		status := appStatus{
 			StatusResponse: res.Msg,
 			AppName:        cfg.LocoConfig.Metadata.Name,
-			Environment:    "production",
 		}
 
 		if output == "json" {
-			return printJSON(status)
+			return printJSON(res.Msg)
 		}
 
-		p := tea.NewProgram(newStatusModel(status))
-		if _, err := p.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
-			return err
-		}
+		m := newStatusModel(status)
+		fmt.Println(m.View())
 		return nil
 	},
 }
@@ -90,15 +84,10 @@ func init() {
 
 type appStatus struct {
 	*appv1.StatusResponse
-	AppName     string   `json:"appName"`
-	Environment string   `json:"environment"`
-	Status      string   `json:"status"`
-	Replicas    int      `json:"replicas"`
-	ExternalURL string   `json:"externalUrl"`
-	Events      []string `json:"events"`
+	AppName string `json:"appName"`
 }
 
-func printJSON(status appStatus) error {
+func printJSON(status *appv1.StatusResponse) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(status)
@@ -112,21 +101,6 @@ type statusModel struct {
 
 func newStatusModel(s appStatus) statusModel {
 	return statusModel{status: s}
-}
-
-func (m statusModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m statusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c", "enter":
-			return m, tea.Quit
-		}
-	}
-	return m, nil
 }
 
 func (m statusModel) View() string {
@@ -149,30 +123,13 @@ func (m statusModel) View() string {
 		Padding(1, 2).
 		Margin(1, 2)
 
-	readyReplicas := strconv.Itoa(int(m.status.ReadyReplicas))
-
-	replicaSummary := fmt.Sprintf("%d / %d / %d", m.status.MinReplicas, m.status.DesiredReplicas, m.status.MaxReplicas)
-
 	content := fmt.Sprintf(
-		"%s %s\n%s %s\n%s %s\n%s %d\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		"%s %s\n%s %s\n%s %s\n%s %s",
 		labelStyle.Render("App:"), valueStyle.Render(m.status.AppName),
-		labelStyle.Render("Environment:"), valueStyle.Render(m.status.Environment),
-		labelStyle.Render("Status:"), valueStyle.Render(m.status.Status),
-		labelStyle.Render("Pods:"), m.status.Pods,
-		labelStyle.Render("CPU Usage:"), valueStyle.Render(m.status.CpuUsage),
-		labelStyle.Render("Memory:"), valueStyle.Render(m.status.MemoryUsage),
-		labelStyle.Render("Latency:"), valueStyle.Render(m.status.Latency),
-		labelStyle.Render("URL:"), valueStyle.Render(m.status.Url),
-		labelStyle.Render("Deployed At:"), valueStyle.Render(m.status.DeployedAt.String()),
-		labelStyle.Render("Deployed By:"), valueStyle.Render(m.status.DeployedBy),
-		labelStyle.Render("TLS:"), valueStyle.Render(m.status.Tls),
-		labelStyle.Render("Health:"), valueStyle.Render(m.status.Health),
-		labelStyle.Render("Autoscaling:"), valueStyle.Render(strconv.FormatBool(m.status.Autoscaling)),
-		labelStyle.Render("Ready Replicas:"), valueStyle.Render(readyReplicas),
-		labelStyle.Render("Replicas (Min/Desired/Max):"), valueStyle.Render(replicaSummary),
+		labelStyle.Render("Status:"), valueStyle.Render(m.status.Health),
+		labelStyle.Render("Replicas:"), valueStyle.Render(fmt.Sprintf("%d", m.status.Replicas)),
+		labelStyle.Render("External URL:"), valueStyle.Render(m.status.Url),
 	)
 
-	return titleStyle.Render("Application Status") + "\n" +
-		blockStyle.Render(content) +
-		"\n\nPress [q] or [Enter] to exit."
+	return titleStyle.Render("Application Status") + "\n" + blockStyle.Render(content)
 }
