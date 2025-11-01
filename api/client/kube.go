@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -22,6 +20,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacV1 "k8s.io/api/rbac/v1"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -38,14 +37,7 @@ import (
 	gatewayCs "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
-var ErrDeploymentNotFound = errors.New("deployment Not Found")
-
-// constants
-var (
-	LocoGatewayName = "eg"
-	LocoNS          = "loco-system"
-)
-
+// KubernetesClient implements KubernetesClientInterface
 type KubernetesClient struct {
 	ClientSet     *kubernetes.Clientset
 	GatewaySet    gatewayCs.Interface
@@ -147,14 +139,14 @@ func (kc *KubernetesClient) DeleteNS(c context.Context, namespace string) error 
 }
 
 // CheckDeploymentExists checks if a deployment exists in the specified namespace.
-func (kc *KubernetesClient) CheckDeploymentExists(c context.Context, namespace string, deploymentName string) (bool, error) {
-	slog.DebugContext(c, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)
-	_, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(c, deploymentName, metaV1.GetOptions{})
+func (kc *KubernetesClient) CheckDeploymentExists(ctx context.Context, namespace string, deploymentName string) (bool, error) {
+	slog.DebugContext(ctx, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)
+	_, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metaV1.GetOptions{})
 	if err != nil {
-		slog.ErrorContext(c, "Failed to get deployment", "deployment", deploymentName, "namespace", namespace, "error", err)
-		return false, ErrDeploymentNotFound
+		slog.DebugContext(ctx, "Deployment does not exist", "deployment", deploymentName, "namespace", namespace)
+		return false, nil
 	}
-	slog.InfoContext(c, "Deployment exists", "deployment", deploymentName)
+	slog.InfoContext(ctx, "Deployment exists", "deployment", deploymentName)
 	return true, nil
 }
 
@@ -163,20 +155,13 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 	slog.InfoContext(ctx, "Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
 	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
 	if err != nil {
-		if errors.Is(err, ErrDeploymentNotFound) {
-			slog.InfoContext(ctx, "deployment doesnt exist")
-		} else {
-			return nil, err
-		}
+		return nil, fmt.Errorf("failed to check deployment existence: %w", err)
 	}
 
 	if existing {
 		slog.WarnContext(ctx, "Deployment already exists", "deployment", locoApp.Name)
 		return nil, nil
 	}
-
-	replicas := int32(1)
-	maxReplicaHistory := int32(2)
 
 	deployment := &appsV1.Deployment{
 		ObjectMeta: metaV1.ObjectMeta{
@@ -185,7 +170,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 			Labels:    locoApp.Labels,
 		},
 		Spec: appsV1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas: &[]int32{DefaultReplicas}[0],
 			Selector: &metaV1.LabelSelector{
 				MatchLabels: map[string]string{
 					locoConfig.LabelAppName: locoApp.Name,
@@ -194,11 +179,11 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 			Strategy: appsV1.DeploymentStrategy{
 				Type: appsV1.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &appsV1.RollingUpdateDeployment{
-					MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
-					MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
+					MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: MaxSurgePercent},
+					MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: MaxUnavailablePercent},
 				},
 			},
-			RevisionHistoryLimit: &maxReplicaHistory,
+			RevisionHistoryLimit: &[]int32{MaxReplicaHistory}[0],
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metaV1.ObjectMeta{
 					Labels: locoApp.Labels,
@@ -253,7 +238,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 								InitialDelaySeconds:           locoApp.Config.Health.StartupGracePeriod,
 								TimeoutSeconds:                locoApp.Config.Health.Timeout,
 								PeriodSeconds:                 locoApp.Config.Health.Interval,
-								TerminationGracePeriodSeconds: ptrtoInt64(60),
+								TerminationGracePeriodSeconds: ptrtoInt64(TerminationGracePeriod),
 								SuccessThreshold:              1,
 								FailureThreshold:              locoApp.Config.Health.FailThreshold,
 								ProbeHandler: v1.ProbeHandler{
@@ -293,9 +278,14 @@ func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, s
 func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1.Service, error) {
 	slog.InfoContext(ctx, "Creating service", "namespace", locoApp.Namespace, "name", locoApp.Name)
 
-	kc.CheckServiceExists(ctx, locoApp.Namespace, locoApp.Name)
-
-	timeoutSeconds := int32(10800) // 3 hours
+	exists, err := kc.CheckServiceExists(ctx, locoApp.Namespace, locoApp.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check service existence: %w", err)
+	}
+	if exists {
+		slog.WarnContext(ctx, "Service already exists", "name", locoApp.Name)
+		return nil, nil
+	}
 
 	service := &v1.Service{
 		ObjectMeta: metaV1.ObjectMeta{
@@ -310,14 +300,14 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConf
 			SessionAffinity: v1.ServiceAffinityNone,
 			SessionAffinityConfig: &v1.SessionAffinityConfig{
 				ClientIP: &v1.ClientIPConfig{
-					TimeoutSeconds: &timeoutSeconds,
+					TimeoutSeconds: &[]int32{SessionAffinityTimeout}[0],
 				},
 			},
 			Ports: []v1.ServicePort{
 				{
 					Name:       locoApp.Name,
 					Protocol:   v1.ProtocolTCP,
-					Port:       80,
+					Port:       DefaultServicePort,
 					TargetPort: intstr.FromInt32(locoApp.Config.Routing.Port),
 				},
 			},
@@ -372,11 +362,11 @@ func (kc *KubernetesClient) UpdateSecret(ctx context.Context, locoApp *locoConfi
 	return kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(ctx, secretConfig, metaV1.UpdateOptions{})
 }
 
-// Creates an HTTPRoute given the prov
+// CreateHTTPRoute creates an HTTPRoute for the application
 func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1Gateway.HTTPRoute, error) {
 	hostname := fmt.Sprintf("%s.deploy-app.com", locoApp.Subdomain)
 	pathType := v1Gateway.PathMatchPathPrefix
-	timeout := strconv.Itoa(int(locoApp.Config.Routing.IdleTimeout)) + "s"
+	timeout := DefaultRequestTimeout
 
 	route := &v1Gateway.HTTPRoute{
 		ObjectMeta: metaV1.ObjectMeta{
@@ -412,7 +402,7 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoCo
 							BackendRef: v1Gateway.BackendRef{
 								BackendObjectReference: v1Gateway.BackendObjectReference{
 									Name: v1Gateway.ObjectName(locoApp.Name),
-									Port: ptrToPortNumber(80),
+									Port: ptrToPortNumber(int(DefaultServicePort)),
 									Kind: ptrToKind("Service"),
 								},
 							},
@@ -510,25 +500,6 @@ func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *l
 	return nil
 }
 
-// GetPods retrieves a list of pod names in the specified namespace.
-// comment in if needed
-// func (kc *KubernetesClient) GetPods(namespace string) ([]string, error) {
-// 	slog.Debug(ctx, "Fetching pods", "namespace", namespace)
-// 	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{})
-// 	if err != nil {
-// 		slog.ErrorContext(ctx, "Failed to list pods", "namespace", namespace, "error", err)
-// 		return nil, err
-// 	}
-
-// 	var podNames []string
-// 	for _, pod := range pods.Items {
-// 		podNames = append(podNames, pod.Name)
-// 	}
-
-// 	slog.InfoContext(ctx, "Retrieved pods", "namespace", namespace, "count", len(podNames))
-// 	return podNames, nil
-// }
-
 // GetPodLogs retrieves a list of pod names in the specified namespace.
 func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName string, tailLines *int64) ([]PodLogLine, error) {
 	podLogOpts := &v1.PodLogOptions{}
@@ -540,7 +511,7 @@ func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName s
 
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error streaming logs for pod %s: %v", podName, err)
+		return nil, fmt.Errorf("error streaming logs for pod %s: %w", podName, err)
 	}
 	defer podLogs.Close()
 
@@ -556,7 +527,7 @@ func (kc *KubernetesClient) GetPodLogs(ctx context.Context, namespace, podName s
 
 	if err := scanner.Err(); err != nil {
 		slog.ErrorContext(ctx, "error reading logs for pod", "pod", podName, "error", err)
-		return nil, fmt.Errorf("error reading logs for pod %s: %v", podName, err)
+		return nil, fmt.Errorf("error reading logs for pod %s: %w", podName, err)
 	}
 
 	return logs, nil
@@ -628,7 +599,7 @@ func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *locoCo
 
 	deployment, err := deploymentsClient.Get(ctx, locoApp.Name, metaV1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get deployment: %v", err)
+		return fmt.Errorf("failed to get deployment: %w", err)
 	}
 
 	if len(deployment.Spec.Template.Spec.Containers) == 0 {
@@ -638,7 +609,7 @@ func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *locoCo
 	// update secrets
 	_, err = kc.UpdateSecret(ctx, locoApp)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update secret: %w", err)
 	}
 
 	// update container image
@@ -646,7 +617,7 @@ func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *locoCo
 
 	_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to update deployment: %v", err)
+		return fmt.Errorf("failed to update deployment: %w", err)
 	}
 
 	return nil
@@ -709,7 +680,7 @@ func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, locoApp *loco
 func (kc *KubernetesClient) GetCertificateExpiry(ctx context.Context, namespace, certName string) (time.Time, error) {
 	cert, err := kc.CertManagerCs.CertmanagerV1().Certificates(namespace).Get(ctx, certName, metaV1.GetOptions{})
 	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get certificate: %v", err)
+		return time.Time{}, fmt.Errorf("failed to get certificate: %w", err)
 	}
 
 	if cert.Status.NotAfter == nil {
@@ -722,7 +693,10 @@ func (kc *KubernetesClient) GetCertificateExpiry(ctx context.Context, namespace,
 func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, appName string) (*appv1.StatusResponse, error) {
 	deployment, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(ctx, appName, metaV1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get deployment: %v", err)
+		if k8serrors.IsNotFound(err) {
+			return nil, fmt.Errorf("deployment not found: %w", ErrDeploymentNotFound)
+		}
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 
 	createdAtStr := deployment.Labels[locoConfig.LabelAppCreatedAt]
@@ -743,7 +717,7 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		LabelSelector: fmt.Sprintf("%s=%s", locoConfig.LabelAppName, appName),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list pods: %v", err)
+		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
 	events, err := kc.ClientSet.CoreV1().Events(namespace).List(ctx, metaV1.ListOptions{})
@@ -767,7 +741,7 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 
 	httpRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(namespace).Get(ctx, appName, metaV1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get HTTPRoute: %v", err)
+		return nil, fmt.Errorf("failed to get HTTPRoute: %w", err)
 	}
 	hostname := ""
 	if len(httpRoute.Spec.Hostnames) > 0 {
@@ -900,7 +874,7 @@ func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appN
 
 	deployment, err := deploymentsClient.Get(ctx, appName, metaV1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get deployment: %v", err)
+		return fmt.Errorf("failed to get deployment: %w", err)
 	}
 
 	if replicas != nil {
@@ -931,7 +905,7 @@ func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appN
 
 	_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to update deployment: %v", err)
+		return fmt.Errorf("failed to update deployment: %w", err)
 	}
 
 	return nil
