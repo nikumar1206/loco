@@ -5,7 +5,7 @@ k8sServiceHost: "192.168.49.2"   # from minikube ip
 k8sServicePort: 8443
 kubeProxyReplacement: true   # uses eBPF to replace kube-proxy
 hostServices:
-  enabled: false
+  enabled: true
 externalIPs:
   enabled: true
 

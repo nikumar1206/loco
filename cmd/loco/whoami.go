@@ -33,7 +33,7 @@ var whoamiCmd = &cobra.Command{
 		}
 		t, err := keychain.GetGithubToken(user.Name)
 		if err != nil {
-			return fmt.Errorf("you are not logged in. Please run `loco login`")
+			return ErrLoginRequired
 		}
 
 		c := client.NewClient("https://api.github.com")
@@ -44,7 +44,7 @@ var whoamiCmd = &cobra.Command{
 		})
 		if err != nil {
 			slog.Debug("failed to get user info", "error", err)
-			return err
+			return fmt.Errorf("failed to get user info. Try logging in again via `loco login`")
 		}
 
 		githubUser := new(GithubUser)

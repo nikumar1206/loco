@@ -257,4 +257,5 @@ func init() {
 	logsCmd.Flags().BoolP("follow", "f", false, "Follow log output")
 	logsCmd.Flags().IntP("lines", "n", 0, "Number of lines to show")
 	logsCmd.Flags().StringP("output", "o", "", "Output format (json, table). Defaults to table.")
+	logsCmd.Flags().String("host", "", "Set the host URL")
 }

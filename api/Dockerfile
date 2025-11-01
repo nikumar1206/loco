@@ -11,8 +11,6 @@ COPY api/go.mod api/go.sum ./
 
 RUN go mod download
 
-COPY api/ .
-
 RUN go build -o loco-api .
 
 FROM debian:bookworm-slim

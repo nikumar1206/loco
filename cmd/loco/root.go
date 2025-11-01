@@ -12,14 +12,13 @@ import (
 )
 
 var (
-	host      string
 	logPath   string
 	startTime time.Time
 )
 
 var RootCmd = &cobra.Command{
 	Use:   "loco",
-	Short: "A CLI for managing loco deployments",
+	Short: "The CLI for managing loco deployments",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		startTime = time.Now()
 		if err := initLogger(cmd); err != nil {
@@ -66,6 +65,5 @@ func initLogger(cmd *cobra.Command) error {
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&host, "host", "", "Set the host URL")
-	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd)
+	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd, scaleCmd)
 }

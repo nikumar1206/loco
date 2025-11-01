@@ -50,6 +50,10 @@ type TokenDetails struct {
 	TokenTTL float64 `json:"tokenTTL"`
 }
 
+func init() {
+	loginCmd.Flags().String("host", "", "Set the host URL")
+}
+
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to loco via Github OAuth",

@@ -48,6 +48,28 @@ A very simple app (currently deployed on loco) can be found here: [example-test-
 
 - how we can scale our clusters
 
+## Under the Hood
+
+### CLI
+
+- **Cobra:** For building the command-line interface.
+- **Charm's libraries (e.g., Bubble Tea, Lipgloss):** For rich terminal UI components.
+
+### API Server
+
+- **Go:** The primary language for the backend API.
+- **Connect RPC:** For communication between the CLI and the backend API.
+- **PostgreSQL:** Database for user and deployment information.
+
+### Kubernetes Setup
+
+- **Cilium:** For networking and observability.
+- **Envoy:** As a reverse proxy, using the Gateway API.
+- **cert-manager:** For automatic SSL certificate management (Let's Encrypt).
+- **OpenTelemetry:** For observability; collects metrics, logs, and eventually tracing.
+- **ClickHouse:** As the data store for observability data.
+- **Grafana:** Dashboards for visualizing metrics and logs.
+
 ## Abuse Prevention
 
 To avoid abuse, Loco uses an invitation system. The repo collaborators is re-purposed as an invitation list and determines who can deploy with Loco.

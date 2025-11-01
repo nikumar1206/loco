@@ -78,6 +78,7 @@ var statusCmd = &cobra.Command{
 func init() {
 	statusCmd.Flags().StringP("output", "o", "table", "Output format: table | json")
 	statusCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
+	statusCmd.Flags().String("host", "", "Set the host URL")
 }
 
 // --- Data Model ---

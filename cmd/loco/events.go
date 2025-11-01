@@ -133,4 +133,5 @@ func printEventsJSON(events []*appv1.Event) error {
 func init() {
 	eventsCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
 	eventsCmd.Flags().StringP("output", "o", "table", "Output format: table | json")
+	eventsCmd.Flags().String("host", "", "Loco API host")
 }

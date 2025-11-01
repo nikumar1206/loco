@@ -109,4 +109,5 @@ func destroyCmdFunc(cmd *cobra.Command, _ []string) error {
 func init() {
 	destroyCmd.Flags().BoolP("yes", "y", false, "Assume yes to all prompts")
 	destroyCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
+	destroyCmd.Flags().String("host", "", "Set the host URL")
 }

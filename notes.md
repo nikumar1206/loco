@@ -179,3 +179,8 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 
 - wondering if there is value in tests where we actually literally spin up a docker container and we start running stuff on it. like literally use minikube and firing away at tests, atleast i think thats the most accurate way to test the deployment piece.
 - improve ci/cd pipelines for testing purposes
+
+- remove host from persistent flag.
+- update system design diagram to represent observability.
+- deploy needs to do a diff of the previous deployment done on loco, vs the incoming, and only update the resources that need changing.
+  - can likely do this client side as well

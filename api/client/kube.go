@@ -894,3 +894,45 @@ func ptrToKind(k string) *v1Gateway.Kind {
 }
 
 func ptrToBool(b bool) *bool { return &b }
+
+func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appName string, replicas *int32, cpu, memory *string) error {
+	deploymentsClient := kc.ClientSet.AppsV1().Deployments(namespace)
+
+	deployment, err := deploymentsClient.Get(ctx, appName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	if replicas != nil {
+		deployment.Spec.Replicas = replicas
+	}
+
+	if cpu != nil || memory != nil {
+		if len(deployment.Spec.Template.Spec.Containers) > 0 {
+			container := &deployment.Spec.Template.Spec.Containers[0]
+			if cpu != nil {
+				cpuQuantity, err := resource.ParseQuantity(*cpu)
+				if err != nil {
+					return fmt.Errorf("invalid cpu value: %w", err)
+				}
+				container.Resources.Requests[v1.ResourceCPU] = cpuQuantity
+				container.Resources.Limits[v1.ResourceCPU] = cpuQuantity
+			}
+			if memory != nil {
+				memoryQuantity, err := resource.ParseQuantity(*memory)
+				if err != nil {
+					return fmt.Errorf("invalid memory value: %w", err)
+				}
+				container.Resources.Requests[v1.ResourceMemory] = memoryQuantity
+				container.Resources.Limits[v1.ResourceMemory] = memoryQuantity
+			}
+		}
+	}
+
+	_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update deployment: %v", err)
+	}
+
+	return nil
+}

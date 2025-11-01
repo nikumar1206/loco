@@ -229,3 +229,27 @@ func (s *AppServer) DestroyApp(
 		Message: "App destruction initiated successfully",
 	}), nil
 }
+
+func (s *AppServer) ScaleApp(
+	ctx context.Context,
+	req *connect.Request[appv1.ScaleAppRequest],
+) (*connect.Response[appv1.ScaleAppResponse], error) {
+	appName := req.Msg.Name
+
+	user, ok := ctx.Value("user").(string)
+	if !ok {
+		slog.ErrorContext(ctx, "could not determine user. should never happen")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+	}
+
+	namespace := locoConfig.GenerateNameSpace(appName, user)
+
+	if err := s.Kc.ScaleDeployment(ctx, namespace, appName, req.Msg.Replicas, req.Msg.Cpu, req.Msg.Memory); err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to scale app: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.ScaleAppResponse{
+		Message: "App scaled successfully",
+	}), nil
+}

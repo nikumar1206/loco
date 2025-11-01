@@ -33,7 +33,8 @@ fi
 echo "Adding helm repos..."
 helm repo add cilium https://helm.cilium.io/
 helm repo add jetstack https://charts.jetstack.io
-helm repo add hyperdx https://hyperdxio.github.io/helm-charts
+helm repo add altinity https://helm.altinity.com
+helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo update
 
@@ -48,24 +49,26 @@ helm upgrade eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system 
 
 # Install cert-manager
 echo "Installing cert-manager..."
-helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true -i
+helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true -i
 
 # Install ClickStack
-echo "Installing ClickStack for observability..."
+# echo "Installing ClickStack for observability..."
 
-echo "Installing local path provisioner for MongoDB..."
-kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+# echo "Installing local path provisioner for MongoDB..."
+# kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
 
-SECRET=$(openssl rand -base64 16)
+# SECRET=$(openssl rand -base64 16)
 
-kubectl create secret generic hyperdx-secret --from-literal=HYPERDX_API_KEY="$SECRET" -n observability
+# kubectl create secret generic hyperdx-secret --from-literal=HYPERDX_API_KEY="$SECRET" -n observability
 
-helm install clickstack hyperdx/hdx-oss-v2 --values kube/values/clickhouse.yml --set hyperdx.apiKey="$SECRET" -n observability --create-namespace
+# helm install clickstack hyperdx/hdx-oss-v2 --values kube/values/clickhouse.yml --set hyperdx.apiKey="$SECRET" -n observability --create-namespace
 
-echo "Creating OpenTelemetry ConfigMap..."
-kubectl create configmap otel-config-vars \
- --from-literal=OTEL_COLLECTOR_ENDPOINT="http://clickstack-hdx-oss-v2-otel-collector.observability.svc.cluster.local:4318" \
- -n observability --dry-run=client -o yaml | kubectl apply -f -
+# echo "Creating OpenTelemetry ConfigMap..."
+# kubectl create configmap otel-config-vars \
+#  --from-literal=OTEL_COLLECTOR_ENDPOINT="http://clickstack-hdx-oss-v2-otel-collector.observability.svc.cluster.local:4318" \
+#  -n observability --dry-run=client -o yaml | kubectl apply -f -
+echo "Creating clickhouse"
+helm upgrade --install clickhouse altinity/clickhouse --namespace observability --create-namespace --version 0.3.4 --set clickhouse.defaultUser.allowExternalAccess=true
 
 echo "Installing OpenTelemetry Operator..."
 helm install opentelemetry-operator open-telemetry/opentelemetry-operator --create-namespace --namespace opentelemetry-operator-system
@@ -74,6 +77,8 @@ echo "Installing OpenTelemetry collectors..."
 helm install clickhouse-otel-ds open-telemetry/opentelemetry-collector --values kube/values/otel-daemonset.yml --namespace observability
 helm install clickhouse-otel-deploy open-telemetry/opentelemetry-collector --values kube/values/otel-deployment.yml --namespace observability
 
+echo "Installing grafana"
+helm install grafana grafana/grafana --values kube/values/grafana.yml --namespace observability
 
 # create loco namespace
 kubectl apply -f kube/loco/namespace.yml
