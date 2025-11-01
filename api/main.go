@@ -23,7 +23,13 @@ import (
 )
 
 func newAppConfig() *models.AppConfig {
-	logLevel := Must(strconv.Atoi((os.Getenv("LOG_LEVEL"))))
+	logLevelStr := os.Getenv("LOG_LEVEL")
+	logLevel := slog.LevelInfo // default
+	if logLevelStr != "" {
+		if parsed, err := strconv.Atoi(logLevelStr); err == nil {
+			logLevel = slog.Level(parsed)
+		}
+	}
 
 	return &models.AppConfig{
 		Env:             os.Getenv("APP_ENV"),
@@ -33,7 +39,7 @@ func newAppConfig() *models.AppConfig {
 		DeployTokenName: os.Getenv("GITLAB_DEPLOY_TOKEN_NAME"),
 		GitlabPAT:       os.Getenv("GITLAB_PAT"),
 		PORT:            os.Getenv("PORT"),
-		LogLevel:        slog.Level(logLevel),
+		LogLevel:        logLevel,
 	}
 }
 
