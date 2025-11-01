@@ -1,16 +1,12 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 )
 
@@ -38,12 +34,6 @@ const (
 	LabelAppCreatedAt  = "app.loco.io/created-at"
 	LabelAppCreatedBy  = "app.loco.io/created-by"
 )
-
-// todo: this file needs cleanup and better structuring.
-type Config struct {
-	LocoConfig  *appv1.LocoConfig
-	ProjectPath string
-}
 
 var Default = &appv1.LocoConfig{
 	Metadata: &appv1.Metadata{
@@ -98,65 +88,6 @@ var Default = &appv1.LocoConfig{
 	},
 }
 
-func Create(c *appv1.LocoConfig, dirName string) error {
-	file, err := os.Create("loco.toml")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	c.Metadata.Name = dirName
-	c.Routing.Subdomain = dirName
-
-	encoder := toml.NewEncoder(file)
-	if err := encoder.Encode(c); err != nil {
-		return err
-	}
-	return nil
-}
-
-func CreateDefault(dirName string) error {
-	return Create(Default, dirName)
-}
-
-func Load(cfgPath string) (Config, error) {
-	var config Config
-
-	cfgPathAbs, err := filepath.Abs(cfgPath)
-	if err != nil {
-		return config, err
-	}
-	config.ProjectPath = filepath.Dir(cfgPathAbs)
-
-	file, err := os.Open(cfgPath)
-	if err != nil {
-		return config, err
-	}
-	defer file.Close()
-
-	decoder := toml.NewDecoder(file)
-	_, err = decoder.Decode(&config.LocoConfig)
-	if err != nil {
-		return config, err
-	}
-
-	if config.LocoConfig.GetBuild() == nil {
-		config.LocoConfig.Build = &appv1.Build{
-			DockerfilePath: "Dockerfile",
-			Type:           "docker",
-		}
-	}
-
-	if config.LocoConfig.Env == nil {
-		config.LocoConfig.Env = &appv1.Env{}
-	}
-
-	config.LocoConfig.Build.DockerfilePath = resolvePath(config.LocoConfig.Build.DockerfilePath, cfgPathAbs)
-	config.LocoConfig.Env.File = resolvePath(config.LocoConfig.Env.File, cfgPathAbs)
-
-	return config, nil
-}
-
 func FillSensibleDefaults(cfg *appv1.LocoConfig) {
 	if cfg.Build.DockerfilePath == "" {
 		cfg.Build.DockerfilePath = Default.Build.DockerfilePath
@@ -169,20 +100,6 @@ func FillSensibleDefaults(cfg *appv1.LocoConfig) {
 	if cfg.Resources.Memory == "" {
 		cfg.Resources.Memory = Default.Resources.Memory
 	}
-}
-
-func resolvePath(path, baseDir string) string {
-	if path == "" {
-		return ""
-	}
-
-	if filepath.IsAbs(path) {
-		return path
-	}
-
-	projectFolder := filepath.Dir(baseDir)
-
-	return filepath.Join(projectFolder, path)
 }
 
 // Validate ensures the locoConfig is accurate.
@@ -234,9 +151,7 @@ func Validate(cfg *appv1.LocoConfig) error {
 	}
 
 	// --- Env ---
-	if cfg.Env.File != "" && !fileExists(cfg.Env.File) {
-		return fmt.Errorf("provided env path %q could not be resolved", cfg.Env.File)
-	}
+	// Note: file validation removed as API doesn't need it
 
 	// --- Resources ---
 	if cfg.GetResources() == nil {
@@ -348,14 +263,6 @@ func parseRetention(value string) (time.Duration, error) {
 		return time.Hour * 24 * time.Duration(days), nil
 	}
 	return time.ParseDuration(value)
-}
-
-func fileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	if err != nil {
-		return !errors.Is(err, os.ErrNotExist)
-	}
-	return true
 }
 
 type LocoApp struct {

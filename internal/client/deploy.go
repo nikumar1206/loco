@@ -8,8 +8,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/joho/godotenv"
 	"github.com/nikumar1206/loco/internal/config"
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
-	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 )
 
 func (c *Client) DeployApp(config config.Config, containerImage string, locoToken string, logf func(string)) error {

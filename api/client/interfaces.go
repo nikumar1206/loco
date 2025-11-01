@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
-	locoConfig "github.com/nikumar1206/loco/internal/config"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	locoConfig "github.com/nikumar1206/loco/shared/config"
 	"k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

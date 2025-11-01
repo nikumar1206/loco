@@ -11,8 +11,8 @@ import (
 
 	"github.com/nikumar1206/loco/api/client"
 	"github.com/nikumar1206/loco/api/models"
-	locoConfig "github.com/nikumar1206/loco/internal/config"
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	locoConfig "github.com/nikumar1206/loco/shared/config"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 )
 
 var (

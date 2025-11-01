@@ -3,7 +3,6 @@ module github.com/nikumar1206/loco/api
 go 1.25.0
 
 require (
-	github.com/BurntSushi/toml v1.5.0
 	github.com/cert-manager/cert-manager v1.18.2
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
@@ -60,8 +59,7 @@ require (
 
 require (
 	github.com/charmbracelet/log v0.4.2
-	github.com/nikumar1206/loco v0.0.0-20251101183736-4996ec230da5
-	github.com/nikumar1206/loco/proto v0.0.0-20251101183736-4996ec230da5
+	github.com/nikumar1206/loco/shared v0.0.0-20251101183736-4996ec230da5
 )
 
 require (
@@ -83,3 +81,5 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 )
+
+replace github.com/nikumar1206/loco/shared => ../shared

@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
-	appv1connect "github.com/nikumar1206/loco/proto/app/v1/appv1connect"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 )
 
 func ScaleApp(host string, appName string, replicas *int32, cpu, memory *string, token string) error {

@@ -15,9 +15,9 @@ import (
 	"github.com/nikumar1206/loco/api/middleware"
 	"github.com/nikumar1206/loco/api/models"
 	"github.com/nikumar1206/loco/api/service"
-	"github.com/nikumar1206/loco/proto/app/v1/appv1connect"
-	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
-	"github.com/nikumar1206/loco/proto/registry/v1/registryv1connect"
+	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
+	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
+	"github.com/nikumar1206/loco/shared/proto/registry/v1/registryv1connect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

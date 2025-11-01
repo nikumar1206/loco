@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package proto.registry.v1;
+package shared.proto.registry.v1;
 
-option go_package = "github.com/nikumar1206/loco/proto/registry/v1;registryv1";
+option go_package = "github.com/nikumar1206/loco/shared/proto/registry/v1;registryv1";
 
 message GitlabTokenRequest {}
 message GitlabTokenResponse {

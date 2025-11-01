@@ -12,8 +12,8 @@ import (
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validate a loco.toml file.",
-	Long:  "Validate a loco.toml file.",
+	Short: "Validates a loco.toml file.",
+	Long:  "Validates a loco.toml file and catches most configuration errors before deployment, except namely cpu and memory limits.\nPlease validate against https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return validateCmdFunc(cmd, args)
 	},

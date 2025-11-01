@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/oauth/v1/oauth.proto
+// source: shared/proto/oauth/v1/oauth.proto
 
 package oauthv1
 
@@ -29,7 +29,7 @@ type GithubOAuthDetailsRequest struct {
 
 func (x *GithubOAuthDetailsRequest) Reset() {
 	*x = GithubOAuthDetailsRequest{}
-	mi := &file_proto_oauth_v1_oauth_proto_msgTypes[0]
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *GithubOAuthDetailsRequest) String() string {
 func (*GithubOAuthDetailsRequest) ProtoMessage() {}
 
 func (x *GithubOAuthDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_oauth_v1_oauth_proto_msgTypes[0]
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *GithubOAuthDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GithubOAuthDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GithubOAuthDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{0}
+	return file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{0}
 }
 
 type GithubOAuthDetailsResponse struct {
@@ -67,7 +67,7 @@ type GithubOAuthDetailsResponse struct {
 
 func (x *GithubOAuthDetailsResponse) Reset() {
 	*x = GithubOAuthDetailsResponse{}
-	mi := &file_proto_oauth_v1_oauth_proto_msgTypes[1]
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -79,7 +79,7 @@ func (x *GithubOAuthDetailsResponse) String() string {
 func (*GithubOAuthDetailsResponse) ProtoMessage() {}
 
 func (x *GithubOAuthDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_oauth_v1_oauth_proto_msgTypes[1]
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -92,7 +92,7 @@ func (x *GithubOAuthDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GithubOAuthDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GithubOAuthDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{1}
+	return file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GithubOAuthDetailsResponse) GetClientId() string {
@@ -109,38 +109,38 @@ func (x *GithubOAuthDetailsResponse) GetTokenTtl() float64 {
 	return 0
 }
 
-var File_proto_oauth_v1_oauth_proto protoreflect.FileDescriptor
+var File_shared_proto_oauth_v1_oauth_proto protoreflect.FileDescriptor
 
-const file_proto_oauth_v1_oauth_proto_rawDesc = "" +
+const file_shared_proto_oauth_v1_oauth_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/oauth/v1/oauth.proto\x12\x0eproto.oauth.v1\"\x1b\n" +
+	"!shared/proto/oauth/v1/oauth.proto\x12\x15shared.proto.oauth.v1\"\x1b\n" +
 	"\x19GithubOAuthDetailsRequest\"V\n" +
 	"\x1aGithubOAuthDetailsResponse\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1b\n" +
-	"\ttoken_ttl\x18\x02 \x01(\x01R\btokenTtl2}\n" +
-	"\fOAuthService\x12m\n" +
-	"\x12GithubOAuthDetails\x12).proto.oauth.v1.GithubOAuthDetailsRequest\x1a*.proto.oauth.v1.GithubOAuthDetailsResponse\"\x00B4Z2github.com/nikumar1206/loco/proto/oauth/v1;oauthv1b\x06proto3"
+	"\ttoken_ttl\x18\x02 \x01(\x01R\btokenTtl2\x8b\x01\n" +
+	"\fOAuthService\x12{\n" +
+	"\x12GithubOAuthDetails\x120.shared.proto.oauth.v1.GithubOAuthDetailsRequest\x1a1.shared.proto.oauth.v1.GithubOAuthDetailsResponse\"\x00B;Z9github.com/nikumar1206/loco/shared/proto/oauth/v1;oauthv1b\x06proto3"
 
 var (
-	file_proto_oauth_v1_oauth_proto_rawDescOnce sync.Once
-	file_proto_oauth_v1_oauth_proto_rawDescData []byte
+	file_shared_proto_oauth_v1_oauth_proto_rawDescOnce sync.Once
+	file_shared_proto_oauth_v1_oauth_proto_rawDescData []byte
 )
 
-func file_proto_oauth_v1_oauth_proto_rawDescGZIP() []byte {
-	file_proto_oauth_v1_oauth_proto_rawDescOnce.Do(func() {
-		file_proto_oauth_v1_oauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_oauth_v1_oauth_proto_rawDesc), len(file_proto_oauth_v1_oauth_proto_rawDesc)))
+func file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP() []byte {
+	file_shared_proto_oauth_v1_oauth_proto_rawDescOnce.Do(func() {
+		file_shared_proto_oauth_v1_oauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shared_proto_oauth_v1_oauth_proto_rawDesc), len(file_shared_proto_oauth_v1_oauth_proto_rawDesc)))
 	})
-	return file_proto_oauth_v1_oauth_proto_rawDescData
+	return file_shared_proto_oauth_v1_oauth_proto_rawDescData
 }
 
-var file_proto_oauth_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_oauth_v1_oauth_proto_goTypes = []any{
-	(*GithubOAuthDetailsRequest)(nil),  // 0: proto.oauth.v1.GithubOAuthDetailsRequest
-	(*GithubOAuthDetailsResponse)(nil), // 1: proto.oauth.v1.GithubOAuthDetailsResponse
+var file_shared_proto_oauth_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_shared_proto_oauth_v1_oauth_proto_goTypes = []any{
+	(*GithubOAuthDetailsRequest)(nil),  // 0: shared.proto.oauth.v1.GithubOAuthDetailsRequest
+	(*GithubOAuthDetailsResponse)(nil), // 1: shared.proto.oauth.v1.GithubOAuthDetailsResponse
 }
-var file_proto_oauth_v1_oauth_proto_depIdxs = []int32{
-	0, // 0: proto.oauth.v1.OAuthService.GithubOAuthDetails:input_type -> proto.oauth.v1.GithubOAuthDetailsRequest
-	1, // 1: proto.oauth.v1.OAuthService.GithubOAuthDetails:output_type -> proto.oauth.v1.GithubOAuthDetailsResponse
+var file_shared_proto_oauth_v1_oauth_proto_depIdxs = []int32{
+	0, // 0: shared.proto.oauth.v1.OAuthService.GithubOAuthDetails:input_type -> shared.proto.oauth.v1.GithubOAuthDetailsRequest
+	1, // 1: shared.proto.oauth.v1.OAuthService.GithubOAuthDetails:output_type -> shared.proto.oauth.v1.GithubOAuthDetailsResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -148,26 +148,26 @@ var file_proto_oauth_v1_oauth_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_oauth_v1_oauth_proto_init() }
-func file_proto_oauth_v1_oauth_proto_init() {
-	if File_proto_oauth_v1_oauth_proto != nil {
+func init() { file_shared_proto_oauth_v1_oauth_proto_init() }
+func file_shared_proto_oauth_v1_oauth_proto_init() {
+	if File_shared_proto_oauth_v1_oauth_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_oauth_v1_oauth_proto_rawDesc), len(file_proto_oauth_v1_oauth_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_oauth_v1_oauth_proto_rawDesc), len(file_shared_proto_oauth_v1_oauth_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_oauth_v1_oauth_proto_goTypes,
-		DependencyIndexes: file_proto_oauth_v1_oauth_proto_depIdxs,
-		MessageInfos:      file_proto_oauth_v1_oauth_proto_msgTypes,
+		GoTypes:           file_shared_proto_oauth_v1_oauth_proto_goTypes,
+		DependencyIndexes: file_shared_proto_oauth_v1_oauth_proto_depIdxs,
+		MessageInfos:      file_shared_proto_oauth_v1_oauth_proto_msgTypes,
 	}.Build()
-	File_proto_oauth_v1_oauth_proto = out.File
-	file_proto_oauth_v1_oauth_proto_goTypes = nil
-	file_proto_oauth_v1_oauth_proto_depIdxs = nil
+	File_shared_proto_oauth_v1_oauth_proto = out.File
+	file_shared_proto_oauth_v1_oauth_proto_goTypes = nil
+	file_shared_proto_oauth_v1_oauth_proto_depIdxs = nil
 }

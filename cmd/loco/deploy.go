@@ -12,8 +12,8 @@ import (
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/docker"
 	"github.com/nikumar1206/loco/internal/ui"
-	registryv1 "github.com/nikumar1206/loco/proto/registry/v1"
-	registryv1connect "github.com/nikumar1206/loco/proto/registry/v1/registryv1connect"
+	registryv1 "github.com/nikumar1206/loco/shared/proto/registry/v1"
+	registryv1connect "github.com/nikumar1206/loco/shared/proto/registry/v1/registryv1connect"
 	"github.com/spf13/cobra"
 )
 

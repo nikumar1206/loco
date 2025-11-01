@@ -14,7 +14,7 @@ import (
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"github.com/spf13/cobra"
 )
 

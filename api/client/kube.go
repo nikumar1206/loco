@@ -13,7 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	json "github.com/goccy/go-json"
-	appv1 "github.com/nikumar1206/loco/proto/app/v1"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	appsV1 "k8s.io/api/apps/v1"
@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/nikumar1206/loco/api/pkg/klogmux"
-	locoConfig "github.com/nikumar1206/loco/internal/config"
+	locoConfig "github.com/nikumar1206/loco/shared/config"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"k8s.io/client-go/util/homedir"

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/registry/v1/registry.proto
+// source: shared/proto/registry/v1/registry.proto
 
 package registryv1
 
@@ -29,7 +29,7 @@ type GitlabTokenRequest struct {
 
 func (x *GitlabTokenRequest) Reset() {
 	*x = GitlabTokenRequest{}
-	mi := &file_proto_registry_v1_registry_proto_msgTypes[0]
+	mi := &file_shared_proto_registry_v1_registry_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *GitlabTokenRequest) String() string {
 func (*GitlabTokenRequest) ProtoMessage() {}
 
 func (x *GitlabTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_registry_v1_registry_proto_msgTypes[0]
+	mi := &file_shared_proto_registry_v1_registry_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *GitlabTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitlabTokenRequest.ProtoReflect.Descriptor instead.
 func (*GitlabTokenRequest) Descriptor() ([]byte, []int) {
-	return file_proto_registry_v1_registry_proto_rawDescGZIP(), []int{0}
+	return file_shared_proto_registry_v1_registry_proto_rawDescGZIP(), []int{0}
 }
 
 type GitlabTokenResponse struct {
@@ -73,7 +73,7 @@ type GitlabTokenResponse struct {
 
 func (x *GitlabTokenResponse) Reset() {
 	*x = GitlabTokenResponse{}
-	mi := &file_proto_registry_v1_registry_proto_msgTypes[1]
+	mi := &file_shared_proto_registry_v1_registry_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -85,7 +85,7 @@ func (x *GitlabTokenResponse) String() string {
 func (*GitlabTokenResponse) ProtoMessage() {}
 
 func (x *GitlabTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_registry_v1_registry_proto_msgTypes[1]
+	mi := &file_shared_proto_registry_v1_registry_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -98,7 +98,7 @@ func (x *GitlabTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitlabTokenResponse.ProtoReflect.Descriptor instead.
 func (*GitlabTokenResponse) Descriptor() ([]byte, []int) {
-	return file_proto_registry_v1_registry_proto_rawDescGZIP(), []int{1}
+	return file_shared_proto_registry_v1_registry_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GitlabTokenResponse) GetUsername() string {
@@ -157,11 +157,11 @@ func (x *GitlabTokenResponse) GetScopes() []string {
 	return nil
 }
 
-var File_proto_registry_v1_registry_proto protoreflect.FileDescriptor
+var File_shared_proto_registry_v1_registry_proto protoreflect.FileDescriptor
 
-const file_proto_registry_v1_registry_proto_rawDesc = "" +
+const file_shared_proto_registry_v1_registry_proto_rawDesc = "" +
 	"\n" +
-	" proto/registry/v1/registry.proto\x12\x11proto.registry.v1\"\x14\n" +
+	"'shared/proto/registry/v1/registry.proto\x12\x18shared.proto.registry.v1\"\x14\n" +
 	"\x12GitlabTokenRequest\"\xe4\x01\n" +
 	"\x13GitlabTokenResponse\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
@@ -172,30 +172,30 @@ const file_proto_registry_v1_registry_proto_rawDesc = "" +
 	"expires_at\x18\x05 \x01(\tR\texpiresAt\x12\x18\n" +
 	"\arevoked\x18\x06 \x01(\bR\arevoked\x12\x18\n" +
 	"\aexpired\x18\a \x01(\bR\aexpired\x12\x16\n" +
-	"\x06scopes\x18\b \x03(\tR\x06scopes2q\n" +
-	"\x0fRegistryService\x12^\n" +
-	"\vGitlabToken\x12%.proto.registry.v1.GitlabTokenRequest\x1a&.proto.registry.v1.GitlabTokenResponse\"\x00B:Z8github.com/nikumar1206/loco/proto/registry/v1;registryv1b\x06proto3"
+	"\x06scopes\x18\b \x03(\tR\x06scopes2\x7f\n" +
+	"\x0fRegistryService\x12l\n" +
+	"\vGitlabToken\x12,.shared.proto.registry.v1.GitlabTokenRequest\x1a-.shared.proto.registry.v1.GitlabTokenResponse\"\x00BAZ?github.com/nikumar1206/loco/shared/proto/registry/v1;registryv1b\x06proto3"
 
 var (
-	file_proto_registry_v1_registry_proto_rawDescOnce sync.Once
-	file_proto_registry_v1_registry_proto_rawDescData []byte
+	file_shared_proto_registry_v1_registry_proto_rawDescOnce sync.Once
+	file_shared_proto_registry_v1_registry_proto_rawDescData []byte
 )
 
-func file_proto_registry_v1_registry_proto_rawDescGZIP() []byte {
-	file_proto_registry_v1_registry_proto_rawDescOnce.Do(func() {
-		file_proto_registry_v1_registry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_registry_v1_registry_proto_rawDesc), len(file_proto_registry_v1_registry_proto_rawDesc)))
+func file_shared_proto_registry_v1_registry_proto_rawDescGZIP() []byte {
+	file_shared_proto_registry_v1_registry_proto_rawDescOnce.Do(func() {
+		file_shared_proto_registry_v1_registry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shared_proto_registry_v1_registry_proto_rawDesc), len(file_shared_proto_registry_v1_registry_proto_rawDesc)))
 	})
-	return file_proto_registry_v1_registry_proto_rawDescData
+	return file_shared_proto_registry_v1_registry_proto_rawDescData
 }
 
-var file_proto_registry_v1_registry_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_registry_v1_registry_proto_goTypes = []any{
-	(*GitlabTokenRequest)(nil),  // 0: proto.registry.v1.GitlabTokenRequest
-	(*GitlabTokenResponse)(nil), // 1: proto.registry.v1.GitlabTokenResponse
+var file_shared_proto_registry_v1_registry_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_shared_proto_registry_v1_registry_proto_goTypes = []any{
+	(*GitlabTokenRequest)(nil),  // 0: shared.proto.registry.v1.GitlabTokenRequest
+	(*GitlabTokenResponse)(nil), // 1: shared.proto.registry.v1.GitlabTokenResponse
 }
-var file_proto_registry_v1_registry_proto_depIdxs = []int32{
-	0, // 0: proto.registry.v1.RegistryService.GitlabToken:input_type -> proto.registry.v1.GitlabTokenRequest
-	1, // 1: proto.registry.v1.RegistryService.GitlabToken:output_type -> proto.registry.v1.GitlabTokenResponse
+var file_shared_proto_registry_v1_registry_proto_depIdxs = []int32{
+	0, // 0: shared.proto.registry.v1.RegistryService.GitlabToken:input_type -> shared.proto.registry.v1.GitlabTokenRequest
+	1, // 1: shared.proto.registry.v1.RegistryService.GitlabToken:output_type -> shared.proto.registry.v1.GitlabTokenResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -203,26 +203,26 @@ var file_proto_registry_v1_registry_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_registry_v1_registry_proto_init() }
-func file_proto_registry_v1_registry_proto_init() {
-	if File_proto_registry_v1_registry_proto != nil {
+func init() { file_shared_proto_registry_v1_registry_proto_init() }
+func file_shared_proto_registry_v1_registry_proto_init() {
+	if File_shared_proto_registry_v1_registry_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_registry_v1_registry_proto_rawDesc), len(file_proto_registry_v1_registry_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_registry_v1_registry_proto_rawDesc), len(file_shared_proto_registry_v1_registry_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_registry_v1_registry_proto_goTypes,
-		DependencyIndexes: file_proto_registry_v1_registry_proto_depIdxs,
-		MessageInfos:      file_proto_registry_v1_registry_proto_msgTypes,
+		GoTypes:           file_shared_proto_registry_v1_registry_proto_goTypes,
+		DependencyIndexes: file_shared_proto_registry_v1_registry_proto_depIdxs,
+		MessageInfos:      file_shared_proto_registry_v1_registry_proto_msgTypes,
 	}.Build()
-	File_proto_registry_v1_registry_proto = out.File
-	file_proto_registry_v1_registry_proto_goTypes = nil
-	file_proto_registry_v1_registry_proto_depIdxs = nil
+	File_shared_proto_registry_v1_registry_proto = out.File
+	file_shared_proto_registry_v1_registry_proto_goTypes = nil
+	file_shared_proto_registry_v1_registry_proto_depIdxs = nil
 }

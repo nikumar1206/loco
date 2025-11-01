@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+// todo: why is this unused lol?
 func validateResources(cpuStr, memStr string) error {
 	cpuQty, err := resource.ParseQuantity(cpuStr)
 	if err != nil {

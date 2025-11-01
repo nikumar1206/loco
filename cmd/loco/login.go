@@ -15,8 +15,8 @@ import (
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
-	oAuth "github.com/nikumar1206/loco/proto/oauth/v1"
-	"github.com/nikumar1206/loco/proto/oauth/v1/oauthv1connect"
+	oAuth "github.com/nikumar1206/loco/shared/proto/oauth/v1"
+	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
 	"github.com/spf13/cobra"
 )
 

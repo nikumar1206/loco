@@ -1,6 +1,6 @@
 syntax = "proto3";
-package proto.app.v1;
-option go_package = "github.com/nikumar1206/loco/proto/app/v1;appv1";
+package shared.proto.app.v1;
+option go_package = "github.com/nikumar1206/loco/shared/proto/app/v1;appv1";
 import "google/protobuf/timestamp.proto";
 
 // --- deploy app ---

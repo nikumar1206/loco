@@ -6,7 +6,6 @@ import (
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var scaleCmd = &cobra.Command{
@@ -60,18 +59,6 @@ func scaleCmdFunc(cmd *cobra.Command) error {
 
 	if replicas != -1 && replicas < 0 {
 		return fmt.Errorf("replicas must be a non-negative integer")
-	}
-
-	if cpu != "" {
-		if _, err := resource.ParseQuantity(cpu); err != nil {
-			return fmt.Errorf("invalid cpu value: %w", err)
-		}
-	}
-
-	if memory != "" {
-		if _, err := resource.ParseQuantity(memory); err != nil {
-			return fmt.Errorf("invalid memory value: %w", err)
-		}
 	}
 
 	host, err := getHost(cmd)

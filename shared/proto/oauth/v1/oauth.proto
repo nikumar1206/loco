@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package proto.oauth.v1;
+package shared.proto.oauth.v1;
 
-option go_package = "github.com/nikumar1206/loco/proto/oauth/v1;oauthv1";
+option go_package = "github.com/nikumar1206/loco/shared/proto/oauth/v1;oauthv1";
 
 
 message GithubOAuthDetailsRequest {}

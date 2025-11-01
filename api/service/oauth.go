@@ -6,7 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/nikumar1206/loco/api/models"
-	oAuth "github.com/nikumar1206/loco/proto/oauth/v1"
+	oAuth "github.com/nikumar1206/loco/shared/proto/oauth/v1"
 )
 
 type OAuthServer struct{}

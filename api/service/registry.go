@@ -7,7 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/nikumar1206/loco/api/client"
 	"github.com/nikumar1206/loco/api/models"
-	registry "github.com/nikumar1206/loco/proto/registry/v1"
+	registry "github.com/nikumar1206/loco/shared/proto/registry/v1"
 )
 
 type RegistryServer struct {
