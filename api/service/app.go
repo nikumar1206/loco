@@ -53,6 +53,12 @@ func (s *AppServer) DeployApp(
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
 	}
 
+	err := client.ValidateResources(request.LocoConfig.Resources.Cpu, request.LocoConfig.Resources.Memory)
+	if err != nil {
+		slog.ErrorContext(ctx, "invalid resource requests", "error", err.Error())
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid resource requests: %w", err))
+	}
+
 	user, ok := ctx.Value("user").(string)
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")

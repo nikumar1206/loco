@@ -53,8 +53,6 @@
   - loco web : opens loco website in browser.
     - --dashboard, --traces? --logs, -- docs, --account
   - loco env : syncs new env variables, without redeploying
-  - loco scale : updates compute
-    - --replicas, -- cpu, --memory
   - loco map
     - generates a map of user's deployments to loco or an app's compute.
     - --appName or like tenantid name. this is just a nice to have.
@@ -71,7 +69,6 @@
 
 - introduce a project-id. Project id will be used to map loco.toml's together.
 - on update, we should update the service as well; my ports were different, but it didnt get applied.
-- debug flag on CLI actually scuffs the terminal output from bubbletea. We actually need to write to a log file.
 - In-Cluster Communication
 
   - Lets inject service URL via env variables: LOCO\_<APP_NAME>\_URL . (multiple of these, scoped to the project)
@@ -115,10 +112,13 @@
 - Better handling of app secrets
 - Review API contracts to make sure they make sense
 
-- Have the deployment endpoint stream back.
 - Docker image enhancements?
 
   - Consider a private registry that has tag-prefix/name-prefix based access-controls.
+  - OSS solutions like Harbor / Quay exist.
+  - come with different scanners like trivvy and multi tenant.
+  - can look towards them, or for now just have a single set of deps
+  - civo offers this
   - Potentially add artifact attestations to images
 
 - Secrets
@@ -138,8 +138,12 @@ Eventually...
   - but how are they gonna get the aws secret key and whatnot?
 
 - how are we handling security patches?
+
   - depends on provider config, they will be auto managed for us if using things like fargate, otherwise our issue.
   - might need to do some sort of blue-green deployment for kubernetes.
+  - what about bumping stuff like envoy gateway and things like that.
+  - lets make a map of all the different projects loco is dependant on and how we can keep them updated.
+
 - also gitlab fetch token is only valid at deployment. what if new node comes in and needs to pull down image, it cannot since gitlab token expires in like 5 mins.
 
 may be nice to have some sort of secrets integration? like pull ur aws ssm, vault, secrets,
@@ -187,4 +191,18 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
   - can likely do this client side as well
 
 - should run cleanup resources if deployment fails anywhere.
+
   - simple implementation is done.
+
+- need to configure a decent HPA for the nodes themselves on kubernetes.
+
+- does loco need to store the local path the user deployed their app from?
+  - maybe we need to warn them if the provided project path has changed to ensure they arent messing things up and referencing the wrong project?
+  - store mapping under $HOME/.loco?
+- if we wanna continue with some gitlab container registry, we can use the container registry
+
+- Secrets we need to manage
+  - Terraform Cloud secret
+  - Gitlab secret
+  - Digital Ocean / Cloud provder secret.
+  - GH Oauth Client Secret (to identify
