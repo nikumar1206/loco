@@ -1,4 +1,4 @@
-name: Build and Versioned Release (Go)
+name: Auto Tag and Release (Go)
 
 on:
   push:
@@ -10,69 +10,20 @@ on:
       - "go.sum"
       - ".github/workflows/**"
       - "!api/**"
-    
+
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build for multiple OS/ARCH
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        goos: [linux, darwin]
-        goarch: [amd64, arm64]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.0"
-
-      - name: Build and zip for ${{ matrix.goos }}/${{ matrix.goarch }}
-        run: |
-          mkdir -p builds
-          output_name="myproject"
-          renamed_binary="system-${{ matrix.goos }}-${{ matrix.goarch }}"
-          build_dir="builds/system-${{ matrix.goos }}-${{ matrix.goarch }}"
-          binary_path="${build_dir}/${output_name}"
-          renamed_path="${build_dir}/${renamed_binary}"
-
-          mkdir -p "$build_dir"
-
-          echo "Building for ${{ matrix.goos }}/${{ matrix.goarch }}..."
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o "$binary_path" .
-          chmod +x "$binary_path"
-
-          mv "$binary_path" "$renamed_path"
-
-          zip_name="system-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
-          (cd "$build_dir" && zip "$zip_name" "$renamed_binary")
-
-      - name: Upload zipped build
-        uses: actions/upload-artifact@v4
-        with:
-          name: system-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: builds/system-${{ matrix.goos }}-${{ matrix.goarch }}/*.zip
-
   release:
-    name: Create Versioned GitHub Release
+    name: Auto Tag and Release with Changelog
     runs-on: ubuntu-latest
-    needs: build
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Download all zipped artifacts
-        uses: actions/download-artifact@v4
         with:
-          path: builds
-          merge-multiple: true
+          fetch-depth: 0 # needed to get full git history for changelog
 
       - name: Install GitHub CLI
         run: |
@@ -84,7 +35,6 @@ jobs:
         run: |
           # Get latest tag or default to v0.0.0
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-
           echo "Latest tag: $latest_tag"
 
           # Extract semver parts
@@ -95,6 +45,20 @@ jobs:
           # Increment patch version
           new_tag="v${major}.${minor}.$((patch + 1))"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$latest_tag" ]; then
+            log=$(git log --pretty=format:"* %s (%h)" )
+          else
+            log=$(git log ${latest_tag}..HEAD --pretty=format:"* %s (%h)")
+          fi
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$log" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create and push new Git tag
         env:
@@ -109,10 +73,4 @@ jobs:
         run: |
           gh release create ${{ steps.version.outputs.new_tag }} \
             --title "Release ${{ steps.version.outputs.new_tag }}" \
-            --notes "Automated release for ${{ github.sha }}"
-
-      - name: Upload all zips to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          find builds -type f -name "*.zip" -exec gh release upload ${{ steps.version.outputs.new_tag }} {} --clobber \;
+            --notes "${{ steps.changelog.outputs.changelog }}"
