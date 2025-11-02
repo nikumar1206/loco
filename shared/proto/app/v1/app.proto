@@ -8,6 +8,7 @@ message DeployAppRequest {
     LocoConfig loco_config = 1;
     string container_image = 2;
     repeated EnvVar env_vars = 3;
+    bool wait = 4;
 }
 
 message LocoConfig {
@@ -102,6 +103,7 @@ message Obs {
 
 message DeployAppResponse {
     string message = 1;
+    string event_type = 2; // "info", "error", "progress"
 }
 
 // --- logs ---
@@ -162,7 +164,7 @@ message ScaleAppResponse {
 }
 
 service AppService {
-  rpc DeployApp(DeployAppRequest) returns (DeployAppResponse) {}
+  rpc DeployApp(DeployAppRequest) returns (stream DeployAppResponse) {}
   rpc Logs(LogsRequest) returns (stream LogsResponse) {}
   rpc Status(StatusRequest) returns (StatusResponse) {}
   rpc DestroyApp(DestroyAppRequest) returns (DestroyAppResponse) {}

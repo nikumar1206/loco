@@ -12,7 +12,7 @@ import (
 	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 )
 
-func (c *Client) DeployApp(config config.Config, containerImage string, locoToken string, logf func(string)) error {
+func (c *Client) DeployApp(config config.Config, containerImage string, locoToken string, logf func(string), wait bool) error {
 	envVars := map[string]string{}
 	if config.LocoConfig.Env.File != "" {
 		f, err := os.Open(config.LocoConfig.Env.File)
@@ -36,10 +36,26 @@ func (c *Client) DeployApp(config config.Config, containerImage string, locoToke
 		LocoConfig:     config.LocoConfig,
 		ContainerImage: containerImage,
 		EnvVars:        envVarList,
+		Wait:           wait,
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken))
 
-	_, err := deployClient.DeployApp(context.Background(), req)
+	stream, err := deployClient.DeployApp(context.Background(), req)
+	if err != nil {
+		return err
+	}
 
-	return err
+	for stream.Receive() {
+		resp := stream.Msg()
+		logf(resp.Message)
+		if resp.EventType == "error" {
+			return fmt.Errorf("deployment failed: %s", resp.Message)
+		}
+	}
+
+	if err := stream.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }

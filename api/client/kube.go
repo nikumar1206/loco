@@ -138,6 +138,36 @@ func (kc *KubernetesClient) DeleteNS(c context.Context, namespace string) error 
 	return nil
 }
 
+// CheckNodesReady checks if all nodes in the cluster are in Ready status.
+func (kc *KubernetesClient) CheckNodesReady(ctx context.Context) error {
+	slog.DebugContext(ctx, "Checking if all nodes are ready")
+	nodes, err := kc.ClientSet.CoreV1().Nodes().List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to list nodes", "error", err)
+		return fmt.Errorf("failed to list nodes: %w", err)
+	}
+
+	for _, node := range nodes.Items {
+		ready := false
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == v1.NodeReady {
+				if condition.Status == v1.ConditionTrue {
+					ready = true
+				} else {
+					slog.WarnContext(ctx, "Node not ready", "node", node.Name, "message", condition.Message)
+				}
+				break
+			}
+		}
+		if !ready {
+			return fmt.Errorf("node %s is not ready", node.Name)
+		}
+	}
+
+	slog.InfoContext(ctx, "All nodes are ready")
+	return nil
+}
+
 // CheckDeploymentExists checks if a deployment exists in the specified namespace.
 func (kc *KubernetesClient) CheckDeploymentExists(ctx context.Context, namespace string, deploymentName string) (bool, error) {
 	slog.DebugContext(ctx, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)

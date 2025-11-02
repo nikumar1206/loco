@@ -32,6 +32,7 @@ func init() {
 	deployCmd.Flags().BoolP("yes", "y", false, "Assume yes to all prompts")
 	deployCmd.Flags().StringP("image", "i", "", "image tag to use for deployment")
 	deployCmd.Flags().String("host", "", "Set the host URL")
+	deployCmd.Flags().BoolP("wait", "w", false, "Wait for the rollout to complete")
 }
 
 func deployCmdFunc(cmd *cobra.Command, _ []string) error {
@@ -44,6 +45,10 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	imageId, err := parseImageId(cmd)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	wait, err := cmd.Flags().GetBool("wait")
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
 	}
@@ -147,7 +152,7 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		Run: func(logf func(string)) error {
 			// todo: cleanup how we pass variables around, why should this be dockercli.image?
 			// and why would this be generated client side?
-			if err := apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken.Token, logf); err != nil {
+			if err := apiClient.DeployApp(cfg, dockerCli.ImageName, locoToken.Token, logf, wait); err != nil {
 				return err
 			}
 			return nil
@@ -158,16 +163,21 @@ func deployCmdFunc(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	successMsg := "\n🎉 Deployment scheduled!"
+	if wait {
+		successMsg = "\n🎉 App deployed!"
+	}
+
 	s := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 Deployment scheduled!")
+		Render(successMsg)
 
 	fmt.Println(s)
 
 	s = lipgloss.NewStyle().
 		Foreground(ui.LocoOrange).
-		Render("\nYou can track deployment status by running `loco status`")
+		Render("\nTip: Keep tabs on your app using `loco status`")
 	fmt.Println(s)
 
 	return nil

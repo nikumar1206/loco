@@ -67,7 +67,13 @@ var loginCmd = &cobra.Command{
 			slog.Debug("failed to get current user", "error", err)
 			return err
 		}
+
 		t, err := keychain.GetGithubToken(user.Name)
+		if err != nil {
+			slog.Error("failed keychain token grab", "error", err)
+			return err
+		}
+
 		if err == nil {
 			if !t.ExpiresAt.Before(time.Now().Add(1 * time.Hour)) {
 				checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")

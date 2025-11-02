@@ -47,7 +47,7 @@ const (
 
 // AppServiceClient is a client for the shared.proto.app.v1.AppService service.
 type AppServiceClient interface {
-	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
+	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.ServerStreamForClient[v1.DeployAppResponse], error)
 	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
@@ -108,8 +108,8 @@ type appServiceClient struct {
 }
 
 // DeployApp calls shared.proto.app.v1.AppService.DeployApp.
-func (c *appServiceClient) DeployApp(ctx context.Context, req *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error) {
-	return c.deployApp.CallUnary(ctx, req)
+func (c *appServiceClient) DeployApp(ctx context.Context, req *connect.Request[v1.DeployAppRequest]) (*connect.ServerStreamForClient[v1.DeployAppResponse], error) {
+	return c.deployApp.CallServerStream(ctx, req)
 }
 
 // Logs calls shared.proto.app.v1.AppService.Logs.
@@ -134,7 +134,7 @@ func (c *appServiceClient) ScaleApp(ctx context.Context, req *connect.Request[v1
 
 // AppServiceHandler is an implementation of the shared.proto.app.v1.AppService service.
 type AppServiceHandler interface {
-	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error)
+	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest], *connect.ServerStream[v1.DeployAppResponse]) error
 	Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
@@ -148,7 +148,7 @@ type AppServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	appServiceMethods := v1.File_shared_proto_app_v1_app_proto.Services().ByName("AppService").Methods()
-	appServiceDeployAppHandler := connect.NewUnaryHandler(
+	appServiceDeployAppHandler := connect.NewServerStreamHandler(
 		AppServiceDeployAppProcedure,
 		svc.DeployApp,
 		connect.WithSchema(appServiceMethods.ByName("DeployApp")),
@@ -199,8 +199,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 // UnimplementedAppServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAppServiceHandler struct{}
 
-func (UnimplementedAppServiceHandler) DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.Response[v1.DeployAppResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.DeployApp is not implemented"))
+func (UnimplementedAppServiceHandler) DeployApp(context.Context, *connect.Request[v1.DeployAppRequest], *connect.ServerStream[v1.DeployAppResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.DeployApp is not implemented"))
 }
 
 func (UnimplementedAppServiceHandler) Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error {

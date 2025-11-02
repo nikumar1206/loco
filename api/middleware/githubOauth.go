@@ -34,7 +34,8 @@ func (i *githubAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryF
 		ctx context.Context,
 		req connect.AnyRequest,
 	) (connect.AnyResponse, error) {
-		if req.Spec().Procedure == "/proto.oauth.v1.OAuthService/GithubOAuthDetails" {
+		// todo: need to fix the service name
+		if req.Spec().Procedure == "/shared.proto.oauth.v1.OAuthService/GithubOAuthDetails" {
 			return next(ctx, req)
 		}
 

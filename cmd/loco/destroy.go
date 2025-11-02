@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
@@ -62,46 +61,25 @@ func destroyCmdFunc(cmd *cobra.Command, _ []string) error {
 
 	apiClient := appv1connect.NewAppServiceClient(http.DefaultClient, host)
 
-	steps := []ui.Step{
-		{
-			Title: "Destroying App on Loco 🔥",
-			Run: func(logf func(string)) error {
-				slog.Debug("destroying app", "app", cfg.LocoConfig.Metadata.Name)
-				logf(fmt.Sprintf("destroying app %s", cfg.LocoConfig.Metadata.Name))
+	slog.Debug("destroying app", "app", cfg.LocoConfig.Metadata.Name)
 
-				req := &appv1.DestroyAppRequest{
-					Name: cfg.LocoConfig.Metadata.Name,
-				}
-
-				slog.Debug("destroy request", "req", req)
-
-				destroyReq := connect.NewRequest(req)
-
-				destroyReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
-
-				_, err := apiClient.DestroyApp(context.Background(), destroyReq)
-				if err != nil {
-					slog.Error("failed to destroy app", "error", err)
-					return err
-				}
-
-				logf(fmt.Sprintf("app %s destroyed", cfg.LocoConfig.Metadata.Name))
-				slog.Debug("app destroyed", "app", cfg.LocoConfig.Metadata.Name)
-				return nil
-			},
-		},
+	req := &appv1.DestroyAppRequest{
+		Name: cfg.LocoConfig.Metadata.Name,
 	}
 
-	if err := ui.RunSteps(steps); err != nil {
-		return err
+	slog.Debug("destroy request", "req", req)
+
+	destroyReq := connect.NewRequest(req)
+
+	destroyReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+
+	_, err = apiClient.DestroyApp(context.Background(), destroyReq)
+	if err != nil {
+		slog.Error("failed to destroy app", "error", err)
+		return fmt.Errorf("failed to destroy app %s: %w", cfg.LocoConfig.Metadata.Name, err)
 	}
 
-	s := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 App destruction scheduled!")
-
-	fmt.Println(s)
+	fmt.Printf("App %s destruction scheduled!\n", cfg.LocoConfig.Metadata.Name)
 
 	return nil
 }

@@ -28,27 +28,35 @@ type AppServer struct {
 func (s *AppServer) DeployApp(
 	ctx context.Context,
 	req *connect.Request[appv1.DeployAppRequest],
-) (*connect.Response[appv1.DeployAppResponse], error) {
+	stream *connect.ServerStream[appv1.DeployAppResponse],
+) error {
 	request := req.Msg
+
+	sendEvent := func(eventType, message string) error {
+		return stream.Send(&appv1.DeployAppResponse{
+			Message:   message,
+			EventType: eventType,
+		})
+	}
 
 	// fill defaults and validate
 	locoConfig.FillSensibleDefaults(request.LocoConfig)
 
 	if err := locoConfig.Validate(request.LocoConfig); err != nil {
 		slog.ErrorContext(ctx, "invalid locoConfig", "error", err.Error())
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid locoConfig: %w", err))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid locoConfig: %w", err))
 	}
 
 	// check banned subdomain
 	if locoConfig.IsBannedSubDomain(request.LocoConfig.Routing.Subdomain) {
 		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Routing.Subdomain))
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
 	}
 
 	user, ok := ctx.Value("user").(string)
 	if !ok {
 		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
 	app := locoConfig.NewLocoApp(
@@ -62,7 +70,7 @@ func (s *AppServer) DeployApp(
 	serviceExists, err := s.Kc.CheckServiceExists(ctx, app.Namespace, app.Name)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check if service exists: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check if service exists: %w", err))
 	}
 
 	if serviceExists {
@@ -77,7 +85,7 @@ func (s *AppServer) DeployApp(
 
 		gitlabResp, err := client.NewClient(s.AppConfig.GitlabURL).GetDeployToken(ctx, s.AppConfig.GitlabPAT, s.AppConfig.ProjectID, payload)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deploy token: %w", err))
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deploy token: %w", err))
 		}
 
 		registry := client.DockerRegistryConfig{
@@ -87,33 +95,50 @@ func (s *AppServer) DeployApp(
 		}
 
 		if err := s.Kc.UpdateDockerPullSecret(ctx, app, registry); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update docker pull secret: %w", err))
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update docker pull secret: %w", err))
 		}
 
 		if err := s.Kc.UpdateContainer(ctx, app); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update container: %w", err))
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update container: %w", err))
 		}
 
-		return connect.NewResponse(&appv1.DeployAppResponse{
-			Message: "App updated successfully",
-		}), nil
+		if err := sendEvent("info", "App updated successfully"); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	// Create new app flow
-	cleanupNeeded := false
+	if err := s.Kc.CheckNodesReady(ctx); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("nodes not ready: %w", err))
+	}
+
 	if _, err := s.Kc.CreateNS(ctx, app); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create namespace: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create namespace: %w", err))
 	}
-	cleanupNeeded = true
-	defer func() {
-		if cleanupNeeded {
-			slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.Namespace)
-			if delErr := s.Kc.DeleteNS(ctx, app.Namespace); delErr != nil {
-				slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.Namespace, "error", delErr)
-			}
+
+	if err := s.allocateResources(ctx, app, req, stream); err != nil {
+		slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.Namespace)
+		if delErr := s.Kc.DeleteNS(ctx, app.Namespace); delErr != nil {
+			slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.Namespace, "error", delErr)
 		}
-	}()
+		if sendErr := sendEvent("error", "App deployment failed"); sendErr != nil {
+			return sendErr
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *AppServer) allocateResources(ctx context.Context, app *locoConfig.LocoApp, req *connect.Request[appv1.DeployAppRequest], stream *connect.ServerStream[appv1.DeployAppResponse]) error {
+	sendEvent := func(eventType, message string) error {
+		return stream.Send(&appv1.DeployAppResponse{
+			Message:   message,
+			EventType: eventType,
+		})
+	}
 
 	expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 	payload := map[string]any{
@@ -124,7 +149,7 @@ func (s *AppServer) DeployApp(
 
 	gitlabResp, err := client.NewClient(s.AppConfig.GitlabURL).GetDeployToken(ctx, s.AppConfig.GitlabPAT, s.AppConfig.ProjectID, payload)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deploy token: %w", err))
+		return fmt.Errorf("failed to get deploy token: %w", err)
 	}
 
 	registry := client.DockerRegistryConfig{
@@ -134,42 +159,83 @@ func (s *AppServer) DeployApp(
 	}
 
 	if err := s.Kc.CreateDockerPullSecret(ctx, app, registry); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create docker secret: %w", err))
+		return fmt.Errorf("failed to create docker secret: %w", err)
+	}
+
+	if err := sendEvent("progress", "Creating necessary roles and policies"); err != nil {
+		return err
 	}
 
 	envSecret, err := s.Kc.CreateSecret(ctx, app)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create secret: %w", err))
+		return fmt.Errorf("failed to create secret: %w", err)
 	}
 
 	if _, err := s.Kc.CreateRole(ctx, app, envSecret); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create role: %w", err))
+		return fmt.Errorf("failed to create role: %w", err)
 	}
 
 	if _, err := s.Kc.CreateServiceAccount(ctx, app); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service account: %w", err))
+		return fmt.Errorf("failed to create service account: %w", err)
 	}
 
 	if _, err := s.Kc.CreateRoleBinding(ctx, app); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create role binding: %w", err))
+		return fmt.Errorf("failed to create role binding: %w", err)
 	}
 
-	if _, err := s.Kc.CreateDeployment(ctx, app, request.ContainerImage, envSecret); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create deployment: %w", err))
+	if err := sendEvent("progress", "Scheduling compute"); err != nil {
+		return err
+	}
+	if _, err := s.Kc.CreateDeployment(ctx, app, req.Msg.ContainerImage, envSecret); err != nil {
+		return fmt.Errorf("failed to create deployment: %w", err)
 	}
 
 	if _, err := s.Kc.CreateService(ctx, app); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
+		return fmt.Errorf("failed to create service: %w", err)
+	}
+
+	if err := sendEvent("progress", "Exposing your app to the internet"); err != nil {
+		return err
 	}
 
 	if _, err := s.Kc.CreateHTTPRoute(ctx, app); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create http route: %w", err))
+		return fmt.Errorf("failed to create http route: %w", err)
 	}
 
-	cleanupNeeded = false
-	return connect.NewResponse(&appv1.DeployAppResponse{
-		Message: "Deployment and service created successfully",
-	}), nil
+	if !req.Msg.Wait {
+		return nil
+	}
+
+	if err := sendEvent("progress", "Waiting for rollout"); err != nil {
+		return err
+	}
+
+	// wait for rollout to complete if provided wait flag.
+	timeout := time.After(5 * time.Minute)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("rollout timed out")
+		case <-ticker.C:
+			status, err := s.Kc.GetDeploymentStatus(ctx, app.Namespace, app.Name)
+			if err != nil {
+				return fmt.Errorf("failed to get deployment status: %w", err)
+			}
+			if status.Status == "Running" && status.Health == "Passing" {
+				if err := sendEvent("info", "Rollout completed successfully"); err != nil {
+					return err
+				}
+				return nil
+			} else {
+				if err := sendEvent("progress", "Waiting for rollout"); err != nil {
+					return err
+				}
+			}
+		}
+	}
 }
 
 func (s *AppServer) Logs(
@@ -233,7 +299,7 @@ func (s *AppServer) DestroyApp(
 
 	if err := s.Kc.DeleteNS(ctx, namespace); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app does not exist"))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app does not exist. It may have already been deleted"))
 	}
 
 	return connect.NewResponse(&appv1.DestroyAppResponse{

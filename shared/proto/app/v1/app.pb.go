@@ -28,6 +28,7 @@ type DeployAppRequest struct {
 	LocoConfig     *LocoConfig            `protobuf:"bytes,1,opt,name=loco_config,json=locoConfig,proto3" json:"loco_config,omitempty"`
 	ContainerImage string                 `protobuf:"bytes,2,opt,name=container_image,json=containerImage,proto3" json:"container_image,omitempty"`
 	EnvVars        []*EnvVar              `protobuf:"bytes,3,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty"`
+	Wait           bool                   `protobuf:"varint,4,opt,name=wait,proto3" json:"wait,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -81,6 +82,13 @@ func (x *DeployAppRequest) GetEnvVars() []*EnvVar {
 		return x.EnvVars
 	}
 	return nil
+}
+
+func (x *DeployAppRequest) GetWait() bool {
+	if x != nil {
+		return x.Wait
+	}
+	return false
 }
 
 type LocoConfig struct {
@@ -958,6 +966,7 @@ func (x *Obs) GetTracing() *Tracing {
 type DeployAppResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"` // "info", "error", "progress"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -995,6 +1004,13 @@ func (*DeployAppResponse) Descriptor() ([]byte, []int) {
 func (x *DeployAppResponse) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *DeployAppResponse) GetEventType() string {
+	if x != nil {
+		return x.EventType
 	}
 	return ""
 }
@@ -1514,12 +1530,13 @@ var File_shared_proto_app_v1_app_proto protoreflect.FileDescriptor
 
 const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x1dshared/proto/app/v1/app.proto\x12\x13shared.proto.app.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x01\n" +
+	"\x1dshared/proto/app/v1/app.proto\x12\x13shared.proto.app.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc9\x01\n" +
 	"\x10DeployAppRequest\x12@\n" +
 	"\vloco_config\x18\x01 \x01(\v2\x1f.shared.proto.app.v1.LocoConfigR\n" +
 	"locoConfig\x12'\n" +
 	"\x0fcontainer_image\x18\x02 \x01(\tR\x0econtainerImage\x126\n" +
-	"\benv_vars\x18\x03 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\aenvVars\"\x81\x03\n" +
+	"\benv_vars\x18\x03 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\aenvVars\x12\x12\n" +
+	"\x04wait\x18\x04 \x01(\bR\x04wait\"\x81\x03\n" +
 	"\n" +
 	"LocoConfig\x129\n" +
 	"\bmetadata\x18\x01 \x01(\v2\x1d.shared.proto.app.v1.MetadataR\bmetadata\x12<\n" +
@@ -1588,9 +1605,11 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x03Obs\x126\n" +
 	"\alogging\x18\x01 \x01(\v2\x1c.shared.proto.app.v1.LoggingR\alogging\x126\n" +
 	"\ametrics\x18\x02 \x01(\v2\x1c.shared.proto.app.v1.MetricsR\ametrics\x126\n" +
-	"\atracing\x18\x03 \x01(\v2\x1c.shared.proto.app.v1.TracingR\atracing\"-\n" +
+	"\atracing\x18\x03 \x01(\v2\x1c.shared.proto.app.v1.TracingR\atracing\"L\n" +
 	"\x11DeployAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"<\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\"<\n" +
 	"\vLogsRequest\x12\x19\n" +
 	"\bapp_name\x18\x01 \x01(\tR\aappName\x12\x12\n" +
 	"\x04tail\x18\x02 \x01(\x03R\x04tail\"u\n" +
@@ -1626,10 +1645,10 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x04_cpuB\t\n" +
 	"\a_memory\",\n" +
 	"\x10ScaleAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xcc\x03\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xce\x03\n" +
 	"\n" +
-	"AppService\x12\\\n" +
-	"\tDeployApp\x12%.shared.proto.app.v1.DeployAppRequest\x1a&.shared.proto.app.v1.DeployAppResponse\"\x00\x12O\n" +
+	"AppService\x12^\n" +
+	"\tDeployApp\x12%.shared.proto.app.v1.DeployAppRequest\x1a&.shared.proto.app.v1.DeployAppResponse\"\x000\x01\x12O\n" +
 	"\x04Logs\x12 .shared.proto.app.v1.LogsRequest\x1a!.shared.proto.app.v1.LogsResponse\"\x000\x01\x12S\n" +
 	"\x06Status\x12\".shared.proto.app.v1.StatusRequest\x1a#.shared.proto.app.v1.StatusResponse\"\x00\x12_\n" +
 	"\n" +

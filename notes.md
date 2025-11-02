@@ -45,8 +45,8 @@
 - Scanning Docker Images; we have a TDD for this
 
 - Pre-deployment loco needs to check if we can sustain the requested deployment (atleast 2x the requested resources to be safe.)
-- Ensure nodes are in-ready before allowing loco deploy
-- Wait for new pod readiness before marking deploy as successful
+
+  - not sure how to do this.
 
 - New commands:
 
@@ -187,3 +187,4 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
   - can likely do this client side as well
 
 - should run cleanup resources if deployment fails anywhere.
+  - simple implementation is done.

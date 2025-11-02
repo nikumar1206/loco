@@ -43,8 +43,7 @@ reload-api:
 	@echo "Starting API with live reload..."
 	@lsof -ti:8000 | xargs -r kill -15 2>/dev/null || true
 	@(air \
-		--root ./api \
-		--build.cmd "go build -o ./api/bin/loco-api ." \
+		--build.cmd "cd api && go build -o ./bin/loco-api ." \
 		--build.bin "./api/bin/loco-api" \
 		--build.exclude_dir "bin,archive")
 
