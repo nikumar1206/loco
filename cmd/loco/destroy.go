@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"

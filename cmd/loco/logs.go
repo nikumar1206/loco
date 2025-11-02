@@ -12,8 +12,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/client"
-	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"github.com/spf13/cobra"
 )

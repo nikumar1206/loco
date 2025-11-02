@@ -3,7 +3,6 @@ module github.com/nikumar1206/loco
 go 1.25.0
 
 require (
-	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/fang v0.4.3
@@ -26,6 +25,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect

@@ -2,14 +2,18 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 )
 
+// this file needs to be cleaned up
 var ALLOWED_SCHEMA_VERSIONS = []string{
 	"0.1",
 }
@@ -315,4 +319,82 @@ func generateLabels(name, namespace, createdBy string) map[string]string {
 		LabelAppCreatedFor: createdBy,
 		LabelAppCreatedAt:  time.Now().UTC().Format("20060102T150405Z"),
 	}
+}
+
+type Config struct {
+	LocoConfig  *appv1.LocoConfig
+	ProjectPath string
+}
+
+func Create(c *appv1.LocoConfig, dirName string) error {
+	file, err := os.Create("loco.toml")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	c.Metadata.Name = dirName
+	c.Routing.Subdomain = dirName
+
+	encoder := toml.NewEncoder(file)
+	if err := encoder.Encode(c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateDefault(dirName string) error {
+	return Create(Default, dirName)
+}
+
+func resolvePath(path, baseDir string) string {
+	if path == "" {
+		return ""
+	}
+
+	if filepath.IsAbs(path) {
+		return path
+	}
+
+	projectFolder := filepath.Dir(baseDir)
+
+	return filepath.Join(projectFolder, path)
+}
+
+func Load(cfgPath string) (Config, error) {
+	var config Config
+
+	cfgPathAbs, err := filepath.Abs(cfgPath)
+	if err != nil {
+		return config, err
+	}
+	config.ProjectPath = filepath.Dir(cfgPathAbs)
+
+	file, err := os.Open(cfgPath)
+	if err != nil {
+		return config, err
+	}
+	defer file.Close()
+
+	decoder := toml.NewDecoder(file)
+	_, err = decoder.Decode(&config.LocoConfig)
+	if err != nil {
+		return config, err
+	}
+
+	if config.LocoConfig.GetBuild() == nil {
+		config.LocoConfig.Build = &appv1.Build{
+			DockerfilePath: "Dockerfile",
+			Type:           "docker",
+		}
+	}
+
+	if config.LocoConfig.Env == nil {
+		config.LocoConfig.Env = &appv1.Env{}
+	}
+
+	config.LocoConfig.Build.DockerfilePath = resolvePath(config.LocoConfig.Build.DockerfilePath, cfgPathAbs)
+	config.LocoConfig.Env.File = resolvePath(config.LocoConfig.Env.File, cfgPathAbs)
+
+	return config, nil
 }

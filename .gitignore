@@ -52,6 +52,7 @@ archive/**
 scratch*.txt
 secrets.md
 GEMINI.md
+AGENTS.md
 
 *.json
 *.zip

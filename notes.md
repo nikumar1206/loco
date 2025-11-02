@@ -202,7 +202,10 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - if we wanna continue with some gitlab container registry, we can use the container registry
 
 - Secrets we need to manage
+
   - Terraform Cloud secret
   - Gitlab secret
   - Digital Ocean / Cloud provder secret.
-  - GH Oauth Client Secret (to identify
+  - GH Oauth Client Secret (to identify)
+
+- there is still the shared loco.go file inside internal and shared. lord help me how do i fix this module oopsie.

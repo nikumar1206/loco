@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared/config"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,6 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Loco project",
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		force, err := cmd.Flags().GetBool("force")
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrFlagParsing, err)

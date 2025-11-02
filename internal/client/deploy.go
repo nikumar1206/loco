@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/joho/godotenv"
-	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 )

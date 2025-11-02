@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/nikumar1206/loco/internal/client"
-	"github.com/nikumar1206/loco/internal/config"
+	"github.com/nikumar1206/loco/shared/config"
 	"github.com/spf13/cobra"
 )
 
