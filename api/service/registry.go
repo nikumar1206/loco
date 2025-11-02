@@ -20,7 +20,7 @@ func (s *RegistryServer) GitlabToken(
 	projectId := s.AppConfig.ProjectID
 	tokenName := s.AppConfig.DeployTokenName
 
-	expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+	expiry := time.Now().Add(5 * time.Minute).UTC().Format(client.DefaultTimeFormat)
 
 	payload := map[string]any{
 		"name":       tokenName,

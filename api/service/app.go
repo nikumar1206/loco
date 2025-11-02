@@ -48,7 +48,7 @@ func (s *AppServer) DeployApp(
 	}
 
 	// check banned subdomain
-	if locoConfig.IsBannedSubDomain(request.LocoConfig.Routing.Subdomain) {
+	if client.IsBannedSubDomain(request.LocoConfig.Routing.Subdomain) {
 		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Routing.Subdomain))
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
 	}
@@ -65,7 +65,7 @@ func (s *AppServer) DeployApp(
 		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
-	app := locoConfig.NewLocoApp(
+	app := client.NewLocoApp(
 		request.LocoConfig,
 		user,
 		request.ContainerImage,
@@ -73,7 +73,7 @@ func (s *AppServer) DeployApp(
 	)
 
 	// check if service exists; if exists update in-place else create new
-	serviceExists, err := s.Kc.CheckServiceExists(ctx, app.Namespace, app.Name)
+	serviceExists, err := s.Kc.CheckServiceExists(ctx, app.NamespaceName(), app.Name)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check if service exists: %w", err))
@@ -82,7 +82,7 @@ func (s *AppServer) DeployApp(
 	if serviceExists {
 		slog.InfoContext(ctx, "service exists, updating in-place")
 
-		expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+		expiry := time.Now().Add(5 * time.Minute).UTC().Format(client.DefaultTimeFormat)
 		payload := map[string]any{
 			"name":       s.AppConfig.DeployTokenName,
 			"scopes":     []string{"read_registry"},
@@ -125,9 +125,9 @@ func (s *AppServer) DeployApp(
 	}
 
 	if err := s.allocateResources(ctx, app, req, stream); err != nil {
-		slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.Namespace)
-		if delErr := s.Kc.DeleteNS(ctx, app.Namespace); delErr != nil {
-			slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.Namespace, "error", delErr)
+		slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.NamespaceName())
+		if delErr := s.Kc.DeleteNS(ctx, app.NamespaceName()); delErr != nil {
+			slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.NamespaceName(), "error", delErr)
 		}
 		if sendErr := sendEvent("error", "App deployment failed"); sendErr != nil {
 			return sendErr
@@ -138,7 +138,7 @@ func (s *AppServer) DeployApp(
 	return nil
 }
 
-func (s *AppServer) allocateResources(ctx context.Context, app *locoConfig.LocoApp, req *connect.Request[appv1.DeployAppRequest], stream *connect.ServerStream[appv1.DeployAppResponse]) error {
+func (s *AppServer) allocateResources(ctx context.Context, app *client.LocoApp, req *connect.Request[appv1.DeployAppRequest], stream *connect.ServerStream[appv1.DeployAppResponse]) error {
 	sendEvent := func(eventType, message string) error {
 		return stream.Send(&appv1.DeployAppResponse{
 			Message:   message,
@@ -146,7 +146,7 @@ func (s *AppServer) allocateResources(ctx context.Context, app *locoConfig.LocoA
 		})
 	}
 
-	expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
+	expiry := time.Now().Add(5 * time.Minute).UTC().Format(client.DefaultTimeFormat)
 	payload := map[string]any{
 		"name":       s.AppConfig.DeployTokenName,
 		"scopes":     []string{"read_registry"},
@@ -226,7 +226,7 @@ func (s *AppServer) allocateResources(ctx context.Context, app *locoConfig.LocoA
 		case <-timeout:
 			return fmt.Errorf("rollout timed out")
 		case <-ticker.C:
-			status, err := s.Kc.GetDeploymentStatus(ctx, app.Namespace, app.Name)
+			status, err := s.Kc.GetDeploymentStatus(ctx, app.NamespaceName(), app.Name)
 			if err != nil {
 				return fmt.Errorf("failed to get deployment status: %w", err)
 			}
@@ -256,7 +256,7 @@ func (s *AppServer) Logs(
 		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
-	namespace := locoConfig.GenerateNameSpace(appName, user)
+	namespace := client.GenerateNameSpace(appName, user)
 	err := s.Kc.GetLogs(ctx, namespace, appName, user, nil, stream)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
@@ -278,7 +278,7 @@ func (s *AppServer) Status(
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
-	namespace := locoConfig.GenerateNameSpace(appName, user)
+	namespace := client.GenerateNameSpace(appName, user)
 
 	deploymentStatus, err := s.Kc.GetDeploymentStatus(ctx, namespace, appName)
 	if err != nil {
@@ -301,7 +301,7 @@ func (s *AppServer) DestroyApp(
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
-	namespace := locoConfig.GenerateNameSpace(appName, user)
+	namespace := client.GenerateNameSpace(appName, user)
 
 	if err := s.Kc.DeleteNS(ctx, namespace); err != nil {
 		slog.ErrorContext(ctx, err.Error())
@@ -313,10 +313,7 @@ func (s *AppServer) DestroyApp(
 	}), nil
 }
 
-func (s *AppServer) ScaleApp(
-	ctx context.Context,
-	req *connect.Request[appv1.ScaleAppRequest],
-) (*connect.Response[appv1.ScaleAppResponse], error) {
+func (s *AppServer) ScaleApp(ctx context.Context, req *connect.Request[appv1.ScaleAppRequest]) (*connect.Response[appv1.ScaleAppResponse], error) {
 	appName := req.Msg.Name
 
 	user, ok := ctx.Value("user").(string)
@@ -325,7 +322,7 @@ func (s *AppServer) ScaleApp(
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
 	}
 
-	namespace := locoConfig.GenerateNameSpace(appName, user)
+	namespace := client.GenerateNameSpace(appName, user)
 
 	if err := s.Kc.ScaleDeployment(ctx, namespace, appName, req.Msg.Replicas, req.Msg.Cpu, req.Msg.Memory); err != nil {
 		slog.ErrorContext(ctx, err.Error())
@@ -334,5 +331,29 @@ func (s *AppServer) ScaleApp(
 
 	return connect.NewResponse(&appv1.ScaleAppResponse{
 		Message: "App scaled successfully",
+	}), nil
+}
+
+func (s *AppServer) UpdateEnvVars(ctx context.Context, req *connect.Request[appv1.UpdateEnvVarsRequest]) (*connect.Response[appv1.UpdateEnvVarsResponse], error) {
+	appName := req.Msg.Name
+
+	user, ok := ctx.Value("user").(string)
+	if !ok {
+		slog.ErrorContext(ctx, "could not determine user. should never happen")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+	}
+
+	locoApp := &client.LocoApp{
+		Name:      appName,
+		CreatedBy: user,
+	}
+
+	if err := s.Kc.UpdateEnvVars(ctx, locoApp, req.Msg.EnvVars, req.Msg.Restart); err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update env vars: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.UpdateEnvVarsResponse{
+		Message: "Environment variables updated successfully",
 	}), nil
 }

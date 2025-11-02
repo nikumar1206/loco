@@ -1526,6 +1526,111 @@ func (x *ScaleAppResponse) GetMessage() string {
 	return ""
 }
 
+// --- update env vars ---
+type UpdateEnvVarsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	EnvVars       []*EnvVar              `protobuf:"bytes,2,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty"`
+	Restart       bool                   `protobuf:"varint,3,opt,name=restart,proto3" json:"restart,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEnvVarsRequest) Reset() {
+	*x = UpdateEnvVarsRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEnvVarsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEnvVarsRequest) ProtoMessage() {}
+
+func (x *UpdateEnvVarsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEnvVarsRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEnvVarsRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UpdateEnvVarsRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateEnvVarsRequest) GetEnvVars() []*EnvVar {
+	if x != nil {
+		return x.EnvVars
+	}
+	return nil
+}
+
+func (x *UpdateEnvVarsRequest) GetRestart() bool {
+	if x != nil {
+		return x.Restart
+	}
+	return false
+}
+
+type UpdateEnvVarsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEnvVarsResponse) Reset() {
+	*x = UpdateEnvVarsResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEnvVarsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEnvVarsResponse) ProtoMessage() {}
+
+func (x *UpdateEnvVarsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEnvVarsResponse.ProtoReflect.Descriptor instead.
+func (*UpdateEnvVarsResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *UpdateEnvVarsResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_shared_proto_app_v1_app_proto protoreflect.FileDescriptor
 
 const file_shared_proto_app_v1_app_proto_rawDesc = "" +
@@ -1645,7 +1750,13 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x04_cpuB\t\n" +
 	"\a_memory\",\n" +
 	"\x10ScaleAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xce\x03\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"|\n" +
+	"\x14UpdateEnvVarsRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x126\n" +
+	"\benv_vars\x18\x02 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\aenvVars\x12\x18\n" +
+	"\arestart\x18\x03 \x01(\bR\arestart\"1\n" +
+	"\x15UpdateEnvVarsResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xb8\x04\n" +
 	"\n" +
 	"AppService\x12^\n" +
 	"\tDeployApp\x12%.shared.proto.app.v1.DeployAppRequest\x1a&.shared.proto.app.v1.DeployAppResponse\"\x000\x01\x12O\n" +
@@ -1653,7 +1764,8 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x06Status\x12\".shared.proto.app.v1.StatusRequest\x1a#.shared.proto.app.v1.StatusResponse\"\x00\x12_\n" +
 	"\n" +
 	"DestroyApp\x12&.shared.proto.app.v1.DestroyAppRequest\x1a'.shared.proto.app.v1.DestroyAppResponse\"\x00\x12Y\n" +
-	"\bScaleApp\x12$.shared.proto.app.v1.ScaleAppRequest\x1a%.shared.proto.app.v1.ScaleAppResponse\"\x00B7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
+	"\bScaleApp\x12$.shared.proto.app.v1.ScaleAppRequest\x1a%.shared.proto.app.v1.ScaleAppResponse\"\x00\x12h\n" +
+	"\rUpdateEnvVars\x12).shared.proto.app.v1.UpdateEnvVarsRequest\x1a*.shared.proto.app.v1.UpdateEnvVarsResponse\"\x00B7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
 
 var (
 	file_shared_proto_app_v1_app_proto_rawDescOnce sync.Once
@@ -1667,7 +1779,7 @@ func file_shared_proto_app_v1_app_proto_rawDescGZIP() []byte {
 	return file_shared_proto_app_v1_app_proto_rawDescData
 }
 
-var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_shared_proto_app_v1_app_proto_goTypes = []any{
 	(*DeployAppRequest)(nil),      // 0: shared.proto.app.v1.DeployAppRequest
 	(*LocoConfig)(nil),            // 1: shared.proto.app.v1.LocoConfig
@@ -1694,8 +1806,10 @@ var file_shared_proto_app_v1_app_proto_goTypes = []any{
 	(*DestroyAppResponse)(nil),    // 22: shared.proto.app.v1.DestroyAppResponse
 	(*ScaleAppRequest)(nil),       // 23: shared.proto.app.v1.ScaleAppRequest
 	(*ScaleAppResponse)(nil),      // 24: shared.proto.app.v1.ScaleAppResponse
-	nil,                           // 25: shared.proto.app.v1.Tracing.TagsEntry
-	(*timestamppb.Timestamp)(nil), // 26: google.protobuf.Timestamp
+	(*UpdateEnvVarsRequest)(nil),  // 25: shared.proto.app.v1.UpdateEnvVarsRequest
+	(*UpdateEnvVarsResponse)(nil), // 26: shared.proto.app.v1.UpdateEnvVarsResponse
+	nil,                           // 27: shared.proto.app.v1.Tracing.TagsEntry
+	(*timestamppb.Timestamp)(nil), // 28: google.protobuf.Timestamp
 }
 var file_shared_proto_app_v1_app_proto_depIdxs = []int32{
 	1,  // 0: shared.proto.app.v1.DeployAppRequest.loco_config:type_name -> shared.proto.app.v1.LocoConfig
@@ -1710,29 +1824,32 @@ var file_shared_proto_app_v1_app_proto_depIdxs = []int32{
 	3,  // 9: shared.proto.app.v1.Resources.replicas:type_name -> shared.proto.app.v1.Replicas
 	4,  // 10: shared.proto.app.v1.Resources.scalers:type_name -> shared.proto.app.v1.Scalers
 	10, // 11: shared.proto.app.v1.Env.variables:type_name -> shared.proto.app.v1.EnvVar
-	25, // 12: shared.proto.app.v1.Tracing.tags:type_name -> shared.proto.app.v1.Tracing.TagsEntry
+	27, // 12: shared.proto.app.v1.Tracing.tags:type_name -> shared.proto.app.v1.Tracing.TagsEntry
 	11, // 13: shared.proto.app.v1.Obs.logging:type_name -> shared.proto.app.v1.Logging
 	12, // 14: shared.proto.app.v1.Obs.metrics:type_name -> shared.proto.app.v1.Metrics
 	13, // 15: shared.proto.app.v1.Obs.tracing:type_name -> shared.proto.app.v1.Tracing
-	26, // 16: shared.proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
-	26, // 17: shared.proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
+	28, // 16: shared.proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
+	28, // 17: shared.proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
 	20, // 18: shared.proto.app.v1.StatusResponse.events:type_name -> shared.proto.app.v1.Event
-	26, // 19: shared.proto.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
-	0,  // 20: shared.proto.app.v1.AppService.DeployApp:input_type -> shared.proto.app.v1.DeployAppRequest
-	16, // 21: shared.proto.app.v1.AppService.Logs:input_type -> shared.proto.app.v1.LogsRequest
-	18, // 22: shared.proto.app.v1.AppService.Status:input_type -> shared.proto.app.v1.StatusRequest
-	21, // 23: shared.proto.app.v1.AppService.DestroyApp:input_type -> shared.proto.app.v1.DestroyAppRequest
-	23, // 24: shared.proto.app.v1.AppService.ScaleApp:input_type -> shared.proto.app.v1.ScaleAppRequest
-	15, // 25: shared.proto.app.v1.AppService.DeployApp:output_type -> shared.proto.app.v1.DeployAppResponse
-	17, // 26: shared.proto.app.v1.AppService.Logs:output_type -> shared.proto.app.v1.LogsResponse
-	19, // 27: shared.proto.app.v1.AppService.Status:output_type -> shared.proto.app.v1.StatusResponse
-	22, // 28: shared.proto.app.v1.AppService.DestroyApp:output_type -> shared.proto.app.v1.DestroyAppResponse
-	24, // 29: shared.proto.app.v1.AppService.ScaleApp:output_type -> shared.proto.app.v1.ScaleAppResponse
-	25, // [25:30] is the sub-list for method output_type
-	20, // [20:25] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	28, // 19: shared.proto.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	10, // 20: shared.proto.app.v1.UpdateEnvVarsRequest.env_vars:type_name -> shared.proto.app.v1.EnvVar
+	0,  // 21: shared.proto.app.v1.AppService.DeployApp:input_type -> shared.proto.app.v1.DeployAppRequest
+	16, // 22: shared.proto.app.v1.AppService.Logs:input_type -> shared.proto.app.v1.LogsRequest
+	18, // 23: shared.proto.app.v1.AppService.Status:input_type -> shared.proto.app.v1.StatusRequest
+	21, // 24: shared.proto.app.v1.AppService.DestroyApp:input_type -> shared.proto.app.v1.DestroyAppRequest
+	23, // 25: shared.proto.app.v1.AppService.ScaleApp:input_type -> shared.proto.app.v1.ScaleAppRequest
+	25, // 26: shared.proto.app.v1.AppService.UpdateEnvVars:input_type -> shared.proto.app.v1.UpdateEnvVarsRequest
+	15, // 27: shared.proto.app.v1.AppService.DeployApp:output_type -> shared.proto.app.v1.DeployAppResponse
+	17, // 28: shared.proto.app.v1.AppService.Logs:output_type -> shared.proto.app.v1.LogsResponse
+	19, // 29: shared.proto.app.v1.AppService.Status:output_type -> shared.proto.app.v1.StatusResponse
+	22, // 30: shared.proto.app.v1.AppService.DestroyApp:output_type -> shared.proto.app.v1.DestroyAppResponse
+	24, // 31: shared.proto.app.v1.AppService.ScaleApp:output_type -> shared.proto.app.v1.ScaleAppResponse
+	26, // 32: shared.proto.app.v1.AppService.UpdateEnvVars:output_type -> shared.proto.app.v1.UpdateEnvVarsResponse
+	27, // [27:33] is the sub-list for method output_type
+	21, // [21:27] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_shared_proto_app_v1_app_proto_init() }
@@ -1747,7 +1864,7 @@ func file_shared_proto_app_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_app_v1_app_proto_rawDesc), len(file_shared_proto_app_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

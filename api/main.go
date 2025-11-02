@@ -79,6 +79,8 @@ func main() {
 		appv1connect.AppServiceLogsProcedure,
 		appv1connect.AppServiceStatusProcedure,
 		appv1connect.AppServiceDestroyAppProcedure,
+		appv1connect.AppServiceScaleAppProcedure,
+		appv1connect.AppServiceUpdateEnvVarsProcedure,
 	)
 
 	// mount both old and new reflectors for backwards compatibility

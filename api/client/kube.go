@@ -23,13 +23,11 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/nikumar1206/loco/api/pkg/klogmux"
-	locoConfig "github.com/nikumar1206/loco/shared/config"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"k8s.io/client-go/util/homedir"
@@ -94,15 +92,15 @@ func (kc *KubernetesClient) CheckNSExists(c context.Context, namespace string) (
 }
 
 // CreateNS creates a new namespace in the Kubernetes cluster if it does not already exist.
-func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *locoConfig.LocoApp) (*v1.Namespace, error) {
-	slog.InfoContext(c, "Creating namespace", "namespace", locoApp.Namespace)
-	exists, err := kc.CheckNSExists(c, locoApp.Namespace)
+func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *LocoApp) (*v1.Namespace, error) {
+	slog.InfoContext(c, "Creating namespace", "namespace", locoApp.NamespaceName())
+	exists, err := kc.CheckNSExists(c, locoApp.NamespaceName())
 	if err != nil {
 		return nil, err
 	}
 
 	if exists {
-		slog.WarnContext(c, "Namespace already exists", "namespace", locoApp.Namespace)
+		slog.WarnContext(c, "Namespace already exists", "namespace", locoApp.NamespaceName())
 		return nil, nil
 	}
 	// add label for allowing GW routes
@@ -111,14 +109,14 @@ func (kc *KubernetesClient) CreateNS(c context.Context, locoApp *locoConfig.Loco
 
 	nsConfig := &v1.Namespace{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name:   locoApp.Namespace,
+			Name:   locoApp.NamespaceName(),
 			Labels: labels,
 		},
 	}
 
 	ns, err := kc.ClientSet.CoreV1().Namespaces().Create(c, nsConfig, metaV1.CreateOptions{})
 	if err != nil {
-		slog.ErrorContext(c, "Failed to create namespace", "namespace", locoApp.Namespace, "error", err)
+		slog.ErrorContext(c, "Failed to create namespace", "namespace", locoApp.NamespaceName(), "error", err)
 		return nil, err
 	}
 
@@ -181,9 +179,9 @@ func (kc *KubernetesClient) CheckDeploymentExists(ctx context.Context, namespace
 }
 
 // CreateDeployment creates a Deployment if it doesn't exist.
-func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoConfig.LocoApp, containerImage string, secrets *v1.Secret) (*appsV1.Deployment, error) {
-	slog.InfoContext(ctx, "Creating deployment", "namespace", locoApp.Namespace, "deployment", locoApp.Name)
-	existing, err := kc.CheckDeploymentExists(ctx, locoApp.Namespace, locoApp.Name)
+func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *LocoApp, containerImage string, secrets *v1.Secret) (*appsV1.Deployment, error) {
+	slog.InfoContext(ctx, "Creating deployment", "namespace", locoApp.NamespaceName(), "deployment", locoApp.Name)
+	existing, err := kc.CheckDeploymentExists(ctx, locoApp.NamespaceName(), locoApp.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check deployment existence: %w", err)
 	}
@@ -193,99 +191,8 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, locoApp *locoC
 		return nil, nil
 	}
 
-	deployment := &appsV1.Deployment{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-		Spec: appsV1.DeploymentSpec{
-			Replicas: &[]int32{DefaultReplicas}[0],
-			Selector: &metaV1.LabelSelector{
-				MatchLabels: map[string]string{
-					locoConfig.LabelAppName: locoApp.Name,
-				},
-			},
-			Strategy: appsV1.DeploymentStrategy{
-				Type: appsV1.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &appsV1.RollingUpdateDeployment{
-					MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: MaxSurgePercent},
-					MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: MaxUnavailablePercent},
-				},
-			},
-			RevisionHistoryLimit: &[]int32{MaxReplicaHistory}[0],
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metaV1.ObjectMeta{
-					Labels: locoApp.Labels,
-				},
-				Spec: v1.PodSpec{
-					RestartPolicy: v1.RestartPolicyAlways,
-					ImagePullSecrets: []v1.LocalObjectReference{
-						{
-							Name: fmt.Sprintf("%s-registry-credentials", locoApp.Name),
-						},
-					},
-					ServiceAccountName: locoApp.Name,
-					Containers: []v1.Container{
-						{
-							Name:  locoApp.Name,
-							Image: containerImage,
-							SecurityContext: &v1.SecurityContext{
-								AllowPrivilegeEscalation: ptrToBool(false),
-								Privileged:               ptrToBool(false),
-								ReadOnlyRootFilesystem:   ptrToBool(true),
-								RunAsNonRoot:             ptrToBool(true),
-								Capabilities: &v1.Capabilities{
-									Drop: []v1.Capability{"ALL"},
-								},
-							},
-							Ports: []v1.ContainerPort{
-								{
-									ContainerPort: locoApp.Config.Routing.Port,
-								},
-							},
-
-							EnvFrom: []v1.EnvFromSource{
-								{
-									SecretRef: &v1.SecretEnvSource{
-										LocalObjectReference: v1.LocalObjectReference{
-											Name: secrets.Name,
-										},
-									},
-								},
-							},
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Resources.Cpu),
-									v1.ResourceMemory: resourceMustParse(locoApp.Config.Resources.Memory),
-								},
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:    resourceMustParse(locoApp.Config.Resources.Cpu),
-									v1.ResourceMemory: resourceMustParse(locoApp.Config.Resources.Memory),
-								},
-							},
-							LivenessProbe: &v1.Probe{
-								InitialDelaySeconds:           locoApp.Config.Health.StartupGracePeriod,
-								TimeoutSeconds:                locoApp.Config.Health.Timeout,
-								PeriodSeconds:                 locoApp.Config.Health.Interval,
-								TerminationGracePeriodSeconds: ptrtoInt64(TerminationGracePeriod),
-								SuccessThreshold:              1,
-								FailureThreshold:              locoApp.Config.Health.FailThreshold,
-								ProbeHandler: v1.ProbeHandler{
-									HTTPGet: &v1.HTTPGetAction{
-										Path: locoApp.Config.Health.Path,
-										Port: intstr.FromInt32(locoApp.Config.Routing.Port),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	result, err := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace).Create(ctx, deployment, metaV1.CreateOptions{})
+	deployment := locoApp.DeploymentSpec(containerImage)
+	result, err := kc.ClientSet.AppsV1().Deployments(locoApp.NamespaceName()).Create(ctx, deployment, metaV1.CreateOptions{})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create deployment", "deployment", locoApp.Name, "error", err)
 		return nil, err
@@ -305,10 +212,10 @@ func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, s
 }
 
 // CreateService creates a Service for the specified deployment in the given namespace.
-func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1.Service, error) {
-	slog.InfoContext(ctx, "Creating service", "namespace", locoApp.Namespace, "name", locoApp.Name)
+func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *LocoApp) (*v1.Service, error) {
+	slog.InfoContext(ctx, "Creating service", "namespace", locoApp.NamespaceName(), "name", locoApp.Name)
 
-	exists, err := kc.CheckServiceExists(ctx, locoApp.Namespace, locoApp.Name)
+	exists, err := kc.CheckServiceExists(ctx, locoApp.NamespaceName(), locoApp.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check service existence: %w", err)
 	}
@@ -317,34 +224,9 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConf
 		return nil, nil
 	}
 
-	service := &v1.Service{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-		},
-		Spec: v1.ServiceSpec{
-			Type: v1.ServiceTypeClusterIP,
-			Selector: map[string]string{
-				locoConfig.LabelAppName: locoApp.Name,
-			},
-			SessionAffinity: v1.ServiceAffinityNone,
-			SessionAffinityConfig: &v1.SessionAffinityConfig{
-				ClientIP: &v1.ClientIPConfig{
-					TimeoutSeconds: &[]int32{SessionAffinityTimeout}[0],
-				},
-			},
-			Ports: []v1.ServicePort{
-				{
-					Name:       locoApp.Name,
-					Protocol:   v1.ProtocolTCP,
-					Port:       DefaultServicePort,
-					TargetPort: intstr.FromInt32(locoApp.Config.Routing.Port),
-				},
-			},
-		},
-	}
+	service := locoApp.ServiceSpec()
 
-	result, err := kc.ClientSet.CoreV1().Services(locoApp.Namespace).Create(ctx, service, metaV1.CreateOptions{})
+	result, err := kc.ClientSet.CoreV1().Services(locoApp.NamespaceName()).Create(ctx, service, metaV1.CreateOptions{})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create service", "name", locoApp.Name, "error", err)
 		return nil, err
@@ -354,96 +236,22 @@ func (kc *KubernetesClient) CreateService(ctx context.Context, locoApp *locoConf
 	return result, nil
 }
 
-func (kc *KubernetesClient) CreateSecret(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1.Secret, error) {
-	secretData := make(map[string][]byte)
-	for _, envVar := range locoApp.EnvVars {
-		secretData[envVar.Name] = []byte(envVar.Value)
-	}
-
-	secretConfig := &v1.Secret{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-		Data: secretData,
-		Type: v1.SecretTypeOpaque,
-	}
-
-	return kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Create(ctx, secretConfig, metaV1.CreateOptions{})
+func (kc *KubernetesClient) CreateSecret(ctx context.Context, locoApp *LocoApp) (*v1.Secret, error) {
+	secretConfig := locoApp.SecretSpec()
+	return kc.ClientSet.CoreV1().Secrets(locoApp.NamespaceName()).Create(ctx, secretConfig, metaV1.CreateOptions{})
 }
 
-func (kc *KubernetesClient) UpdateSecret(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1.Secret, error) {
-	secretData := make(map[string][]byte)
-	for _, envVar := range locoApp.EnvVars {
-		secretData[envVar.Name] = []byte(envVar.Value)
-	}
-
-	secretConfig := &v1.Secret{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-		Data: secretData,
-		Type: v1.SecretTypeOpaque,
-	}
-
-	return kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(ctx, secretConfig, metaV1.UpdateOptions{})
+func (kc *KubernetesClient) UpdateSecret(ctx context.Context, locoApp *LocoApp) (*v1.Secret, error) {
+	secretConfig := locoApp.SecretSpec()
+	return kc.ClientSet.CoreV1().Secrets(locoApp.NamespaceName()).Update(ctx, secretConfig, metaV1.UpdateOptions{})
 }
 
 // CreateHTTPRoute creates an HTTPRoute for the application
-func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1Gateway.HTTPRoute, error) {
-	hostname := fmt.Sprintf("%s.deploy-app.com", locoApp.Subdomain)
-	pathType := v1Gateway.PathMatchPathPrefix
-	timeout := DefaultRequestTimeout
+func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *LocoApp) (*v1Gateway.HTTPRoute, error) {
+	route := locoApp.HTTPRouteSpec()
+	hostname := route.Spec.Hostnames[0] // Extract hostname for logging
 
-	route := &v1Gateway.HTTPRoute{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-		},
-
-		Spec: v1Gateway.HTTPRouteSpec{
-			CommonRouteSpec: v1Gateway.CommonRouteSpec{
-				ParentRefs: []v1Gateway.ParentReference{
-					{
-						Name:      v1Gateway.ObjectName(LocoGatewayName),
-						Namespace: ptrToNamespace(LocoNS),
-					},
-				},
-			},
-			Hostnames: []v1Gateway.Hostname{v1Gateway.Hostname(hostname)},
-			Rules: []v1Gateway.HTTPRouteRule{
-				{
-					Matches: []v1Gateway.HTTPRouteMatch{
-						{
-							Path: &v1Gateway.HTTPPathMatch{
-								Type:  &pathType,
-								Value: ptrToString(locoApp.Config.Routing.PathPrefix),
-							},
-						},
-					},
-					Timeouts: &v1Gateway.HTTPRouteTimeouts{
-						Request: ptrToDuration(timeout),
-					},
-					BackendRefs: []v1Gateway.HTTPBackendRef{
-						{
-							BackendRef: v1Gateway.BackendRef{
-								BackendObjectReference: v1Gateway.BackendObjectReference{
-									Name: v1Gateway.ObjectName(locoApp.Name),
-									Port: ptrToPortNumber(int(DefaultServicePort)),
-									Kind: ptrToKind("Service"),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	createdRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(locoApp.Namespace).Create(ctx, route, metaV1.CreateOptions{})
+	createdRoute, err := kc.GatewaySet.GatewayV1().HTTPRoutes(locoApp.NamespaceName()).Create(ctx, route, metaV1.CreateOptions{})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create HTTPRoute", "name", locoApp.Name, "error", err)
 		return nil, err
@@ -452,7 +260,7 @@ func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, locoApp *locoCo
 	return createdRoute, nil
 }
 
-func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *locoConfig.LocoApp, registry DockerRegistryConfig) error {
+func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *LocoApp, registry DockerRegistryConfig) error {
 	auth := map[string]any{
 		"auths": map[string]any{
 			registry.Server: map[string]string{
@@ -474,7 +282,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *l
 	secret := &v1.Secret{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      secretName,
-			Namespace: locoApp.Namespace,
+			Namespace: locoApp.NamespaceName(),
 			Labels:    locoApp.Labels,
 		},
 		Type: v1.SecretTypeDockerConfigJson,
@@ -483,7 +291,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *l
 		},
 	}
 
-	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Create(c, secret, metaV1.CreateOptions{})
+	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.NamespaceName()).Create(c, secret, metaV1.CreateOptions{})
 	if err != nil {
 		slog.ErrorContext(c, err.Error())
 		return fmt.Errorf("failed to create secret: %w", err)
@@ -491,7 +299,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(c context.Context, locoApp *l
 	return nil
 }
 
-func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *locoConfig.LocoApp, registry DockerRegistryConfig) error {
+func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *LocoApp, registry DockerRegistryConfig) error {
 	auth := map[string]any{
 		"auths": map[string]any{
 			registry.Server: map[string]string{
@@ -513,7 +321,7 @@ func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *l
 	secret := &v1.Secret{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      secretName,
-			Namespace: locoApp.Namespace,
+			Namespace: locoApp.NamespaceName(),
 			Labels:    locoApp.Labels,
 		},
 		Type: v1.SecretTypeDockerConfigJson,
@@ -522,7 +330,7 @@ func (kc *KubernetesClient) UpdateDockerPullSecret(c context.Context, locoApp *l
 		},
 	}
 
-	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.Namespace).Update(c, secret, metaV1.UpdateOptions{})
+	_, err = kc.ClientSet.CoreV1().Secrets(locoApp.NamespaceName()).Update(c, secret, metaV1.UpdateOptions{})
 	if err != nil {
 		slog.ErrorContext(c, err.Error())
 		return fmt.Errorf("failed to update secret: %w", err)
@@ -624,8 +432,8 @@ func (kc *KubernetesClient) GetLogs(
 	}
 }
 
-func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *locoConfig.LocoApp) error {
-	deploymentsClient := kc.ClientSet.AppsV1().Deployments(locoApp.Namespace)
+func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *LocoApp) error {
+	deploymentsClient := kc.ClientSet.AppsV1().Deployments(locoApp.NamespaceName())
 
 	deployment, err := deploymentsClient.Get(ctx, locoApp.Name, metaV1.GetOptions{})
 	if err != nil {
@@ -653,58 +461,19 @@ func (kc *KubernetesClient) UpdateContainer(ctx context.Context, locoApp *locoCo
 	return nil
 }
 
-func (kc *KubernetesClient) CreateServiceAccount(ctx context.Context, locoApp *locoConfig.LocoApp) (*v1.ServiceAccount, error) {
-	sa := &v1.ServiceAccount{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-	}
-	return kc.ClientSet.CoreV1().ServiceAccounts(locoApp.Namespace).Create(ctx, sa, metaV1.CreateOptions{})
+func (kc *KubernetesClient) CreateServiceAccount(ctx context.Context, locoApp *LocoApp) (*v1.ServiceAccount, error) {
+	sa := locoApp.ServiceAccountSpec()
+	return kc.ClientSet.CoreV1().ServiceAccounts(locoApp.NamespaceName()).Create(ctx, sa, metaV1.CreateOptions{})
 }
 
-func (kc *KubernetesClient) CreateRole(ctx context.Context, locoApp *locoConfig.LocoApp, secret *v1.Secret) (*rbacV1.Role, error) {
-	role := &rbacV1.Role{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-		Rules: []rbacV1.PolicyRule{
-			{
-				APIGroups:     []string{""},
-				Resources:     []string{"secrets"},
-				Verbs:         []string{"get", "list", "watch"},
-				ResourceNames: []string{secret.Name},
-			},
-		},
-	}
-	return kc.ClientSet.RbacV1().Roles(locoApp.Namespace).Create(ctx, role, metaV1.CreateOptions{})
+func (kc *KubernetesClient) CreateRole(ctx context.Context, locoApp *LocoApp, secret *v1.Secret) (*rbacV1.Role, error) {
+	role := locoApp.RoleSpec(secret)
+	return kc.ClientSet.RbacV1().Roles(locoApp.NamespaceName()).Create(ctx, role, metaV1.CreateOptions{})
 }
 
-func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, locoApp *locoConfig.LocoApp) (*rbacV1.RoleBinding, error) {
-	rb := &rbacV1.RoleBinding{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      locoApp.Name,
-			Namespace: locoApp.Namespace,
-			Labels:    locoApp.Labels,
-		},
-
-		Subjects: []rbacV1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      locoApp.Name,
-				Namespace: locoApp.Namespace,
-			},
-		},
-		RoleRef: rbacV1.RoleRef{
-			Kind:     "Role",
-			Name:     locoApp.Name,
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-	}
-	return kc.ClientSet.RbacV1().RoleBindings(locoApp.Namespace).Create(ctx, rb, metaV1.CreateOptions{})
+func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, locoApp *LocoApp) (*rbacV1.RoleBinding, error) {
+	rb := locoApp.RoleBindingSpec()
+	return kc.ClientSet.RbacV1().RoleBindings(locoApp.NamespaceName()).Create(ctx, rb, metaV1.CreateOptions{})
 }
 
 func (kc *KubernetesClient) GetCertificateExpiry(ctx context.Context, namespace, certName string) (time.Time, error) {
@@ -729,7 +498,7 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	createdAtStr := deployment.Labels[locoConfig.LabelAppCreatedAt]
+	createdAtStr := deployment.Labels[LabelAppCreatedAt]
 
 	var createdAt time.Time
 	if createdAtStr != "" {
@@ -744,7 +513,7 @@ func (kc *KubernetesClient) GetDeploymentStatus(ctx context.Context, namespace, 
 	}
 
 	pods, err := kc.ClientSet.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", locoConfig.LabelAppName, appName),
+		LabelSelector: fmt.Sprintf("%s=%s", LabelAppName, appName),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
@@ -866,14 +635,6 @@ func buildCertManagerClient(config *rest.Config) certmanagerv1.Interface {
 	return certClient
 }
 
-func resourceMustParse(value string) resource.Quantity {
-	q, err := resource.ParseQuantity(value)
-	if err != nil {
-		panic(err)
-	}
-	return q
-}
-
 func ptrToString(s string) *string { return &s }
 func ptrtoInt64(i int64) *int64    { return &i }
 
@@ -936,6 +697,51 @@ func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appN
 	_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
+	}
+
+	return nil
+}
+
+func (kc *KubernetesClient) UpdateEnvVars(ctx context.Context, locoApp *LocoApp, envVars []*appv1.EnvVar, restart bool) error {
+	secretsClient := kc.ClientSet.CoreV1().Secrets(locoApp.NamespaceName())
+
+	secretName := locoApp.EnvSecretName()
+	secret, err := secretsClient.Get(ctx, secretName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	// Update the secret data
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+	for _, envVar := range envVars {
+		secret.Data[envVar.Name] = []byte(envVar.Value)
+	}
+
+	_, err = secretsClient.Update(ctx, secret, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+
+	if restart {
+		// Trigger rollout by updating the deployment's annotation
+		deploymentsClient := kc.ClientSet.AppsV1().Deployments(locoApp.NamespaceName())
+		deploymentName := locoApp.DeploymentName()
+		deployment, err := deploymentsClient.Get(ctx, deploymentName, metaV1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get deployment: %w", err)
+		}
+
+		if deployment.Spec.Template.Annotations == nil {
+			deployment.Spec.Template.Annotations = make(map[string]string)
+		}
+		deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+
+		_, err = deploymentsClient.Update(ctx, deployment, metaV1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update deployment: %w", err)
+		}
 	}
 
 	return nil

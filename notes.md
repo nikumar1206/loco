@@ -208,4 +208,5 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
   - Digital Ocean / Cloud provder secret.
   - GH Oauth Client Secret (to identify)
 
-- there is still the shared loco.go file inside internal and shared. lord help me how do i fix this module oopsie.
+- deployment scripts need to actually have some tests lol
+- generic webhook for notifying admins on failures.

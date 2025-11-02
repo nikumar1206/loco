@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -267,58 +266,6 @@ func parseRetention(value string) (time.Duration, error) {
 		return time.Hour * 24 * time.Duration(days), nil
 	}
 	return time.ParseDuration(value)
-}
-
-type LocoApp struct {
-	EnvVars        []*appv1.EnvVar
-	CreatedAt      time.Time
-	Name           string
-	Namespace      string
-	CreatedBy      string
-	ContainerImage string
-	Subdomain      string
-	Labels         map[string]string
-	Config         *appv1.LocoConfig
-}
-
-func NewLocoApp(config *appv1.LocoConfig, createdBy string, containerImage string, envVars []*appv1.EnvVar) *LocoApp {
-	ns := GenerateNameSpace(config.Metadata.Name, createdBy)
-	labels := generateLabels(config.Metadata.Name, ns, createdBy)
-	return &LocoApp{
-		Name:           config.Metadata.Name,
-		Namespace:      ns,
-		Subdomain:      config.Routing.Subdomain,
-		CreatedBy:      createdBy,
-		CreatedAt:      time.Now(),
-		Labels:         labels,
-		EnvVars:        envVars,
-		Config:         config,
-		ContainerImage: containerImage,
-	}
-}
-
-func IsBannedSubDomain(subdomain string) bool {
-	return slices.Contains(BannedSubdomains, subdomain) || strings.Contains(subdomain, "loco")
-}
-
-func GenerateNameSpace(name string, username string) string {
-	appName := strings.ToLower(strings.TrimSpace(name))
-	userName := strings.ToLower(strings.TrimSpace(username))
-
-	return appName + "-" + userName
-}
-
-func generateLabels(name, namespace, createdBy string) map[string]string {
-	return map[string]string{
-		LabelAppName:       name,
-		LabelAppInstance:   namespace,
-		LabelAppVersion:    "1.0.0",
-		LabelAppComponent:  "backend",
-		LabelAppPartOf:     "loco-platform",
-		LabelAppManagedBy:  "loco",
-		LabelAppCreatedFor: createdBy,
-		LabelAppCreatedAt:  time.Now().UTC().Format("20060102T150405Z"),
-	}
 }
 
 type Config struct {

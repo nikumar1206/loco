@@ -43,6 +43,9 @@ const (
 	AppServiceDestroyAppProcedure = "/shared.proto.app.v1.AppService/DestroyApp"
 	// AppServiceScaleAppProcedure is the fully-qualified name of the AppService's ScaleApp RPC.
 	AppServiceScaleAppProcedure = "/shared.proto.app.v1.AppService/ScaleApp"
+	// AppServiceUpdateEnvVarsProcedure is the fully-qualified name of the AppService's UpdateEnvVars
+	// RPC.
+	AppServiceUpdateEnvVarsProcedure = "/shared.proto.app.v1.AppService/UpdateEnvVars"
 )
 
 // AppServiceClient is a client for the shared.proto.app.v1.AppService service.
@@ -52,6 +55,7 @@ type AppServiceClient interface {
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
 	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
+	UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error)
 }
 
 // NewAppServiceClient constructs a client for the shared.proto.app.v1.AppService service. By
@@ -95,16 +99,23 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
 			connect.WithClientOptions(opts...),
 		),
+		updateEnvVars: connect.NewClient[v1.UpdateEnvVarsRequest, v1.UpdateEnvVarsResponse](
+			httpClient,
+			baseURL+AppServiceUpdateEnvVarsProcedure,
+			connect.WithSchema(appServiceMethods.ByName("UpdateEnvVars")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // appServiceClient implements AppServiceClient.
 type appServiceClient struct {
-	deployApp  *connect.Client[v1.DeployAppRequest, v1.DeployAppResponse]
-	logs       *connect.Client[v1.LogsRequest, v1.LogsResponse]
-	status     *connect.Client[v1.StatusRequest, v1.StatusResponse]
-	destroyApp *connect.Client[v1.DestroyAppRequest, v1.DestroyAppResponse]
-	scaleApp   *connect.Client[v1.ScaleAppRequest, v1.ScaleAppResponse]
+	deployApp     *connect.Client[v1.DeployAppRequest, v1.DeployAppResponse]
+	logs          *connect.Client[v1.LogsRequest, v1.LogsResponse]
+	status        *connect.Client[v1.StatusRequest, v1.StatusResponse]
+	destroyApp    *connect.Client[v1.DestroyAppRequest, v1.DestroyAppResponse]
+	scaleApp      *connect.Client[v1.ScaleAppRequest, v1.ScaleAppResponse]
+	updateEnvVars *connect.Client[v1.UpdateEnvVarsRequest, v1.UpdateEnvVarsResponse]
 }
 
 // DeployApp calls shared.proto.app.v1.AppService.DeployApp.
@@ -132,6 +143,11 @@ func (c *appServiceClient) ScaleApp(ctx context.Context, req *connect.Request[v1
 	return c.scaleApp.CallUnary(ctx, req)
 }
 
+// UpdateEnvVars calls shared.proto.app.v1.AppService.UpdateEnvVars.
+func (c *appServiceClient) UpdateEnvVars(ctx context.Context, req *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error) {
+	return c.updateEnvVars.CallUnary(ctx, req)
+}
+
 // AppServiceHandler is an implementation of the shared.proto.app.v1.AppService service.
 type AppServiceHandler interface {
 	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest], *connect.ServerStream[v1.DeployAppResponse]) error
@@ -139,6 +155,7 @@ type AppServiceHandler interface {
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
 	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
 	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
+	UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error)
 }
 
 // NewAppServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -178,6 +195,12 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
 		connect.WithHandlerOptions(opts...),
 	)
+	appServiceUpdateEnvVarsHandler := connect.NewUnaryHandler(
+		AppServiceUpdateEnvVarsProcedure,
+		svc.UpdateEnvVars,
+		connect.WithSchema(appServiceMethods.ByName("UpdateEnvVars")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/shared.proto.app.v1.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AppServiceDeployAppProcedure:
@@ -190,6 +213,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 			appServiceDestroyAppHandler.ServeHTTP(w, r)
 		case AppServiceScaleAppProcedure:
 			appServiceScaleAppHandler.ServeHTTP(w, r)
+		case AppServiceUpdateEnvVarsProcedure:
+			appServiceUpdateEnvVarsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -217,4 +242,8 @@ func (UnimplementedAppServiceHandler) DestroyApp(context.Context, *connect.Reque
 
 func (UnimplementedAppServiceHandler) ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.ScaleApp is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.UpdateEnvVars is not implemented"))
 }

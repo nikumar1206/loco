@@ -65,5 +65,5 @@ func initLogger(cmd *cobra.Command) error {
 }
 
 func init() {
-	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd, scaleCmd)
+	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd, scaleCmd, envCmd)
 }
