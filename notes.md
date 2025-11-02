@@ -183,4 +183,7 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - remove host from persistent flag.
 - update system design diagram to represent observability.
 - deploy needs to do a diff of the previous deployment done on loco, vs the incoming, and only update the resources that need changing.
+
   - can likely do this client side as well
+
+- should run cleanup resources if deployment fails anywhere.

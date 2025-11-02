@@ -100,10 +100,20 @@ func (s *AppServer) DeployApp(
 	}
 
 	// Create new app flow
+	cleanupNeeded := false
 	if _, err := s.Kc.CreateNS(ctx, app); err != nil {
 		slog.ErrorContext(ctx, err.Error())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create namespace: %w", err))
 	}
+	cleanupNeeded = true
+	defer func() {
+		if cleanupNeeded {
+			slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.Namespace)
+			if delErr := s.Kc.DeleteNS(ctx, app.Namespace); delErr != nil {
+				slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.Namespace, "error", delErr)
+			}
+		}
+	}()
 
 	expiry := time.Now().Add(5 * time.Minute).UTC().Format("2006-01-02T15:04:05-0700")
 	payload := map[string]any{
@@ -156,6 +166,7 @@ func (s *AppServer) DeployApp(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create http route: %w", err))
 	}
 
+	cleanupNeeded = false
 	return connect.NewResponse(&appv1.DeployAppResponse{
 		Message: "Deployment and service created successfully",
 	}), nil
