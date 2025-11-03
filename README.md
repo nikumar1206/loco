@@ -60,10 +60,10 @@ A very simple app (currently deployed on loco) can be found here: [example-test-
 
 ### Kubernetes Setup
 
-- **Cilium:** For networking and observability.
-- **Envoy:** As a reverse proxy, using the Gateway API.
-- **cert-manager:** For automatic SSL certificate management (Let's Encrypt).
-- **OpenTelemetry:** For observability; collects metrics, logs, and eventually tracing.
+- **Cilium:** Implements the CNI (Container Network Interface)
+- **Envoy:** Implements the 'new' Kubernetes Gateway API. Responsible for routing, TLS termination, enabling HTTP3
+- **cert-manager:** For automatic SSL certificate management for various components. (Let's Encrypt).
+- **OpenTelemetry:** For observability; collects metrics, logs, and will eventually collect tracing.
 - **ClickHouse:** As the data store for observability data.
 - **Grafana:** Dashboards for visualizing metrics and logs.
 
@@ -83,8 +83,3 @@ To be added later.
 ---
 
 **Note:** This project is primarily educational, created so I can learn more about Kubernetes, networking, and security.
-
-“Engines warming up…”
-“Switching tracks…”
-“Pushing to the mainline…”
-“Pods aligned. Ready for departure.”
