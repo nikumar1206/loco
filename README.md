@@ -6,12 +6,10 @@ Loco is a container orchestration platform that simplifies application deploymen
 
 ## Features
 
-- **One click deployments** - Deploy with just `loco deploy`
-- **Automatic Builds** - Dockerfile-based container builds.
-- **Auto-scaling** - Sensible CPU based horizontal scaling that can be easily configured.
+- **Simple deployments** - Expose your app to the internet with just `loco deploy`!
+- **Simple Configuration** - Configure all app settings with a `loco.toml` file. A sample spec with sensible defaults can be generated via `loco init`.
 - **HTTPS by default** - Automatic SSL certificate management, powered by Let's Encrypt and Certificate Manager.
 - **Fast Reverse Proxy** - Envoy Gateway API serves HTTP3 traffic.
-- **Simple Configuration** - Easy setup via `loco.toml`. A sample spec can be generated via `loco init`.
 
 ## Architecture Diagram
 
@@ -26,7 +24,6 @@ go install github.com/nikumar1206/loco@latest
 ```
 
 2. **Run `loco init` to create a `loco.toml` file.**
-
 3. **Deploy your app via `loco deploy`**
 
 Your app will be available at `https://myapp.deploy-app.com`
