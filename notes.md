@@ -1,6 +1,6 @@
 - Make loco multi-tenant, multi-app setup thats backed by a database.
   - currently everything is stored in k8s; this needs to be moved to a Postgres or similar.
-  - db will source of truth, in case k8s goes down, loco should be rebuildable through the database.
+  - db will source of truth, in case k8s goes down, loco should be rebuildable through snapshots of the cluster?
 - Metrics/Logging/Tracing
   - use [OpenObserve](https://openobserve.ai/) as the combined solution
   - for Loco-API itself, we will use auto-instrumentation.
@@ -210,3 +210,8 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 
 - deployment scripts need to actually have some tests lol
 - generic webhook for notifying admins on failures.
+
+- restrict network policies.
+- oh man do we need to do an MCP server.
+
+- otel logs, if structured, we should parse out the severity (level)

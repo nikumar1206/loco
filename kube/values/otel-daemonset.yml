@@ -5,6 +5,9 @@ image:
     repository: otel/opentelemetry-collector-contrib
     tag: 0.138.0
 
+hostNetwork: true
+dnsPolicy: ClusterFirstWithHostNet
+
 # Required to use the kubeletstats cpu/memory utilization metrics
 clusterRole:
     create: true
@@ -44,7 +47,7 @@ config:
         kubeletstats:
             collection_interval: 20s
             auth_type: "serviceAccount"
-            endpoint: "${env:K8S_NODE_NAME}:10250"
+            endpoint: "https://127.0.0.1:10250"
             insecure_skip_verify: true
             metrics:
                 k8s.pod.cpu_limit_utilization:
