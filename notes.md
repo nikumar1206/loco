@@ -215,3 +215,16 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - oh man do we need to do an MCP server.
 
 - otel logs, if structured, we should parse out the severity (level)
+
+Clickhouse logs issues:
+
+- clickhouse potential sql injection with this limits + query
+- queries are also relatively slow; we should index on the app-id/wkspce-id
+  - this will require custom schema definition, and some manual sql work.
+- introduce a way to ignore some substrings
+- introduce ascending/descending timestamp order
+- arbitrary filters can be added no way?
+- lol is stuff being ttl'ed?
+- move clickhouse monitoring to admin dashboard only
+- see how to show all the fields and not just the body?
+- validate clickhousedb resources we gave it. 750mb might not be enuf?
