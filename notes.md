@@ -11,6 +11,7 @@
 
   - introduce multi-profile deployments to handle dev, uat, prod deployments.
   - `loco deploy --profile=dev`
+    - maybe profiles are just staging and production
   - profiles should be specifiable in loco.toml.
 
     ```toml
