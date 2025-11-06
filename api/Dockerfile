@@ -6,8 +6,10 @@ ENV CGO_ENABLED=0 \
 
 WORKDIR /app
 
-COPY api/go.mod api/go.sum ./
+COPY api ./api
+COPY shared ./shared
 
+WORKDIR /app/api
 
 RUN go mod download
 
@@ -17,6 +19,6 @@ FROM debian:bookworm-slim
 
 WORKDIR /
 
-COPY --from=builder /app/loco-api .
+COPY --from=builder /app/api/loco-api .
 
 ENTRYPOINT ["/loco-api"]
