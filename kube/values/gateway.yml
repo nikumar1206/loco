@@ -1,5 +1,8 @@
 config:
     envoyGateway:
+        logging:
+            level: null
+            default: info
         telemetry:
             metrics:
                 prometheus:
@@ -9,3 +12,4 @@ config:
                       openTelemetry:
                           host: clickhouse-otel-deploy-opentelemetry-collector.observability.svc.cluster.local
                           port: 4317
+                          protocol: grpc

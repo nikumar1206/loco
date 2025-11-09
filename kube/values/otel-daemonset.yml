@@ -50,31 +50,31 @@ presets:
 
 config:
     receivers:
-        prometheus/hubble:
-            config:
-                scrape_configs:
-                    - job_name: "hubble"
-                      scrape_interval: 30s
-                      kubernetes_sd_configs:
-                          - role: endpoints
-                            namespaces:
-                                names: ["kube-system"]
-                      relabel_configs:
-                          - source_labels:
-                                [
-                                    __meta_kubernetes_service_annotation_prometheus_io_scrape,
-                                ]
-                            action: keep
-                            regex: true
-                          - source_labels:
-                                [
-                                    __address__,
-                                    __meta_kubernetes_service_annotation_prometheus_io_port,
-                                ]
-                            action: replace
-                            target_label: __address__
-                            regex: (.+)(?::\d+);(\d+)
-                            replacement: $1:$2
+        # prometheus/hubble:
+        #     config:
+        #         scrape_configs:
+        #             - job_name: "hubble"
+        #               scrape_interval: 30s
+        #               kubernetes_sd_configs:
+        #                   - role: endpoints
+        #                     namespaces:
+        #                         names: ["kube-system"]
+        #               relabel_configs:
+        #                   - source_labels:
+        #                         [
+        #                             __meta_kubernetes_service_annotation_prometheus_io_scrape,
+        #                         ]
+        #                     action: keep
+        #                     regex: true
+        #                   - source_labels:
+        #                         [
+        #                             __address__,
+        #                             __meta_kubernetes_service_annotation_prometheus_io_port,
+        #                         ]
+        #                     action: replace
+        #                     target_label: __address__
+        #                     regex: (.+)(?::\d+);(\d+)
+        #                     replacement: $1:$2
         kubeletstats:
             collection_interval: 20s
             auth_type: "serviceAccount"
@@ -109,7 +109,9 @@ config:
                     enabled: true
                 container.uptime:
                     enabled: true
-                # below wont work w cilium
+                # todo: remove; below wont work w cilium. we can go back to kube-proxy
+                k8s.node.network.io:
+                    enabled: true
                 k8s.pod.network.io:
                     enabled: true
     processors:
@@ -137,6 +139,6 @@ config:
                 exporters: [clickhouse]
                 processors: [batch, memory_limiter]
             metrics:
-                receivers: [kubeletstats, prometheus/hubble]
+                receivers: [kubeletstats]
                 processors: [batch, memory_limiter]
                 exporters: [clickhouse]

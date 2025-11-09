@@ -34,6 +34,19 @@ presets:
         enabled: true
 
 config:
+    processors:
+        resource/set_service_name:
+            attributes:
+                - action: insert
+                  key: service.name
+                  from_attribute: app.kubernetes.io/name
+    receivers:
+        otlp:
+            protocols:
+                grpc:
+                    endpoint: 0.0.0.0:4317
+                http:
+                    endpoint: 0.0.0.0:4318
     exporters:
         clickhouse:
             endpoint: tcp://clickhouse-clickhouse.observability.svc.cluster.local:9000?dial_timeout=10s&compress=lz4&async_insert=1
@@ -51,4 +64,5 @@ config:
                 exporters: [clickhouse]
             metrics:
                 receivers: [otlp]
+                processors: [resource/set_service_name]
                 exporters: [clickhouse]

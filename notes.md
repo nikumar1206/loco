@@ -206,8 +206,9 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 
   - Terraform Cloud secret
   - Gitlab secret
-  - Digital Ocean / Cloud provder secret.
+  - Digital Ocean / Cloud provder secret for provisioning.
   - GH Oauth Client Secret (to identify)
+  - Cloudflare API token so that cert-manager can issue certsa and auto-renew
 
 - deployment scripts need to actually have some tests lol
 - generic webhook for notifying admins on failures.
@@ -231,9 +232,14 @@ Clickhouse logs issues:
 - validate clickhousedb resources we gave it. 750mb might not be enuf?
 
 - need a full load test on loco and its services.
-    - default envoy doesnt have any scaling attached?
+  - default envoy doesnt have any scaling attached?
 - on successful routing, we should add the loco-tenant-id, we will be able to pull it later in otel for dashboarding? not 100% what that looks like.
 
 - loco admin dashboard
-    - see how many apps are deployed on loco
-    - how many requests are currently being handled.
+
+  - see how many apps are deployed on loco
+  - how many requests are currently being handled.
+
+- theres actually tons of metrics being exported into clickhouse currently
+  - we should spend some time and optimize whats being sent.
+  - we should do this when we revisit the otel table structures

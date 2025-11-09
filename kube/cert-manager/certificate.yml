@@ -11,3 +11,9 @@ spec:
     commonName: "*.deploy-app.com"
     dnsNames:
         - "*.deploy-app.com"
+        - "*.us-east-1.deploy-app.com"
+        - "*.eu-west-1.deploy-app.com"
+        - "*.staging.us-east-1.deploy-app.com"
+        - "*.prod.us-east-1.deploy-app.com"
+        - "*.staging.eu-west-1.deploy-app.com"
+        - "*.prod.eu-west-1.deploy-app.com"

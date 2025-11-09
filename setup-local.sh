@@ -51,6 +51,12 @@ helm upgrade eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system 
 echo "Installing cert-manager..."
 helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true -i
 
+
+# below needs to be replaced with cf-token.
+kubectl create secret generic cloudflare-api-token-secret \
+  --from-literal=api-token=<dummy-token-here> \
+  -n cert-manager
+
 # Install ClickStack
 # echo "Installing ClickStack for observability..."
 
