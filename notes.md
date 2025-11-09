@@ -229,3 +229,11 @@ Clickhouse logs issues:
 - move clickhouse monitoring to admin dashboard only
 - see how to show all the fields and not just the body?
 - validate clickhousedb resources we gave it. 750mb might not be enuf?
+
+- need a full load test on loco and its services.
+    - default envoy doesnt have any scaling attached?
+- on successful routing, we should add the loco-tenant-id, we will be able to pull it later in otel for dashboarding? not 100% what that looks like.
+
+- loco admin dashboard
+    - see how many apps are deployed on loco
+    - how many requests are currently being handled.

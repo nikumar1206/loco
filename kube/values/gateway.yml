@@ -1,0 +1,11 @@
+config:
+    envoyGateway:
+        telemetry:
+            metrics:
+                prometheus:
+                    disable: true
+                sinks:
+                    - type: OpenTelemetry
+                      openTelemetry:
+                          host: clickhouse-otel-deploy-opentelemetry-collector.observability.svc.cluster.local
+                          port: 4317

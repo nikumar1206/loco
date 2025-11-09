@@ -5,13 +5,14 @@ image:
     repository: otel/opentelemetry-collector-contrib
     tag: 0.138.0
 
+# to resolve inside minikube; todo: can we remove this later?
 hostNetwork: true
 dnsPolicy: ClusterFirstWithHostNet
 
 resources:
-  limits:
-    cpu: 250m
-    memory: 512Mi
+    limits:
+        cpu: 250m
+        memory: 512Mi
 
 # Required to use the kubeletstats cpu/memory utilization metrics
 clusterRole:
@@ -21,8 +22,11 @@ clusterRole:
               - ""
           resources:
               - nodes/proxy
-          verbs:
-              - get
+              - nodes/stats
+              - endpoints
+              - services
+              - pods
+          verbs: ["get", "watch", "list"]
 
 presets:
     logsCollection:
@@ -43,17 +47,45 @@ presets:
     # Configures the collector to collect node, pod, and container metrics from the API server on a kubelet..
     # Adds the kubeletstats receiver to the metrics pipeline and adds the necessary rules to ClusterRole.
     # More Info: https://opentelemetry.io/docs/kubernetes/collector/components/#kubeletstats-receiver
-    kubeletMetrics:
-        enabled: true
 
 config:
     receivers:
-        # Configures additional kubelet metrics
+        prometheus/hubble:
+            config:
+                scrape_configs:
+                    - job_name: "hubble"
+                      scrape_interval: 30s
+                      kubernetes_sd_configs:
+                          - role: endpoints
+                            namespaces:
+                                names: ["kube-system"]
+                      relabel_configs:
+                          - source_labels:
+                                [
+                                    __meta_kubernetes_service_annotation_prometheus_io_scrape,
+                                ]
+                            action: keep
+                            regex: true
+                          - source_labels:
+                                [
+                                    __address__,
+                                    __meta_kubernetes_service_annotation_prometheus_io_port,
+                                ]
+                            action: replace
+                            target_label: __address__
+                            regex: (.+)(?::\d+);(\d+)
+                            replacement: $1:$2
         kubeletstats:
             collection_interval: 20s
             auth_type: "serviceAccount"
-            endpoint: "https://127.0.0.1:10250"
+            endpoint: "https://${env:K8S_NODE_NAME}:10250"
             insecure_skip_verify: true
+            node: "${env:K8S_NODE_NAME}"
+            k8s_api_config:
+                auth_type: serviceAccount
+            # todo: maybe remove this later each interface will increase cardinality.
+            collect_all_network_interfaces:
+                pod: true
             metrics:
                 k8s.pod.cpu_limit_utilization:
                     enabled: true
@@ -77,6 +109,9 @@ config:
                     enabled: true
                 container.uptime:
                     enabled: true
+                # below wont work w cilium
+                k8s.pod.network.io:
+                    enabled: true
     processors:
         batch:
             timeout: 1s
@@ -90,7 +125,7 @@ config:
             endpoint: tcp://clickhouse-clickhouse.observability.svc.cluster.local:9000?dial_timeout=10s&compress=lz4&async_insert=1
             # ttl: 72h
             username: default
-            password: "" # remove hardcoding.
+            password: "" # todo: remove hardcoding.
             traces_table_name: otel_traces
             logs_table_name: otel_logs
             create_schema: false
@@ -102,4 +137,6 @@ config:
                 exporters: [clickhouse]
                 processors: [batch, memory_limiter]
             metrics:
+                receivers: [kubeletstats, prometheus/hubble]
+                processors: [batch, memory_limiter]
                 exporters: [clickhouse]
