@@ -241,5 +241,11 @@ Clickhouse logs issues:
   - how many requests are currently being handled.
 
 - theres actually tons of metrics being exported into clickhouse currently
+
   - we should spend some time and optimize whats being sent.
   - we should do this when we revisit the otel table structures
+
+- for obs, we need to run cleanups after sometime for each tenant's data.
+- how do we run the cleanups?
+  - should this be defined as some sort of kubernetes cronjob?
+  - if this is in-cluster, what if cluster crashes, any chance of data not being properly removed?
