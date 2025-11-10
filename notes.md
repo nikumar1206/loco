@@ -247,5 +247,21 @@ Clickhouse logs issues:
 
 - for obs, we need to run cleanups after sometime for each tenant's data.
 - how do we run the cleanups?
+
   - should this be defined as some sort of kubernetes cronjob?
   - if this is in-cluster, what if cluster crashes, any chance of data not being properly removed?
+
+- shutdown cross cluster network traffic for namespaces with managed-by-loco.
+- and then allow only if loco-workspace matches.
+- namespace looks like wks-\*-app-\*
+
+- a user's wkspace's apps must always be deployed to the same cluster.
+- to reduce network chatter between their services; or else they won't be able to chat with their own network and will have to egress.
+
+- when user deletes wkspc/app. we need to kick off metrics/logs deletion for that entire application.
+
+- Loco Packages (eventually)
+
+  - a bundle of services. always deployed to 1 wkspc.
+  - maybe deploy to existing workspace.
+  - should support one click deletes.
