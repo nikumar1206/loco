@@ -249,6 +249,7 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
   - Digital Ocean / Cloud provder secret for provisioning.
   - GH Oauth Client Secret (to identify)
   - Cloudflare API token so that cert-manager can issue certsa and auto-renew
+  - Grafana root user secret
 
 - deployment scripts need to actually have some tests lol
 - generic webhook for notifying admins on failures.
@@ -302,6 +303,9 @@ Clickhouse logs issues:
   - save absolutely nothing.
 
 - lol tests.
+
+- on workspace / org / user creation, we need to also do the same for grafana resources.
+- most likely a 1-1 mapping, with the same RBAC as well.
 
 ---
 
