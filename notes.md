@@ -1,12 +1,35 @@
 - Make loco multi-tenant, multi-app setup thats backed by a database.
+
   - currently everything is stored in k8s; this needs to be moved to a Postgres or similar.
-  - db will source of truth, in case k8s goes down, loco should be rebuildable through snapshots of the cluster?
+  - db will source of truth, instead of checking whats deployed on the cluster every single time.
+  - will reduce load on etcd and the kube api-server, which is not designed for repititive abuse from APIs
+
+- Make loco work multi-cluster
+
+  - currently loco-api gets deployed into a cluster and manipulates kubernetes thru there
+  - but we will need multi-cluster for things like different envs, as well as multi-region
+  - can we get cross cluster metrics dashboards :O
+  - no clue what this would look like; perhaps we actually need some cross-cluster communication.
+
+- should certficates be created and managed in the region they are deployed?
+- this should technically also be a 1-time process as well; how do we manage that.
+
 - Metrics/Logging/Tracing
-  - use [OpenObserve](https://openobserve.ai/) as the combined solution
-  - for Loco-API itself, we will use auto-instrumentation.
-  - All logs/tracing/metrics must include tenant and app-id combination
+
+  - created some initial setup via handrolling otel, clickhouse, grafana.
+  - we are likely pushing completely un-necessary metrics and pushing high cardinality attributes we likely do not need at all.
+    - need to come up with a processor, that drops all the metrics we don't use.
+    - lets use a specific allow list instead?
+  - accuracy of dashboards is not clear.
+  - need to create a separate admin dashboard, or use something out of the box?
+  - metrics need multi-tenant support.
+
+    - All logs/tracing/metrics must include org-id/app-id/app-name/wkspc combination
+
   - can potentially create dashboards dynamically, or atleast pull the data down.
   - deploy a self-hosted instance on monitoring.loco.deploy-app.com
+  - tracing will be a to-do
+
 - Profiles
 
   - introduce multi-profile deployments to handle dev, uat, prod deployments.
@@ -26,22 +49,25 @@
       Replicas.Max = 5
     ```
 
-- support for GRPC routes
-  - there is potential this can only be tested
-- support for grpc/http/cmd-baed health checks
+- Health Checks
 
-- Logs Command
+  - support non http health checks?
 
-  - Support for following and tailing x logs.
+- GRPC Support
+
+  - i believe the current implementation actually allows GRPC services, but need to double check.
+
+- Logs
+
+  - get logs from clickhouse instead.
+  - only for live tail can we grab logs from kubernetes.
   - CLI table should support a simple freeze as well.
-  - -o should take json or table.
 
 - Deploy Command
 
   - take a token non-interactively via std in, maybe with simple output as well. `loco deploy --non-interactive --token {GH-TOKEN}`
   - take an image id, so that loco doesnt build the image and we get to skip some steps.
-  - introduce a wait command, that waits for everything to finish
-  - users should always get back some sort of deployment-id or eventid that can be presented for debugging purposes.
+  - these image ids for now can only be from public container registries like ghcr.
 
 - Scanning Docker Images; we have a TDD for this
 
@@ -49,29 +75,31 @@
 
   - not sure how to do this.
 
-- New commands:
+- Loco CLI:
 
+  - New Commands:
   - loco web : opens loco website in browser.
     - --dashboard, --traces? --logs, -- docs, --account
-  - loco env : syncs new env variables, without redeploying
-  - loco map
-    - generates a map of user's deployments to loco or an app's compute.
-    - --appName or like tenantid name. this is just a nice to have.
-    - project name based?
+  - loco org/wks/app/account manipulation?
 
-- seem to be some issues ensuring im grabbing the latest version of my own local packages.
-- Sometimes docker is sleeping; we need to give better errors, and maybe tell users to just specify --image if stuff keeps going wrong.
-- can we check if docker is sleeping before trying to build the image?
-- are we validating that subdomains have not been taken ?
-- similarly for grpc, we need to validate GRPC routes have not been taken
+    - dont wanna overload the cli, i wanna keep it simple.
 
-  - should be done on a per domain basis.
-  - wish we had a database!
+  - loco logout (never gonna support loco multi-account login. thats boring. logout and logback in kid.)
+  - needs to build everything from
+  -
 
-- introduce a project-id. Project id will be used to map loco.toml's together.
-- on update, we should update the service as well; my ports were different, but it didnt get applied.
-- In-Cluster Communication
+- Builders
 
+  - Sometimes docker client is sleeping; we need to give better errors, and maybe tell users to just specify --image if stuff keeps going wrong. we need to check the status of docker before even trying to connect to it.
+  - need to ensure we can deploy OCI compliant images.
+  - need to validate docker image is safe.
+  - need to validate docker image is not too large!
+
+- Service Mesh
+
+  - need to let apps deployed in the same workspace, allowed to connect via egressing to internet
+
+- Inject Loco Env Vars
   - Lets inject service URL via env variables: LOCO\_<APP_NAME>\_URL . (multiple of these, scoped to the project)
   - other env variables we can add:
     - LOCO_APP_NAME
@@ -82,22 +110,34 @@
     - LOCO_TRACING_ENDPOINT ~ this is the openobserve endpoint to submit traces to
     - LOCO_METRICS_ENDPOINT ~ this is where loco will be scraping metrics from
 
+## to-do in the future
+
 - Resurrector
-  - deployed separately from the cluster
+
+  - deployed separately from the cluster, and will always resurrect just one cluster.
+  - maybe cluster interface with like clone cluster or something.
   - continously monitors and pings cluster health status
   - if not healthy, try to diagnose? and rebuild whats broken?
   - needs to be done on a per provider basis
+  - secrets need to pulled properly
+  - need to take hourly snapshots of the cluster?
+
+- Loco Health Endpoint.
+  -API latency and uptime (last 24h)
+  -Builder queue backlog
+  -Average deploy duration
+  -“Degraded regions”
+  -Current incidents (auto-created from Prometheus/Grafana alerts)
 
 ---
 
-## Medium Priority
-
-- Set registry lifecycle policy (start with 6 months)
-- Require image prefixing with random hash
-- Only allow registry writes from our infra, not reads
-- Store only last 2 images per project
-- Support Podman / OCI-based images
-- Set max Docker image size (cluster limited)
+- Container Registry
+  - Set registry lifecycle policy (start with 6 months)
+  - Require image prefixing with random hash
+  - Only allow registry writes from our infra, not reads
+  - Store only last 2 images per project
+  - Set max Docker image size (cluster limited)
+  - Would be better to deploy our own manager container-registry via Harbor or similar.
 
 ---
 
@@ -105,7 +145,6 @@
 
 - Cleanup
   - that random config file that has too much? makes no sense
-  - timestamps should all be same fmt
 - Evaluate ArgoCD and others for better CD of kubernetes resources
 - Gitlab Container Registry Token is only procured on loco deploy; should be re-procured in case node expires, ...
 - Better handling of secrets related to Loco.
@@ -169,6 +208,7 @@ we finally have basic logs/metrics popping up.
 - loco root password will need to be auto-rotated.
 - switch to using grpc instead of http?
 - tracing will be final step, if we even implement that piece. railway/heroku dont support tracing
+- i believe missing disk metrics currently.
 
 sleep mode; if app not used in last 7 days or something. deployment is removed; can be recreated on request.
 
@@ -214,12 +254,12 @@ sleep mode; if app not used in last 7 days or something. deployment is removed; 
 - generic webhook for notifying admins on failures.
 
 - restrict network policies.
-- oh man do we need to do an MCP server.
 
 - otel logs, if structured, we should parse out the severity (level)
 
 Clickhouse logs issues:
 
+- no data stored over 30 days or X days.
 - clickhouse potential sql injection with this limits + query
 - queries are also relatively slow; we should index on the app-id/wkspce-id
   - this will require custom schema definition, and some manual sql work.
@@ -257,11 +297,46 @@ Clickhouse logs issues:
 
 - a user's wkspace's apps must always be deployed to the same cluster.
 - to reduce network chatter between their services; or else they won't be able to chat with their own network and will have to egress.
-
 - when user deletes wkspc/app. we need to kick off metrics/logs deletion for that entire application.
 
-- Loco Packages (eventually)
+  - save absolutely nothing.
+
+- lol tests.
+
+---
+
+Phase I ends Here
+
+- Loco Packages (eventually) -> Phase II of MVP.
 
   - a bundle of services. always deployed to 1 wkspc.
   - maybe deploy to existing workspace.
   - should support one click deletes.
+
+- Loco UI
+
+  - neobrutalism no cap.
+  - in orange.
+
+- Resurrector
+- cluster management
+- Profiles
+- Snapshots of Cluster and backing it up.
+
+- Custom Container Registry.
+
+- Deploy Loco via a Helm Chart?
+
+- Loco Docs.
+
+  - we will autogenerate using code x AI. i know man.
+
+- Health Endpoint
+
+- Make apps sleep and then rebuild apps.
+
+- Different app types.
+
+- Dedicated disk for each service.
+
+- resource consumption tests for loco; lets try to run it with as little resources as possible.
