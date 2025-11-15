@@ -350,3 +350,11 @@ Phase I ends Here
 - resource consumption tests for loco; lets try to run it with as little resources as possible.
 
 - reduce github ouath token longevity.
+
+- split the queries into separate packages.
+
+- setup better psql specific error handling; using something like errors.is(). i believe there is a package that can help as well.
+- lets use normal ids for everything not uuid7. code will be simpler and will automatically be sortable.
+- also just cheaper.
+
+- sql unique checks should ignore the current id;
