@@ -122,12 +122,16 @@
   - secrets need to pulled properly
   - need to take hourly snapshots of the cluster?
 
-- Loco Health Endpoint.
+- Loco Health Endpoint; served on status.deploy-app.com;
+- when we do multicluster, is there a cluster specific one.
+- should we also get \*.loco.deploy-app.com
   -API latency and uptime (last 24h)
   -Builder queue backlog
   -Average deploy duration
   -“Degraded regions”
   -Current incidents (auto-created from Prometheus/Grafana alerts)
+
+- Emailing Service?
 
 ---
 
@@ -344,3 +348,5 @@ Phase I ends Here
 - Dedicated disk for each service.
 
 - resource consumption tests for loco; lets try to run it with as little resources as possible.
+
+- reduce github ouath token longevity.
