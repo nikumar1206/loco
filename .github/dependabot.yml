@@ -3,4 +3,12 @@ updates:
     - package-ecosystem: gomod
       directory: /
       schedule:
-          interval: weekly
+          interval: daily
+    - package-ecosystem: gomod
+      directory: /api
+      schedule:
+          interval: daily
+    - package-ecosystem: gomod
+      directory: /shared
+      schedule:
+          interval: daily
