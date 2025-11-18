@@ -5,75 +5,117 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/ui"
-	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
-	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"
 )
+
+func init() {
+	eventsCmd.Flags().StringP("app", "a", "", "Application name")
+	eventsCmd.Flags().String("org", "", "organization ID")
+	eventsCmd.Flags().String("workspace", "", "workspace ID")
+	eventsCmd.Flags().String("output", "table", "Output format (table, json). Defaults to table.")
+	eventsCmd.Flags().Int32("limit", 0, "Maximum number of events to display (0 = all)")
+	eventsCmd.Flags().String("host", "", "Set the host URL")
+}
 
 var eventsCmd = &cobra.Command{
 	Use:   "events",
 	Short: "Show application events",
+	Long:  "Display Kubernetes events for an application's deployment.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		host, err := getHost(cmd)
-		if err != nil {
-			return err
-		}
-		configPath, err := parseLocoTomlPath(cmd)
-		if err != nil {
-			return err
-		}
-
-		output, err := cmd.Flags().GetString("output")
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
-		}
-
-		cfg, err := config.Load(configPath)
-		if err != nil {
-			slog.Debug("failed to load config", "path", configPath, "error", err)
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		locoToken, err := getLocoToken()
-		if err != nil {
-			slog.Debug("Error retrieving loco token", "error", err)
-			return fmt.Errorf("loco token not found. Please login via `loco login`")
-		}
-		client := appv1connect.NewAppServiceClient(http.DefaultClient, host)
-
-		req := connect.NewRequest(&appv1.StatusRequest{
-			AppName: cfg.LocoConfig.Metadata.Name,
-		})
-		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
-
-		res, err := client.Status(context.Background(), req)
-		if err != nil {
-			slog.Debug("failed to get app status", "app_name", cfg.LocoConfig.Metadata.Name, "error", err)
-			return err
-		}
-		slog.Debug("retrieved app status", "status", res.Msg.Status)
-
-		if output == "json" {
-			return printEventsJSON(res.Msg.Events)
-		}
-
-		printEvents(res.Msg.Events)
-
-		return nil
+		return eventsCmdFunc(cmd)
 	},
 }
 
-func printEvents(events []*appv1.Event) {
+func eventsCmdFunc(cmd *cobra.Command) error {
+	ctx := context.Background()
+
+	host, err := getHost(cmd)
+	if err != nil {
+		return err
+	}
+
+	workspaceID, err := getWorkspaceId(cmd)
+	if err != nil {
+		return err
+	}
+
+	appName, err := cmd.Flags().GetString("app")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	if appName == "" {
+		return fmt.Errorf("app name is required. Use --app flag")
+	}
+
+	output, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	limit, err := cmd.Flags().GetInt32("limit")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		return ErrLoginRequired
+	}
+
+	apiClient := client.NewClient(host, locoToken.Token)
+
+	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+
+	appList, err := apiClient.ListApps(ctx, fmt.Sprintf("%d", workspaceID))
+	if err != nil {
+		slog.Debug("failed to list apps", "error", err)
+		return fmt.Errorf("failed to list apps: %w", err)
+	}
+
+	var appID int64
+	for _, app := range appList {
+		if app.Name == appName {
+			appID = app.Id
+			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
+			break
+		}
+	}
+
+	if appID == 0 {
+		return fmt.Errorf("app '%s' not found in workspace", appName)
+	}
+
+	slog.Debug("fetching events for app", "app_id", appID, "app_name", appName)
+
+	var limitPtr *int32
+	if limit > 0 {
+		limitPtr = &limit
+	}
+
+	events, err := apiClient.GetEvents(ctx, appID, limitPtr)
+	if err != nil {
+		slog.Error("failed to fetch events", "error", err)
+		return fmt.Errorf("failed to fetch events: %w", err)
+	}
+
+	if output == "json" {
+		return printEventsJSON(events)
+	}
+
+	printEventsTable(events)
+	return nil
+}
+
+func printEventsTable(events []*appv1.Event) {
 	if len(events) == 0 {
 		fmt.Println("No events found.")
 		return
@@ -128,10 +170,4 @@ func printEventsJSON(events []*appv1.Event) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(events)
-}
-
-func init() {
-	eventsCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
-	eventsCmd.Flags().StringP("output", "o", "table", "Output format: table | json")
-	eventsCmd.Flags().String("host", "", "Loco API host")
 }

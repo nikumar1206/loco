@@ -11,50 +11,71 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	initCmd.Flags().BoolP("force", "f", false, "Force overwrite of existing loco.toml file")
+	initCmd.Flags().StringP("name", "n", "", "Application name (skips interactive prompt)")
+}
+
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Loco project",
+	Long:  "Create a new loco.toml configuration file in the current directory.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		force, err := cmd.Flags().GetBool("force")
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrFlagParsing, err)
-		}
+		return initCmdFunc(cmd)
+	},
+}
 
-		if _, statErr := os.Stat("loco.toml"); statErr == nil && !force {
+func initCmdFunc(cmd *cobra.Command) error {
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return fmt.Errorf("error reading force flag: %w", err)
+	}
+	// todo: below code is very ugly.
+	appName, err := cmd.Flags().GetString("name")
+	if err != nil {
+		return fmt.Errorf("error reading name flag: %w", err)
+	}
+
+	if _, statErr := os.Stat("loco.toml"); statErr == nil && !force {
+		if appName == "" {
 			overwrite, askErr := ui.AskYesNo("A loco.toml file already exists. Do you want to overwrite it?")
 			if askErr != nil {
-				return fmt.Errorf("%w: %w", ErrCommandFailed, askErr)
+				return fmt.Errorf("failed to prompt user: %w", askErr)
 			}
 			if !overwrite {
 				fmt.Println("Aborted.")
 				return nil
 			}
+		} else {
+			return fmt.Errorf("loco.toml already exists. Use --force to overwrite")
 		}
+	}
 
-		appName, err := ui.AskForString("Enter the name of your application: ")
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrCommandFailed, err)
+	if appName == "" {
+		var askErr error
+		appName, askErr = ui.AskForString("Enter the name of your application (press Enter to use directory name): ")
+		if askErr != nil {
+			return fmt.Errorf("failed to read app name: %w", askErr)
 		}
+	}
 
-		if appName == "" {
-			workingDir, getwdErr := os.Getwd()
-			if getwdErr != nil {
-				return fmt.Errorf("%w: %w", ErrFileAccess, getwdErr)
-			}
-			_, dirName := filepath.Split(workingDir)
-			appName = dirName
+	if appName == "" {
+		workingDir, getwdErr := os.Getwd()
+		if getwdErr != nil {
+			return fmt.Errorf("failed to get working directory: %w", getwdErr)
 		}
+		_, dirName := filepath.Split(workingDir)
+		appName = dirName
+	}
 
-		if err := config.CreateDefault(appName); err != nil {
-			return fmt.Errorf("%w: %w", ErrConfigLoad, err)
-		}
+	if err := config.CreateDefault(appName); err != nil {
+		return fmt.Errorf("failed to create loco.toml: %w", err)
+	}
 
-		style := lipgloss.NewStyle().Foreground(ui.LocoLightGreen).Bold(true)
-		cmd.Printf("Created a %s in the working directory.\n", style.Render("`loco.toml`"))
-		return nil
-	},
-}
+	style := lipgloss.NewStyle().Foreground(ui.LocoLightGreen).Bold(true)
+	fmt.Printf("Created %s in the current directory.\n", style.Render("loco.toml"))
+	fmt.Printf("Edit the file and run %s to validate your configuration.\n",
+		style.Render("loco validate"))
 
-func init() {
-	initCmd.Flags().BoolP("force", "f", false, "Force overwrite of existing loco.toml file")
+	return nil
 }

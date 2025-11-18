@@ -1,12 +1,15 @@
 package loco
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/user"
 	"time"
 
+	"github.com/nikumar1206/loco/internal/client"
+	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/spf13/cobra"
 )
@@ -39,9 +42,9 @@ func getLocoToken() (*keychain.UserToken, error) {
 		slog.Debug("failed to get current user", "error", err)
 		return nil, err
 	}
-	locoToken, err := keychain.GetGithubToken(usr.Name)
+	locoToken, err := keychain.GetLocoToken(usr.Name)
 	if err != nil {
-		slog.Debug("failed to get github token", "error", err)
+		slog.Debug("failed to get loco token", "error", err)
 		return nil, err
 	}
 
@@ -70,4 +73,162 @@ func parseImageId(cmd *cobra.Command) (string, error) {
 		return "", fmt.Errorf("error reading image flag: %w", err)
 	}
 	return imageId, nil
+}
+
+func getOrg(cmd *cobra.Command) (string, error) {
+	org, err := cmd.Flags().GetString("org")
+	if err != nil {
+		return "", fmt.Errorf("error reading org flag: %w", err)
+	}
+	if org != "" {
+		slog.Debug("using org from flag")
+		return org, nil
+	}
+
+	org = os.Getenv("LOCO__ORG")
+	if org != "" {
+		slog.Debug("using org from environment variable")
+		return org, nil
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Debug("failed to load default config", "error", err)
+		return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG")
+	}
+
+	if cfg.CurrentOrg != "" {
+		slog.Debug("using org from default config")
+		return cfg.CurrentOrg, nil
+	}
+
+	return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG")
+}
+
+func getWorkspace(cmd *cobra.Command) (string, error) {
+	workspace, err := cmd.Flags().GetString("workspace")
+	if err != nil {
+		return "", fmt.Errorf("error reading workspace flag: %w", err)
+	}
+	if workspace != "" {
+		slog.Debug("using workspace from flag")
+		return workspace, nil
+	}
+
+	workspace = os.Getenv("LOCO__WORKSPACE")
+	if workspace != "" {
+		slog.Debug("using workspace from environment variable")
+		return workspace, nil
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Debug("failed to load default config", "error", err)
+		return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE")
+	}
+
+	if cfg.CurrentWorkspace != "" {
+		slog.Debug("using workspace from default config")
+		return cfg.CurrentWorkspace, nil
+	}
+
+	return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE")
+}
+
+// todo: lots wrong here, we can potentially pass down clients, not-reload config a thousand times.
+// todo: pass down command ctx.
+func getOrgId(cmd *cobra.Command) (int64, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Debug("failed to load config", "error", err)
+		return 0, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	orgName, err := getOrg(cmd)
+	if err != nil {
+		return 0, err
+	}
+
+	if orgName == cfg.CurrentOrg {
+		return cfg.CurrentOrgID, nil
+	}
+
+	if cfg.CurrentOrgID != 0 {
+		slog.Debug("using org id from config", "org_id", cfg.CurrentOrgID)
+		return cfg.CurrentOrgID, nil
+	}
+
+	host, err := getHost(cmd)
+	if err != nil {
+		return 0, err
+	}
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		return 0, err
+	}
+
+	apiClient := client.NewClient(host, locoToken.Token)
+	orgs, err := apiClient.GetCurrentUserOrgs(context.Background())
+	if err != nil {
+		slog.Debug("failed to get organizations", "error", err)
+		return 0, fmt.Errorf("failed to get organizations: %w", err)
+	}
+
+	for _, org := range orgs {
+		if org.Name == orgName {
+			slog.Debug("found org id from api", "org_id", org.Id)
+			return org.Id, nil
+		}
+	}
+
+	return 0, fmt.Errorf("organization '%s' not found", orgName)
+}
+
+func getWorkspaceId(cmd *cobra.Command) (int64, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Debug("failed to load config", "error", err)
+		return 0, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	workspaceName, err := getWorkspace(cmd)
+	if err != nil {
+		return 0, err
+	}
+	// if matches local state, just return it.
+	if workspaceName == cfg.CurrentWorkspace {
+		return cfg.CurrentWorkspaceID, nil
+	}
+
+	orgId, err := getOrgId(cmd)
+	if err != nil {
+		return 0, err
+	}
+
+	host, err := getHost(cmd)
+	if err != nil {
+		return 0, err
+	}
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		return 0, err
+	}
+
+	apiClient := client.NewClient(host, locoToken.Token)
+	workspaces, err := apiClient.GetUserWorkspaces(context.Background())
+	if err != nil {
+		slog.Debug("failed to get workspaces", "error", err)
+		return 0, fmt.Errorf("failed to get workspaces: %w", err)
+	}
+
+	for _, ws := range workspaces {
+		if ws.Name == workspaceName && ws.OrgId == orgId {
+			slog.Debug("found workspace id from api", "workspace_id", ws.Id)
+			return ws.Id, nil
+		}
+	}
+
+	return 0, fmt.Errorf("workspace '%s' not found in organization", workspaceName)
 }

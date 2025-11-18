@@ -1,60 +1,53 @@
 [Metadata]
-ConfigVersion = "0.1" # loco.toml config version; optional, defaults to 0.1
-Description = "Optional description about the application" # optional, defaults to ""
-Name = "myapp" # required, this is the app name
+ConfigVersion = "0.1" # Version of the loco.toml config. Required: yes. No default.
+Description = "Optional description about the application" # Short description of the app. Required: no. Default: ""
+Name = "myapp" # Name of the application. Required: yes. No default.
 
-[Resources] # maps directly to k8s resource requests; https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-CPU = "100m" # optional, defaults to "100m"
-Memory = "512Mi" # optional, defaults to "512m"
+[Resources]
+CPU = "100m" # CPU request for the container. Required: no. Default: "100m"
+Memory = "256Mi" # Memory request for the container. Required: no. Default: "256Mi"
 
 [Resources.Replicas]
-Max = 1 # required, setting to same number means no scaling occurs.
-Min = 1 # required, setting to same number means no scaling occurs. 
+Max = 1 # Maximum number of replicas. Required: no. Default: 1
+Min = 1 # Minimum number of replicas. Required: no. Default 1
 
-[Resources.Scalers] # note, either cpu target or memory target must be provided, if enabled. this avoids conflicting scaling events
-CPUTarget = 70 # optional
-Enabled = true # optional, defaults to false
-MemoryTarget = 0 # optional
+[Resources.Scalers]
+CPUTarget = 0 # Target CPU percentage for autoscaling. 0 means disabled. Required: no. Default: 0
+Enabled = false # Whether autoscaling is enabled. Required: no. Default: false
+MemoryTarget = 0 # Target memory percentage for autoscaling. 0 means disabled. Required: no. Default: 0
 
 [Build]
-DockerfilePath = "Dockerfile" # optional, defaults to "Dockerfile"
-type = "docker" # optional, defaults to "docker"
+DockerfilePath = "Dockerfile" # Path to the Dockerfile. Required: no. Default: "Dockerfile"
+type = "docker" # Build type. Required: no. Default: "docker"
 
 [Routing]
-IdleTimeout = 60 # optional, defaults to 60
-PathPrefix = "/api" # optional, defaults to /
-Port = 8000 # required
-Subdomain = "myapp" # required, app will be deployed on myapp.deploy-app.com
+IdleTimeout = 60 # Idle timeout in seconds before shutting down a pod. Required: no. Default: 60
+PathPrefix = "/api" # Path prefix for routing requests. Required: no. Default: "/"
+Port = 8000 # Port the app listens on. Required: yes. No default.
+Subdomain = "myapp" # Subdomain for the app. Required: yes. No default.
 
 [Health]
-FailThreshold = 3 # number of healthchecks that need to fail before app gets restarted
-Interval = 30 # how often to run the healthcheck
-Path = "/health" # healthcheck endpoint
-StartupGracePeriod = 15 # optional, fallbacks to no grace period.
-Timeout = 5 # how long to wait for the healthcheck to respond, defaults to 5 seconds. 
+FailThreshold = 3 # Number of failed healthchecks before restarting. Required: no. Default: 3
+Interval = 30 # Interval between healthchecks in seconds. Required: no. Default: 30
+Path = "/health" # HTTP path for healthcheck. Required: yes. No default.
+StartupGracePeriod = 15 # Grace period in seconds before healthchecks start. Max: 300 (5 mins). Required: no. Default: 0
+Timeout = 5 # Timeout in seconds for healthcheck response. Required: no. Default: 5
 
 [Env]
-File = ".env"
-Variables = {LOG_LEVEL = "info", FEATURE_FLAG_X = "true"}
+File = ".env" # Path to environment variables file. Required: no. Default: ""
+Variables = {LOG_LEVEL = "info", FEATURE_FLAG_X = "true"}# Inline env variables. Required: no. Default: {}      
 
 [Obs.Logging]
-Enabled = true # will retain logs, or just provide ephemeral logs
-RetentionPeriod = "7d" # optional, defaults to '7d'
-Structured = true # optional, defaults to false. if true, parses logs as JSON
+Enabled = true # Enable log retention. Required: no. Default: true
+RetentionPeriod = "7d" # How long to retain logs. Required: no. Default: "7d"
+Structured = true # Whether to parse logs as structured JSON. Required: no. Default: false
 
-# can be optionally provided to view metrics for your service.
-# Note that your app must expose this port and metrics in Prometheus style
 [Obs.Metrics]
-Enabled = true # optional, defaults to false. if true, will scrape from provided path
-Path = "/metrics" # optional, defaults to /metrics
-Port = 9090 # optional, defaults to port 9090
+Enabled = true # Enable metrics scraping. Required: no. Default: false
+Path = "/metrics" # HTTP path for metrics. Required: no. Default: "/metrics"
+Port = 9090 # Port for metrics scraping. Required: no. Default: 9090
 
-# can be optionally provided to pull traces for the service.
-# will be automatically concatonated with the envoy traces?
 [Obs.Tracing]
-Enabled = true # optional, defaults to false
-SampleRate = 0.1 # optional, defaults to 0.1
-Tags = {env = "us-east-1"}# optional, these tags are injected into all traces.              
-
-# deploy settings, like regions, rollback settings, predeploy postdeploy scripts?
-# [Deploy]
+Enabled = true # Enable distributed tracing. Required: no. Default: false
+SampleRate = 0.1 # Fraction of requests to sample for tracing. Required: no. Default: 0.1
+Tags = {env = "us-east-1"}# Key/value tags added to all traces. Required: no. Default: {}

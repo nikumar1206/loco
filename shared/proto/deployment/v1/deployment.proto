@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package loco.deployment.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nikumar1206/loco/shared/proto/deployment/v1;deploymentv1";
+
+service DeploymentService {
+  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse);
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
+  rpc ListDeployments(ListDeploymentsRequest) returns (ListDeploymentsResponse);
+  rpc StreamDeployment(StreamDeploymentRequest) returns (stream DeploymentEvent);
+  rpc ScaleDeployment(ScaleDeploymentRequest) returns (ScaleDeploymentResponse);
+  rpc UpdateDeploymentEnv(UpdateDeploymentEnvRequest) returns (UpdateDeploymentEnvResponse);
+}
+
+message Port {
+  int32 port = 1;
+  string protocol = 2;
+}
+
+message ResourceSpec {
+  optional string cpu = 1;
+  optional string memory = 2;
+}
+
+message Deployment {
+   int64 id = 1;
+   int64 app_id = 2;
+   string image = 6;
+   int32 replicas = 7;
+   string status = 8;
+   bool is_current = 9;
+   optional string message = 10;
+   optional string error_message = 11;
+   int64 created_by = 12;
+   google.protobuf.Timestamp created_at = 13;
+   optional google.protobuf.Timestamp started_at = 14;
+   optional google.protobuf.Timestamp completed_at = 15;
+   google.protobuf.Timestamp updated_at = 16;
+   int32 schema_version = 17;
+   optional string config = 18;
+}
+
+message CreateDeploymentRequest {
+  int64 app_id = 1;
+  string image = 3;
+  optional int32 replicas = 4;
+  map<string, string> env = 6;
+  repeated Port ports = 7;
+  optional ResourceSpec resources = 8;
+}
+
+message CreateDeploymentResponse {
+  Deployment deployment = 1;
+}
+
+message GetDeploymentRequest {
+  int64 deployment_id = 1;
+}
+
+message GetDeploymentResponse {
+  Deployment deployment = 1;
+}
+
+message ListDeploymentsRequest {
+  int64 app_id = 1;
+  optional int32 limit = 2;
+  optional int32 offset = 3;
+}
+
+message ListDeploymentsResponse {
+  repeated Deployment deployments = 1;
+  int64 total = 2;
+}
+
+message StreamDeploymentRequest {
+  int64 deployment_id = 1;
+}
+
+message DeploymentEvent {
+  int64 deployment_id = 1;
+  string status = 2;
+  string message = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  optional string error_message = 5;
+}
+
+message ScaleDeploymentRequest {
+  int64 app_id = 1;
+  optional int32 replicas = 2;
+  optional string cpu = 3;
+  optional string memory = 4;
+}
+
+message ScaleDeploymentResponse {
+  Deployment deployment = 1;
+}
+
+message UpdateDeploymentEnvRequest {
+  int64 app_id = 1;
+  map<string, string> env = 2;
+}
+
+message UpdateDeploymentEnvResponse {
+  Deployment deployment = 1;
+}

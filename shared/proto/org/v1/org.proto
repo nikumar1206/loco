@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package loco.org.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nikumar1206/loco/shared/proto/org/v1;orgv1";
+
+service OrgService {
+  rpc CreateOrg(CreateOrgRequest) returns (CreateOrgResponse);
+  rpc GetOrg(GetOrgRequest) returns (GetOrgResponse);
+  rpc GetCurrentUserOrgs(GetCurrentUserOrgsRequest) returns (GetCurrentUserOrgsResponse);
+  rpc ListOrgs(ListOrgsRequest) returns (ListOrgsResponse);
+  rpc UpdateOrg(UpdateOrgRequest) returns (UpdateOrgResponse);
+  rpc DeleteOrg(DeleteOrgRequest) returns (DeleteOrgResponse);
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+  rpc IsUniqueOrgName(IsUniqueOrgNameRequest) returns (IsUniqueOrgNameResponse);
+}
+
+message Organization {
+  int64 id = 1;
+  string name = 2;
+  int64 created_by = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message WorkspaceSummary {
+  int64 id = 1;
+  string name = 2;
+  int64 created_by = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message CreateOrgRequest {
+  optional string name = 1;
+}
+
+message CreateOrgResponse {
+  Organization org = 1;
+}
+
+message GetOrgRequest {
+  int64 id = 1;
+}
+
+message GetOrgResponse {
+  Organization org = 1;
+}
+
+message GetCurrentUserOrgsRequest {}
+
+message GetCurrentUserOrgsResponse {
+  repeated Organization orgs = 1;
+}
+
+message ListOrgsRequest {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+}
+
+message ListOrgsResponse {
+  repeated Organization orgs = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 per_page = 4;
+}
+
+message UpdateOrgRequest {
+  int64 id = 1;
+  string new_name = 2;
+}
+
+message UpdateOrgResponse {
+  Organization org = 1;
+}
+
+message DeleteOrgRequest {
+  int64 id = 1;
+}
+
+message DeleteOrgResponse {
+  bool success = 1;
+}
+
+message IsUniqueOrgNameRequest {
+  string name = 1;
+  optional int64 exclude_org_id = 2;
+}
+
+message IsUniqueOrgNameResponse {
+  bool is_unique = 1;
+}
+
+message ListWorkspacesRequest {
+  int64 org_id = 1;
+}
+
+message ListWorkspacesResponse {
+  repeated WorkspaceSummary workspaces = 1;
+}

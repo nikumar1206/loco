@@ -46,8 +46,8 @@ func initLogger(cmd *cobra.Command) error {
 
 	output := &lumberjack.Logger{
 		Filename:   logPath,
-		MaxSize:    10, // megabytes
-		MaxBackups: 3,
+		MaxSize:    2, // megabytes
+		MaxBackups: 0,
 		MaxAge:     30, // days
 		Compress:   false,
 	}
@@ -65,5 +65,5 @@ func initLogger(cmd *cobra.Command) error {
 }
 
 func init() {
-	RootCmd.AddCommand(initCmd, deployCmd, logsCmd, statusCmd, destroyCmd, loginCmd, validateCmd, eventsCmd, scaleCmd, envCmd)
+	RootCmd.AddCommand(loginCmd, useCmd, whoamiCmd, initCmd, validateCmd, deployCmd, destroyCmd, scaleCmd, envCmd, statusCmd, logsCmd, eventsCmd)
 }

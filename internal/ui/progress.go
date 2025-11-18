@@ -34,10 +34,10 @@ type model struct {
 	logs        map[int][]string
 	error       error
 	program     *tea.Program // Add reference to the program
-	sync.Mutex
 	activeIndex int
 	quitting    bool
 	hasError    bool
+	sync.Mutex
 }
 
 type stepDoneMsg struct {
@@ -154,7 +154,6 @@ func (m *model) View() string {
 			icon = styleError.Render("✖")
 		}
 
-		// Determine connector character
 		var connector string
 		if i == len(m.steps)-1 {
 			connector = "└─"
@@ -162,10 +161,8 @@ func (m *model) View() string {
 			connector = "├─"
 		}
 
-		// Build step line
 		s += fmt.Sprintf("%s%s %s %s\n", indent, connector, icon, step.Title)
 
-		// Show logs
 		m.Lock()
 		logs := make([]string, len(m.logs[i]))
 		copy(logs, m.logs[i])
@@ -175,7 +172,6 @@ func (m *model) View() string {
 			s += indent + "│   " + styleLog.Render("→ "+line) + "\n"
 		}
 
-		// Add vertical pipe if not last
 		if i < len(m.steps)-1 {
 			s += indent + "│\n"
 		}
@@ -204,12 +200,11 @@ func (m *model) runStep(index int, fn func(logf func(string)) error) tea.Cmd {
 				select {
 				case logChan <- line:
 				default:
-					// Channel is full, skip this log message
+					// chan is full, skip this log message
 				}
 			})
 		}()
 
-		// Send log messages as they come in
 		go func() {
 			for line := range logChan {
 				if m.program != nil {

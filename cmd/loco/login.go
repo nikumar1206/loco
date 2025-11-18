@@ -6,17 +6,25 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os/user"
+	osUser "os/user"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nikumar1206/loco/internal/client"
+	"github.com/nikumar1206/loco/internal/api"
+	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
 	oAuth "github.com/nikumar1206/loco/shared/proto/oauth/v1"
 	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
+	orgv1 "github.com/nikumar1206/loco/shared/proto/org/v1"
+	"github.com/nikumar1206/loco/shared/proto/org/v1/orgv1connect"
+	userv1 "github.com/nikumar1206/loco/shared/proto/user/v1"
+	"github.com/nikumar1206/loco/shared/proto/user/v1/userv1connect"
+	workspacev1 "github.com/nikumar1206/loco/shared/proto/workspace/v1"
+	"github.com/nikumar1206/loco/shared/proto/workspace/v1/workspacev1connect"
 	"github.com/spf13/cobra"
 )
 
@@ -62,16 +70,15 @@ var loginCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		user, err := user.Current()
+		user, err := osUser.Current()
 		if err != nil {
 			slog.Debug("failed to get current user", "error", err)
 			return err
 		}
 
-		t, err := keychain.GetGithubToken(user.Name)
+		t, err := keychain.GetLocoToken(user.Name)
 		if err != nil {
 			slog.Error("failed keychain token grab", "error", err)
-			return err
 		}
 
 		if err == nil {
@@ -89,10 +96,10 @@ var loginCmd = &cobra.Command{
 		} else {
 			slog.Debug("no token found in keychain", "error", err)
 		}
-		c := client.NewClient("https://github.com")
+		c := api.NewClient("https://github.com")
 
 		oAuthClient := oauthv1connect.NewOAuthServiceClient(&http.Client{}, host)
-		resp, err := oAuthClient.GithubOAuthDetails(context.Background(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
+		resp, err := oAuthClient.GithubOAuthDetails(cmd.Context(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
 			slog.Debug("failed to get oauth details", "error", err)
 			return err
@@ -101,7 +108,7 @@ var loginCmd = &cobra.Command{
 
 		payload := DeviceCodeRequest{
 			ClientId: resp.Msg.ClientId,
-			Scope:    "read:user",
+			Scope:    "read:user user:email",
 		}
 
 		req, err := c.Post("/login/device/code", payload, map[string]string{
@@ -147,21 +154,211 @@ var loginCmd = &cobra.Command{
 		if finalM.err != nil {
 			return finalM.err
 		}
+
 		if finalM.tokenResp != nil {
-			if err := keychain.SetGithubToken(user.Name, keychain.UserToken{
-				Token: finalM.tokenResp.AccessToken,
-				// subtract 10 mins?
-				ExpiresAt: time.Now().Add(time.Duration(resp.Msg.TokenTtl)*time.Second - (10 * time.Minute)),
-			}); err != nil {
-				return fmt.Errorf("%w: %w", ErrAuthFailed, err)
-			}
+			slog.Debug("received auth token from github oauth", "token", finalM.tokenResp.AccessToken)
 		}
+
+		if finalM.tokenResp == nil {
+			return nil
+		}
+
+		locoResp, err := oAuthClient.ExchangeGithubToken(cmd.Context(), connect.NewRequest(&oAuth.ExchangeGithubTokenRequest{
+			GithubAccessToken:     finalM.tokenResp.AccessToken,
+			CreateUserIfNotExists: true,
+		}))
+		if err != nil {
+			return err
+		}
+
+		orgClient := orgv1connect.NewOrgServiceClient(&http.Client{}, host)
+
+		existingCfg, err := config.Load()
+		if err != nil {
+			slog.Debug("failed to load existing config", "error", err)
+		}
+
+		// use existing values if they exist.
+		if existingCfg != nil && existingCfg.CurrentOrg != "" && existingCfg.CurrentWorkspace != "" && existingCfg.CurrentOrgID != 0 && existingCfg.CurrentWorkspaceID != 0 {
+			keychain.SetLocoToken(user.Name, keychain.UserToken{
+				Token: locoResp.Msg.LocoToken,
+				// sub 10 mins
+				ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
+			})
+
+			checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
+			title := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Logged in!")
+			orgLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Organization: %s", existingCfg.CurrentOrg))
+			wsLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Workspace: %s", existingCfg.CurrentWorkspace))
+			fmt.Printf("%s %s\n%s\n%s\n", checkmark, title, orgLine, wsLine)
+			return nil
+		}
+
+		var selectedOrg *orgv1.Organization
+		var selectedWorkspace *orgv1.WorkspaceSummary
+
+		orgRequest := connect.NewRequest(&orgv1.GetCurrentUserOrgsRequest{})
+		orgRequest.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+		orgResp, err := orgClient.GetCurrentUserOrgs(context.Background(), orgRequest)
+		if err != nil {
+			slog.Debug("failed to get user orgs details", "error", err)
+			return err
+		}
+
+		userClient := userv1connect.NewUserServiceClient(&http.Client{}, host)
+
+		currentUserReq := connect.NewRequest(&userv1.GetCurrentUserRequest{})
+		currentUserReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+		currentUserResp, err := userClient.GetCurrentUser(context.Background(), currentUserReq)
+		if err != nil {
+			slog.Debug("failed to create current user", "error", err)
+			return fmt.Errorf("failed to get current user: %w", err)
+		}
+
+		email := currentUserResp.Msg.GetUser().GetEmail()
+		cleanEmailFunc := func(email string) string {
+			s := strings.ToLower(email)
+			s = strings.ReplaceAll(s, "@", "-")
+			s = strings.ReplaceAll(s, ".", "-")
+			s = strings.ReplaceAll(s, "+", "-")
+			return s
+		}
+		cleanedEmail := cleanEmailFunc(email)
+
+		orgs := orgResp.Msg.GetOrgs()
+		if len(orgs) == 0 {
+			orgName := fmt.Sprintf("%s-org", cleanedEmail)
+			createOrgReq := connect.NewRequest(&orgv1.CreateOrgRequest{
+				Name: &orgName,
+			})
+			createOrgReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+			createOrgResp, err := orgClient.CreateOrg(context.Background(), createOrgReq)
+			if err != nil {
+				slog.Debug("failed to create organization", "error", err)
+				return fmt.Errorf("failed to create organization: %w", err)
+			}
+
+			createdOrg := createOrgResp.Msg.GetOrg()
+			if createdOrg == nil {
+				return fmt.Errorf("organization creation returned empty response")
+			}
+
+			workspaceName := "default"
+			wsClient := workspacev1connect.NewWorkspaceServiceClient(&http.Client{}, host)
+			createWSReq := connect.NewRequest(&workspacev1.CreateWorkspaceRequest{
+				OrgId: createdOrg.Id,
+				Name:  workspaceName,
+			})
+			createWSReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+			createWSResp, err := wsClient.CreateWorkspace(context.Background(), createWSReq)
+			if err != nil {
+				slog.Debug("failed to create workspace", "error", err)
+				return fmt.Errorf("failed to create workspace: %w", err)
+			}
+
+			createdWS := createWSResp.Msg.GetWorkspace()
+			if createdWS == nil {
+				return fmt.Errorf("workspace creation returned empty response")
+			}
+
+			cfg := config.CLIState{
+				CurrentOrg:         createdOrg.Name,
+				CurrentOrgID:       createdOrg.Id,
+				CurrentWorkspace:   createdWS.Name,
+				CurrentWorkspaceID: createdWS.Id,
+			}
+			if err := cfg.Save(); err != nil {
+				slog.Error(err.Error())
+				return err
+			}
+
+			keychain.SetLocoToken(user.Name, keychain.UserToken{
+				Token: locoResp.Msg.LocoToken,
+				// sub 10 mins
+				ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
+			})
+
+			checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
+			title := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Authentication successful!")
+			orgLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Organization: %s", createdOrg.Name))
+			wsLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Workspace: %s", createdWS.Name))
+			fmt.Printf("%s %s\n%s\n%s\n", checkmark, title, orgLine, wsLine)
+
+			return nil
+		}
+
+		if len(orgs) == 1 {
+			selectedOrg = orgs[0]
+
+			wsReq := connect.NewRequest(&orgv1.ListWorkspacesRequest{
+				OrgId: selectedOrg.Id,
+			})
+			wsReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+			wsResp, err := orgClient.ListWorkspaces(context.Background(), wsReq)
+			if err != nil {
+				slog.Debug("failed to get workspaces for org", "org_id", selectedOrg.Id, "error", err)
+				return fmt.Errorf("failed to list workspaces: %w", err)
+			}
+
+			workspaces := wsResp.Msg.GetWorkspaces()
+			if len(workspaces) == 0 {
+				return fmt.Errorf("organization has no workspaces")
+			}
+
+			selectedWorkspace = workspaces[0]
+		} else {
+			selectedOrg = orgs[0]
+
+			wsReq := connect.NewRequest(&orgv1.ListWorkspacesRequest{
+				OrgId: selectedOrg.Id,
+			})
+			wsReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
+
+			wsResp, err := orgClient.ListWorkspaces(context.Background(), wsReq)
+			if err != nil {
+				slog.Debug("failed to get workspaces for org", "org_id", selectedOrg.Id, "error", err)
+				return fmt.Errorf("failed to list workspaces: %w", err)
+			}
+
+			workspaces := wsResp.Msg.GetWorkspaces()
+			if len(workspaces) == 0 {
+				return fmt.Errorf("organization has no workspaces")
+			}
+
+			selectedWorkspace = workspaces[0]
+		}
+
+		cfg := config.CLIState{
+			CurrentOrg:         selectedOrg.Name,
+			CurrentOrgID:       selectedOrg.Id,
+			CurrentWorkspace:   selectedWorkspace.Name,
+			CurrentWorkspaceID: selectedWorkspace.Id,
+		}
+		if err := cfg.Save(); err != nil {
+			slog.Error(err.Error())
+			return err
+		}
+
+		keychain.SetLocoToken(user.Name, keychain.UserToken{
+			Token: locoResp.Msg.LocoToken,
+			// sub 10 mins
+			ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
+		})
+
+		checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✓")
+		message := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Authentication successful!")
+		fmt.Printf("%s %s\n", checkmark, message)
 
 		return nil
 	},
 }
 
-func pollAuthToken(c *client.Client, clientId string, deviceCode string, interval int, tokenChan chan AuthTokenResponse) error {
+func pollAuthToken(c *api.Client, clientId string, deviceCode string, interval int, tokenChan chan AuthTokenResponse) error {
 	authTokenRequest := AuthTokenRequest{
 		ClientId:   clientId,
 		DeviceCode: deviceCode,
@@ -174,7 +371,7 @@ func pollAuthToken(c *client.Client, clientId string, deviceCode string, interva
 			"Content-Type": "application/json",
 		})
 		if err != nil {
-			if apiError, ok := err.(*client.APIError); ok {
+			if apiError, ok := err.(*api.APIError); ok {
 				switch apiError.StatusCode {
 				case 400:
 					slog.Debug("authorization pending", "status_code", apiError.StatusCode)
@@ -310,7 +507,7 @@ func (m model) View() string {
 				errorStyle.Render("Authentication failed:"),
 				lipgloss.NewStyle().Foreground(ui.LocoDarkGray).Render(m.err.Error()))
 		}
-		return lipgloss.NewStyle().Foreground(ui.LocoOrange).Bold(true).Render("✓ Authentication successful!") + "\n"
+		return lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render("Setting up organization and workspace...") + "\n"
 	}
 
 	codeStyle := lipgloss.NewStyle().Foreground(ui.LocoOrange).Bold(true).Padding(0, 0)

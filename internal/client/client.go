@@ -2,36 +2,342 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	json "github.com/goccy/go-json"
+
+	"connectrpc.com/connect"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
+	deploymentv1 "github.com/nikumar1206/loco/shared/proto/deployment/v1"
+	"github.com/nikumar1206/loco/shared/proto/deployment/v1/deploymentv1connect"
+	orgv1 "github.com/nikumar1206/loco/shared/proto/org/v1"
+	"github.com/nikumar1206/loco/shared/proto/org/v1/orgv1connect"
+	userv1 "github.com/nikumar1206/loco/shared/proto/user/v1"
+	"github.com/nikumar1206/loco/shared/proto/user/v1/userv1connect"
+	workspacev1 "github.com/nikumar1206/loco/shared/proto/workspace/v1"
+	"github.com/nikumar1206/loco/shared/proto/workspace/v1/workspacev1connect"
 )
 
+// todo: is this too bloated? we likely need to fix this.
+// this is literally impossible to test.
+
 type Client struct {
-	BaseURL    string
-	HTTPClient http.Client
+	host       string
+	token      string
+	httpClient *http.Client
+
+	User       userv1connect.UserServiceClient
+	Org        orgv1connect.OrgServiceClient
+	Workspace  workspacev1connect.WorkspaceServiceClient
+	App        appv1connect.AppServiceClient
+	Deployment deploymentv1connect.DeploymentServiceClient
 }
 
-func NewClient(baseURL string) *Client {
+func NewClient(host, token string) *Client {
+	httpClient := &http.Client{}
+
 	return &Client{
-		BaseURL: baseURL,
-		HTTPClient: http.Client{
-			Timeout: 10 * time.Second,
-		},
+		host:       host,
+		token:      token,
+		httpClient: httpClient,
+		User:       userv1connect.NewUserServiceClient(httpClient, host),
+		Org:        orgv1connect.NewOrgServiceClient(httpClient, host),
+		Workspace:  workspacev1connect.NewWorkspaceServiceClient(httpClient, host),
+		App:        appv1connect.NewAppServiceClient(httpClient, host),
+		Deployment: deploymentv1connect.NewDeploymentServiceClient(httpClient, host),
 	}
 }
 
+func (c *Client) WithAuth(ctx context.Context) context.Context {
+	return ctx
+}
+
+func (c *Client) CreateUser(ctx context.Context, externalID, email, avatarURL string) (*userv1.User, error) {
+	req := connect.NewRequest(&userv1.CreateUserRequest{
+		ExternalId: externalID,
+		Email:      email,
+		AvatarUrl:  &avatarURL,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.User.CreateUser(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.User, nil
+}
+
+func (c *Client) GetCurrentUser(ctx context.Context) (*userv1.User, error) {
+	req := connect.NewRequest(&userv1.GetCurrentUserRequest{})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.User.GetCurrentUser(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.User, nil
+}
+
+func (c *Client) GetCurrentUserOrgs(ctx context.Context) ([]*orgv1.Organization, error) {
+	req := connect.NewRequest(&orgv1.GetCurrentUserOrgsRequest{})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Org.GetCurrentUserOrgs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Orgs, nil
+}
+
+func (c *Client) GetUserWorkspaces(ctx context.Context) ([]*workspacev1.Workspace, error) {
+	req := connect.NewRequest(&workspacev1.GetUserWorkspacesRequest{})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Workspace.GetUserWorkspaces(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Workspaces, nil
+}
+
+func (c *Client) CreateApp(ctx context.Context, appType int32, workspaceID int64, clusterID, name, subdomain, domain string) (*appv1.App, error) {
+	req := connect.NewRequest(&appv1.CreateAppRequest{
+		WorkspaceId: workspaceID,
+		Name:        name,
+		Type:        appv1.AppType(appType),
+		Subdomain:   subdomain,
+		Domain:      &domain,
+	})
+
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.CreateApp(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.App, nil
+}
+
+func (c *Client) GetApp(ctx context.Context, appID string) (*appv1.App, error) {
+	appIDInt, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid app ID: %w", err)
+	}
+
+	req := connect.NewRequest(&appv1.GetAppRequest{Id: appIDInt})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.GetApp(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.App, nil
+}
+
+func (c *Client) ListApps(ctx context.Context, workspaceID string) ([]*appv1.App, error) {
+	wsID, err := strconv.ParseInt(workspaceID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid workspace ID: %w", err)
+	}
+
+	req := connect.NewRequest(&appv1.ListAppsRequest{WorkspaceId: wsID})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.ListApps(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Apps, nil
+}
+
+func (c *Client) CreateDeployment(ctx context.Context, appID, clusterID, image string, replicas int32, message string, env map[string]string, ports []*deploymentv1.Port, resources *deploymentv1.ResourceSpec) (*deploymentv1.Deployment, error) {
+	appIDInt, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid app ID: %w", err)
+	}
+
+	req := connect.NewRequest(&deploymentv1.CreateDeploymentRequest{
+		AppId:     appIDInt,
+		Image:     image,
+		Replicas:  &replicas,
+		Env:       env,
+		Ports:     ports,
+		Resources: resources,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Deployment.CreateDeployment(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Deployment, nil
+}
+
+func (c *Client) GetDeployment(ctx context.Context, deploymentID string) (*deploymentv1.Deployment, error) {
+	deploymentIDInt, err := strconv.ParseInt(deploymentID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid deployment ID: %w", err)
+	}
+	req := connect.NewRequest(&deploymentv1.GetDeploymentRequest{DeploymentId: deploymentIDInt})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Deployment.GetDeployment(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Deployment, nil
+}
+
+func (c *Client) StreamDeployment(ctx context.Context, deploymentID string, eventHandler func(*deploymentv1.DeploymentEvent) error) error {
+	deploymentIDInt, err := strconv.ParseInt(deploymentID, 10, 64)
+	if err != nil {
+		return err
+	}
+	req := connect.NewRequest(&deploymentv1.StreamDeploymentRequest{DeploymentId: deploymentIDInt})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	stream, err := c.Deployment.StreamDeployment(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for stream.Receive() {
+		event := stream.Msg()
+		if err := eventHandler(event); err != nil {
+			return err
+		}
+	}
+
+	if err := stream.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteApp(ctx context.Context, appID string) error {
+	appIDInt, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid app ID: %w", err)
+	}
+	req := connect.NewRequest(&appv1.DeleteAppRequest{Id: appIDInt})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	_, err = c.App.DeleteApp(ctx, req)
+	return err
+}
+
+func (c *Client) ScaleDeployment(ctx context.Context, appID int64, replicas *int32, cpu, memory *string) (*deploymentv1.Deployment, error) {
+	req := connect.NewRequest(&deploymentv1.ScaleDeploymentRequest{
+		AppId:    appID,
+		Replicas: replicas,
+		Cpu:      cpu,
+		Memory:   memory,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Deployment.ScaleDeployment(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Deployment, nil
+}
+
+func (c *Client) UpdateDeploymentEnv(ctx context.Context, appID int64, env map[string]string) (*deploymentv1.Deployment, error) {
+	req := connect.NewRequest(&deploymentv1.UpdateDeploymentEnvRequest{
+		AppId: appID,
+		Env:   env,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.Deployment.UpdateDeploymentEnv(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Deployment, nil
+}
+
+func (c *Client) GetAppStatus(ctx context.Context, appID int64) (*appv1.GetAppStatusResponse, error) {
+	req := connect.NewRequest(&appv1.GetAppStatusRequest{
+		AppId: appID,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.GetAppStatus(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg, nil
+}
+
+func (c *Client) StreamLogs(ctx context.Context, appID int64, limit *int32, follow *bool, logHandler func(*appv1.LogEntry) error) error {
+	req := connect.NewRequest(&appv1.StreamLogsRequest{
+		AppId:  appID,
+		Limit:  limit,
+		Follow: follow,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	stream, err := c.App.StreamLogs(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for stream.Receive() {
+		logEntry := stream.Msg()
+		if err := logHandler(logEntry); err != nil {
+			return err
+		}
+	}
+
+	if err := stream.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) GetEvents(ctx context.Context, appID int64, limit *int32) ([]*appv1.Event, error) {
+	req := connect.NewRequest(&appv1.GetEventsRequest{
+		AppId: appID,
+		Limit: limit,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.GetEvents(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Msg.Events, nil
+}
+
+// APIError represents an HTTP API error
 type APIError struct {
-	Body       string
 	StatusCode int
+	Body       string
 	RequestID  string
 }
 
 func (e *APIError) Error() string {
-	// No status code → probably request construction or transport error
 	if e.StatusCode == 0 {
 		return e.Body
 	}
@@ -45,86 +351,40 @@ func (e *APIError) Error() string {
 		msg = e.Body
 	}
 
-	if e.RequestID != "" {
-		msg = fmt.Sprintf("%s (Request-Id: %s)", msg, e.RequestID)
-	}
-
-	switch {
-	case e.StatusCode >= 400 && e.StatusCode < 500:
-		return fmt.Sprintf("client error: %s", msg)
-	case e.StatusCode >= 500:
-		return fmt.Sprintf("unhealthy response from Loco API. Request-Id: %s", e.RequestID)
-	default:
-		return fmt.Sprintf("unexpected error: %s", msg)
-	}
+	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, msg)
 }
 
-func (c *Client) doRequest(method, path string, body io.Reader, headers map[string]string) ([]byte, error) {
-	req, err := http.NewRequest(method, c.BaseURL+path, body)
+// Post makes a POST request (for OAuth flow)
+func (c *Client) Post(path string, payload any, headers map[string]string) ([]byte, error) {
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return nil, &APIError{
-			StatusCode: 0,
-			Body:       fmt.Sprintf("failed to create request: %v", err),
-		}
+		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	if headers == nil {
-		headers = make(map[string]string)
+	req, err := http.NewRequest("POST", c.host+path, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, &APIError{Body: fmt.Sprintf("failed to create request: %v", err)}
 	}
 
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, &APIError{
-			StatusCode: 0,
-			Body:       err.Error(),
-		}
+		return nil, &APIError{Body: fmt.Sprintf("request failed: %v", err)}
 	}
 	defer resp.Body.Close()
 
-	requestID := resp.Header.Get("X-Loco-Request-Id")
-
-	respBody, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, &APIError{
-			StatusCode: resp.StatusCode,
-			Body:       fmt.Sprintf("failed to read response body: %v", err),
-			RequestID:  requestID,
-		}
+		return nil, &APIError{Body: fmt.Sprintf("failed to read response: %v", err)}
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &APIError{
-			StatusCode: resp.StatusCode,
-			Body:       string(respBody),
-			RequestID:  requestID,
-		}
+		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
-	return respBody, nil
-}
-
-func (c *Client) Get(path string, headers map[string]string) ([]byte, error) {
-	return c.doRequest(http.MethodGet, path, nil, headers)
-}
-
-func (c *Client) Post(path string, body any, headers map[string]string) ([]byte, error) {
-	buf, err := structToBuffer(body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert request body to buffer: %v", err)
-	}
-	return c.doRequest(http.MethodPost, path, buf, headers)
-}
-
-func structToBuffer(s any) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(s)
-	if err != nil {
-		return nil, err
-	}
-
-	return &buf, nil
+	return body, nil
 }

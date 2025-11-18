@@ -2,358 +2,576 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
+	"os"
+	"sort"
 
 	"connectrpc.com/connect"
-
-	"github.com/nikumar1206/loco/api/client"
-	"github.com/nikumar1206/loco/api/models"
-	locoConfig "github.com/nikumar1206/loco/shared/config"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	genDb "github.com/nikumar1206/loco/api/gen/db"
+	"github.com/nikumar1206/loco/api/pkg/klogmux"
+	"github.com/nikumar1206/loco/api/pkg/kube"
+	"github.com/nikumar1206/loco/api/timeutil"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 var (
-	ErrNoUser   = errors.New("user could not be determined")
-	ErrNoStatus = errors.New("could not determine app status")
+	ErrAppNotFound           = errors.New("app not found")
+	ErrAppNameNotUnique      = errors.New("app name already exists in this workspace")
+	ErrSubdomainNotAvailable = errors.New("subdomain already in use")
+	ErrClusterNotFound       = errors.New("cluster not found")
+	ErrClusterNotHealthy     = errors.New("cluster is not healthy")
+	ErrInvalidAppType        = errors.New("invalid app type")
 )
 
 type AppServer struct {
-	AppConfig models.AppConfig
-	Kc        client.KubernetesClient
+	db         *pgxpool.Pool
+	queries    *genDb.Queries
+	kubeClient *kube.KubernetesClient
 }
 
-func (s *AppServer) DeployApp(
+// NewAppServer creates a new AppServer instance
+func NewAppServer(db *pgxpool.Pool, queries *genDb.Queries) *AppServer {
+	// todo: move this out.
+	appEnv := os.Getenv("APP_ENV")
+	kubeClient := kube.NewKubernetesClient(appEnv)
+
+	return &AppServer{
+		db:         db,
+		queries:    queries,
+		kubeClient: kubeClient,
+	}
+}
+
+// CreateApp creates a new app
+func (s *AppServer) CreateApp(
 	ctx context.Context,
-	req *connect.Request[appv1.DeployAppRequest],
-	stream *connect.ServerStream[appv1.DeployAppResponse],
-) error {
-	request := req.Msg
+	req *connect.Request[appv1.CreateAppRequest],
+) (*connect.Response[appv1.CreateAppResponse], error) {
+	r := req.Msg
 
-	sendEvent := func(eventType, message string) error {
-		return stream.Send(&appv1.DeployAppResponse{
-			Message:   message,
-			EventType: eventType,
-		})
-	}
-
-	// fill defaults and validate
-	locoConfig.FillSensibleDefaults(request.LocoConfig)
-
-	if err := locoConfig.Validate(request.LocoConfig); err != nil {
-		slog.ErrorContext(ctx, "invalid locoConfig", "error", err.Error())
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid locoConfig: %w", err))
-	}
-
-	// check banned subdomain
-	if client.IsBannedSubDomain(request.LocoConfig.Routing.Subdomain) {
-		slog.ErrorContext(ctx, "banned subdomain", slog.String("subdomain", request.LocoConfig.Routing.Subdomain))
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("provided subdomain is not allowed"))
-	}
-
-	err := client.ValidateResources(request.LocoConfig.Resources.Cpu, request.LocoConfig.Resources.Memory)
-	if err != nil {
-		slog.ErrorContext(ctx, "invalid resource requests", "error", err.Error())
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid resource requests: %w", err))
-	}
-
-	user, ok := ctx.Value("user").(string)
+	userID, ok := ctx.Value("user_id").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
-	app := client.NewLocoApp(
-		request.LocoConfig,
-		user,
-		request.ContainerImage,
-		request.EnvVars,
-	)
-
-	// check if service exists; if exists update in-place else create new
-	serviceExists, err := s.Kc.CheckServiceExists(ctx, app.NamespaceName(), app.Name)
+	// todo: revisit validating roles
+	role, err := s.queries.GetWorkspaceMemberRole(ctx, genDb.GetWorkspaceMemberRoleParams{
+		WorkspaceID: r.WorkspaceId,
+		UserID:      userID,
+	})
 	if err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check if service exists: %w", err))
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", r.WorkspaceId, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
-	if serviceExists {
-		slog.InfoContext(ctx, "service exists, updating in-place")
+	if role != "admin" && role != "deploy" {
+		slog.WarnContext(ctx, "user does not have permission to create app", "workspace_id", r.WorkspaceId, "user_id", userID, "role", role)
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or have deploy role"))
+	}
 
-		expiry := time.Now().Add(5 * time.Minute).UTC().Format(client.DefaultTimeFormat)
-		payload := map[string]any{
-			"name":       s.AppConfig.DeployTokenName,
-			"scopes":     []string{"read_registry"},
-			"expires_at": expiry,
+	domain := r.GetDomain()
+	if domain == "" {
+		domain = "loco.deploy-app.com"
+	}
+
+	available, err := s.queries.CheckSubdomainAvailability(ctx, genDb.CheckSubdomainAvailabilityParams{
+		Subdomain: r.Subdomain,
+		Domain:    domain,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to check subdomain availability", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	if !available {
+		slog.WarnContext(ctx, "subdomain not available", "subdomain", r.Subdomain, "domain", domain)
+		return nil, connect.NewError(connect.CodeAlreadyExists, ErrSubdomainNotAvailable)
+	}
+
+	// todo: Get cluster details and validate health
+	// clusterDetails, err := s.queries.GetClusterDetails(ctx, r.ClusterId)
+	// if err != nil {
+	// 	slog.WarnContext(ctx, "cluster not found", "cluster_id", r.ClusterId)
+	// 	return nil, connect.NewError(connect.CodeNotFound, ErrClusterNotFound)
+	// }
+
+	// if !clusterDetails.IsActive.Bool || clusterDetails.HealthStatus.String != "healthy" {
+	// 	slog.WarnContext(ctx, "cluster is not healthy or active", "cluster_id", r.ClusterId, "is_active", clusterDetails.IsActive.Bool, "health_status", clusterDetails.HealthStatus.String)
+	// 	return nil, connect.NewError(connect.CodeFailedPrecondition, ErrClusterNotHealthy)
+	// }
+
+	// todo: set namepsace after creating and saving app. or perhaps its set after first deployment on the app.
+	app, err := s.queries.CreateApp(ctx, genDb.CreateAppParams{
+		WorkspaceID: r.WorkspaceId,
+		ClusterID:   1,
+		Name:        r.Name,
+		Type:        int32(r.Type.Number()),
+		Subdomain:   r.Subdomain,
+		Domain:      domain,
+		CreatedBy:   userID,
+		// ns empty until first deployment occurs on the app.
+		// Namespace:   ns,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create app", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.CreateAppResponse{
+		App: dbAppToProto(app),
+	}), nil
+}
+
+// GetApp retrieves an app by ID
+func (s *AppServer) GetApp(
+	ctx context.Context,
+	req *connect.Request[appv1.GetAppRequest],
+) (*connect.Response[appv1.GetAppResponse], error) {
+	r := req.Msg
+
+	// todo: role checks should actually be done first.
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	app, err := s.queries.GetAppByID(ctx, r.Id)
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "id", r.Id)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+
+	_, err = s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: app.WorkspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	return connect.NewResponse(&appv1.GetAppResponse{
+		App: dbAppToProto(app),
+	}), nil
+}
+
+// ListApps lists all apps in a workspace
+func (s *AppServer) ListApps(
+	ctx context.Context,
+	req *connect.Request[appv1.ListAppsRequest],
+) (*connect.Response[appv1.ListAppsResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	_, err := s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: r.WorkspaceId,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", r.WorkspaceId, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	dbApps, err := s.queries.ListAppsForWorkspace(ctx, r.WorkspaceId)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list apps", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	var apps []*appv1.App
+	for _, dbApp := range dbApps {
+		apps = append(apps, dbAppToProto(dbApp))
+	}
+
+	return connect.NewResponse(&appv1.ListAppsResponse{
+		Apps: apps,
+	}), nil
+}
+
+// UpdateApp updates an app
+func (s *AppServer) UpdateApp(
+	ctx context.Context,
+	req *connect.Request[appv1.UpdateAppRequest],
+) (*connect.Response[appv1.UpdateAppResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	workspaceID, err := s.queries.GetAppWorkspaceID(ctx, r.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	role, err := s.queries.GetWorkspaceMemberRole(ctx, genDb.GetWorkspaceMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	if role != genDb.WorkspaceRoleAdmin && role != genDb.WorkspaceRoleDeploy {
+		slog.WarnContext(ctx, "user does not have permission to update app", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID, "role", string(role))
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or deploy role to update app"))
+	}
+
+	updateParams := genDb.UpdateAppParams{
+		ID: r.Id,
+	}
+
+	if r.GetName() != "" {
+		updateParams.Name = pgtype.Text{String: r.GetName(), Valid: true}
+	}
+
+	if r.GetSubdomain() != "" {
+		updateParams.Subdomain = pgtype.Text{String: r.GetSubdomain(), Valid: true}
+	}
+
+	if r.GetDomain() != "" {
+		updateParams.Domain = pgtype.Text{String: r.GetDomain(), Valid: true}
+	}
+
+	app, err := s.queries.UpdateApp(ctx, updateParams)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to update app", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.UpdateAppResponse{
+		App: dbAppToProto(app),
+	}), nil
+}
+
+// DeleteApp deletes an app
+func (s *AppServer) DeleteApp(
+	ctx context.Context,
+	req *connect.Request[appv1.DeleteAppRequest],
+) (*connect.Response[appv1.DeleteAppResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	workspaceID, err := s.queries.GetAppWorkspaceID(ctx, r.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	role, err := s.queries.GetWorkspaceMemberRole(ctx, genDb.GetWorkspaceMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	if role != genDb.WorkspaceRoleAdmin {
+		slog.WarnContext(ctx, "user is not an admin of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID, "role", string(role))
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin to delete app"))
+	}
+
+	err = s.queries.DeleteApp(ctx, r.Id)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to delete app", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.DeleteAppResponse{
+		Success: true,
+	}), nil
+}
+
+// CheckSubdomainAvailability checks if a subdomain is available
+func (s *AppServer) CheckSubdomainAvailability(
+	ctx context.Context,
+	req *connect.Request[appv1.CheckSubdomainAvailabilityRequest],
+) (*connect.Response[appv1.CheckSubdomainAvailabilityResponse], error) {
+	r := req.Msg
+
+	available, err := s.queries.CheckSubdomainAvailability(ctx, genDb.CheckSubdomainAvailabilityParams{
+		Subdomain: r.Subdomain,
+		Domain:    r.Domain,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to check subdomain availability", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	return connect.NewResponse(&appv1.CheckSubdomainAvailabilityResponse{
+		Available: available,
+	}), nil
+}
+
+// GetAppStatus retrieves an app and its current deployment status
+func (s *AppServer) GetAppStatus(
+	ctx context.Context,
+	req *connect.Request[appv1.GetAppStatusRequest],
+) (*connect.Response[appv1.GetAppStatusResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	app, err := s.queries.GetAppByID(ctx, r.AppId)
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "app_id", r.AppId)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+
+	_, err = s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: app.WorkspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	deploymentList, err := s.queries.ListDeploymentsForApp(ctx, genDb.ListDeploymentsForAppParams{
+		AppID:  r.AppId,
+		Limit:  1,
+		Offset: 0,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list deployments", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	var deploymentStatus *appv1.DeploymentStatus
+	if len(deploymentList) > 0 {
+		deployment := deploymentList[0]
+		deploymentStatus = &appv1.DeploymentStatus{
+			Id:       deployment.ID,
+			Status:   string(deployment.Status),
+			Replicas: deployment.Replicas,
+		}
+		if deployment.Message.Valid {
+			deploymentStatus.Message = &deployment.Message.String
+		}
+		if deployment.ErrorMessage.Valid {
+			deploymentStatus.ErrorMessage = &deployment.ErrorMessage.String
+		}
+	}
+
+	return connect.NewResponse(&appv1.GetAppStatusResponse{
+		App:               dbAppToProto(app),
+		CurrentDeployment: deploymentStatus,
+	}), nil
+}
+
+// StreamLogs streams logs for an app
+func (s *AppServer) StreamLogs(
+	ctx context.Context,
+	req *connect.Request[appv1.StreamLogsRequest],
+	stream *connect.ServerStream[appv1.LogEntry],
+) error {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	app, err := s.queries.GetAppByID(ctx, r.AppId)
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "app_id", r.AppId)
+		return connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+
+	_, err = s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: app.WorkspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		return connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	if app.Namespace == "" {
+		slog.WarnContext(ctx, "app has no namespace assigned", "app_id", r.AppId)
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("app has not been deployed yet"))
+	}
+
+	slog.InfoContext(ctx, "streaming logs for app", "app_id", r.AppId, "app_namespace", app.Namespace)
+
+	// build label selector to find pods for this app
+	selector := labels.SelectorFromSet(labels.Set{"app": app.Name})
+
+	// build the log stream
+	builder := klogmux.NewBuilder(s.kubeClient.ClientSet).
+		Namespace(app.Namespace).
+		LabelSelector(selector.String()).
+		Follow(r.GetFollow())
+
+	if r.Limit != nil {
+		builder.TailLines(int64(*r.Limit))
+	}
+
+	logStream := builder.Build()
+
+	// start the log stream
+	logStream.Start(ctx)
+	defer logStream.Stop()
+
+	slog.DebugContext(ctx, "log stream started", "app_id", r.AppId, "namespace", app.Namespace)
+
+	// stream log entries to client
+	for entry := range logStream.Entries() {
+		logProto := &appv1.LogEntry{
+			PodName:   entry.PodName,
+			Namespace: entry.Namespace,
+			Container: entry.Container,
+			Timestamp: timestamppb.New(entry.Timestamp),
+			Log:       entry.Message,
 		}
 
-		gitlabResp, err := client.NewClient(s.AppConfig.GitlabURL).GetDeployToken(ctx, s.AppConfig.GitlabPAT, s.AppConfig.ProjectID, payload)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deploy token: %w", err))
+		if entry.IsError {
+			logProto.Level = "ERROR"
+		} else {
+			logProto.Level = "INFO"
 		}
 
-		registry := client.DockerRegistryConfig{
-			Server:   s.AppConfig.RegistryURL,
-			Username: gitlabResp.Username,
-			Password: gitlabResp.Token,
-		}
-
-		if err := s.Kc.UpdateDockerPullSecret(ctx, app, registry); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update docker pull secret: %w", err))
-		}
-
-		if err := s.Kc.UpdateContainer(ctx, app); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update container: %w", err))
-		}
-
-		if err := sendEvent("info", "App updated successfully"); err != nil {
+		if err := stream.Send(logProto); err != nil {
+			slog.ErrorContext(ctx, "failed to send log entry", "error", err)
 			return err
 		}
-		return nil
 	}
 
-	// Create new app flow
-	if err := s.Kc.CheckNodesReady(ctx); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("nodes not ready: %w", err))
-	}
-
-	if _, err := s.Kc.CreateNS(ctx, app); err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create namespace: %w", err))
-	}
-
-	if err := s.allocateResources(ctx, app, req, stream); err != nil {
-		slog.InfoContext(ctx, "cleaning up namespace due to deployment failure", "namespace", app.NamespaceName())
-		if delErr := s.Kc.DeleteNS(ctx, app.NamespaceName()); delErr != nil {
-			slog.ErrorContext(ctx, "failed to cleanup namespace", "namespace", app.NamespaceName(), "error", delErr)
+	// check for stream errors
+	for err := range logStream.Errors() {
+		if err != nil {
+			slog.ErrorContext(ctx, "log stream error", "error", err)
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("log stream error: %w", err))
 		}
-		if sendErr := sendEvent("error", "App deployment failed"); sendErr != nil {
-			return sendErr
-		}
-		return err
 	}
 
+	slog.DebugContext(ctx, "log stream completed", "app_id", r.AppId)
 	return nil
 }
 
-func (s *AppServer) allocateResources(ctx context.Context, app *client.LocoApp, req *connect.Request[appv1.DeployAppRequest], stream *connect.ServerStream[appv1.DeployAppResponse]) error {
-	sendEvent := func(eventType, message string) error {
-		return stream.Send(&appv1.DeployAppResponse{
-			Message:   message,
-			EventType: eventType,
-		})
+// GetEvents retrieves Kubernetes events for an app
+func (s *AppServer) GetEvents(
+	ctx context.Context,
+	req *connect.Request[appv1.GetEventsRequest],
+) (*connect.Response[appv1.GetEventsResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
-	expiry := time.Now().Add(5 * time.Minute).UTC().Format(client.DefaultTimeFormat)
-	payload := map[string]any{
-		"name":       s.AppConfig.DeployTokenName,
-		"scopes":     []string{"read_registry"},
-		"expires_at": expiry,
-	}
-
-	gitlabResp, err := client.NewClient(s.AppConfig.GitlabURL).GetDeployToken(ctx, s.AppConfig.GitlabPAT, s.AppConfig.ProjectID, payload)
+	app, err := s.queries.GetAppByID(ctx, r.AppId)
 	if err != nil {
-		return fmt.Errorf("failed to get deploy token: %w", err)
+		slog.WarnContext(ctx, "app not found", "app_id", r.AppId)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
 	}
 
-	registry := client.DockerRegistryConfig{
-		Server:   s.AppConfig.RegistryURL,
-		Username: gitlabResp.Username,
-		Password: gitlabResp.Token,
-	}
-
-	if err := s.Kc.CreateDockerPullSecret(ctx, app, registry); err != nil {
-		return fmt.Errorf("failed to create docker secret: %w", err)
-	}
-
-	if err := sendEvent("progress", "Creating necessary roles and policies"); err != nil {
-		return err
-	}
-
-	envSecret, err := s.Kc.CreateSecret(ctx, app)
+	_, err = s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: app.WorkspaceID,
+		UserID:      userID,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create secret: %w", err)
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
-	if _, err := s.Kc.CreateRole(ctx, app, envSecret); err != nil {
-		return fmt.Errorf("failed to create role: %w", err)
+	if app.Namespace == "" {
+		slog.WarnContext(ctx, "app has no namespace assigned", "app_id", r.AppId)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("app has not been deployed yet"))
 	}
 
-	if _, err := s.Kc.CreateServiceAccount(ctx, app); err != nil {
-		return fmt.Errorf("failed to create service account: %w", err)
+	slog.InfoContext(ctx, "fetching events for app", "app_id", r.AppId, "app_namespace", app.Namespace)
+
+	eventList, err := s.kubeClient.ClientSet.CoreV1().Events(app.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list events from kubernetes", "error", err, "namespace", app.Namespace)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch events: %w", err))
 	}
 
-	if _, err := s.Kc.CreateRoleBinding(ctx, app); err != nil {
-		return fmt.Errorf("failed to create role binding: %w", err)
-	}
-
-	if err := sendEvent("progress", "Scheduling compute"); err != nil {
-		return err
-	}
-	if _, err := s.Kc.CreateDeployment(ctx, app, req.Msg.ContainerImage, envSecret); err != nil {
-		return fmt.Errorf("failed to create deployment: %w", err)
-	}
-
-	if _, err := s.Kc.CreateService(ctx, app); err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-
-	if err := sendEvent("progress", "Exposing your app to the internet"); err != nil {
-		return err
-	}
-
-	if _, err := s.Kc.CreateHTTPRoute(ctx, app); err != nil {
-		return fmt.Errorf("failed to create http route: %w", err)
-	}
-
-	if !req.Msg.Wait {
-		return nil
-	}
-
-	if err := sendEvent("progress", "Waiting for rollout"); err != nil {
-		return err
-	}
-
-	// wait for rollout to complete if provided wait flag.
-	timeout := time.After(5 * time.Minute)
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("rollout timed out")
-		case <-ticker.C:
-			status, err := s.Kc.GetDeploymentStatus(ctx, app.NamespaceName(), app.Name)
-			if err != nil {
-				return fmt.Errorf("failed to get deployment status: %w", err)
-			}
-			if status.Status == "Running" && status.Health == "Passing" {
-				if err := sendEvent("info", "Rollout completed successfully"); err != nil {
-					return err
-				}
-				return nil
-			} else {
-				if err := sendEvent("progress", "Waiting for rollout"); err != nil {
-					return err
-				}
-			}
+	var protoEvents []*appv1.Event
+	for _, k8sEvent := range eventList.Items {
+		// filter events to those related to this app's pods
+		if k8sEvent.InvolvedObject.Kind != "Pod" {
+			continue
 		}
-	}
-}
 
-func (s *AppServer) Logs(
-	ctx context.Context,
-	req *connect.Request[appv1.LogsRequest],
-	stream *connect.ServerStream[appv1.LogsResponse],
-) error {
-	appName := req.Msg.AppName
-	user, ok := ctx.Value("user").(string)
-	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+		protoEvent := &appv1.Event{
+			Timestamp: timestamppb.New(k8sEvent.FirstTimestamp.Time),
+			Reason:    k8sEvent.Reason,
+			Message:   k8sEvent.Message,
+			Type:      k8sEvent.Type,
+			PodName:   k8sEvent.InvolvedObject.Name,
+		}
+		protoEvents = append(protoEvents, protoEvent)
 	}
 
-	namespace := client.GenerateNameSpace(appName, user)
-	err := s.Kc.GetLogs(ctx, namespace, appName, user, nil, stream)
-	if err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch logs: %w", err))
+	// sort by timestamp descending (newest first)
+	sort.Slice(protoEvents, func(i, j int) bool {
+		return protoEvents[i].Timestamp.AsTime().After(protoEvents[j].Timestamp.AsTime())
+	})
+
+	// apply limit if specified
+	if r.Limit != nil && *r.Limit > 0 && int(*r.Limit) < len(protoEvents) {
+		protoEvents = protoEvents[:*r.Limit]
 	}
 
-	return nil
-}
+	slog.DebugContext(ctx, "fetched events for app", "app_id", r.AppId, "event_count", len(protoEvents))
 
-func (s *AppServer) Status(
-	ctx context.Context, req *connect.Request[appv1.StatusRequest],
-) (*connect.Response[appv1.StatusResponse], error) {
-	appName := req.Msg.AppName
-
-	user, ok := ctx.Value("user").(string)
-
-	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
-	}
-
-	namespace := client.GenerateNameSpace(appName, user)
-
-	deploymentStatus, err := s.Kc.GetDeploymentStatus(ctx, namespace, appName)
-	if err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, ErrNoStatus)
-	}
-
-	return connect.NewResponse(deploymentStatus), nil
-}
-
-func (s *AppServer) DestroyApp(
-	ctx context.Context,
-	req *connect.Request[appv1.DestroyAppRequest],
-) (*connect.Response[appv1.DestroyAppResponse], error) {
-	appName := req.Msg.Name
-
-	user, ok := ctx.Value("user").(string)
-	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
-	}
-
-	namespace := client.GenerateNameSpace(appName, user)
-
-	if err := s.Kc.DeleteNS(ctx, namespace); err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app does not exist. It may have already been deleted"))
-	}
-
-	return connect.NewResponse(&appv1.DestroyAppResponse{
-		Message: "App destruction initiated successfully",
+	return connect.NewResponse(&appv1.GetEventsResponse{
+		Events: protoEvents,
 	}), nil
 }
 
-func (s *AppServer) ScaleApp(ctx context.Context, req *connect.Request[appv1.ScaleAppRequest]) (*connect.Response[appv1.ScaleAppResponse], error) {
-	appName := req.Msg.Name
-
-	user, ok := ctx.Value("user").(string)
-	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
+// dbAppToProto converts a database App to the proto App
+// to be returned to client.
+func dbAppToProto(app genDb.App) *appv1.App {
+	appType := appv1.AppType(app.Type)
+	return &appv1.App{
+		Id:          app.ID,
+		WorkspaceId: app.WorkspaceID,
+		Name:        app.Name,
+		Namespace:   app.Namespace,
+		Type:        appType,
+		Subdomain:   app.Subdomain,
+		Domain:      app.Domain,
+		CreatedBy:   app.CreatedBy,
+		CreatedAt:   timeutil.ParsePostgresTimestamp(app.CreatedAt.Time),
+		UpdatedAt:   timeutil.ParsePostgresTimestamp(app.UpdatedAt.Time),
 	}
-
-	namespace := client.GenerateNameSpace(appName, user)
-
-	if err := s.Kc.ScaleDeployment(ctx, namespace, appName, req.Msg.Replicas, req.Msg.Cpu, req.Msg.Memory); err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to scale app: %w", err))
-	}
-
-	return connect.NewResponse(&appv1.ScaleAppResponse{
-		Message: "App scaled successfully",
-	}), nil
-}
-
-func (s *AppServer) UpdateEnvVars(ctx context.Context, req *connect.Request[appv1.UpdateEnvVarsRequest]) (*connect.Response[appv1.UpdateEnvVarsResponse], error) {
-	appName := req.Msg.Name
-
-	user, ok := ctx.Value("user").(string)
-	if !ok {
-		slog.ErrorContext(ctx, "could not determine user. should never happen")
-		return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUser)
-	}
-
-	locoApp := &client.LocoApp{
-		Name:      appName,
-		CreatedBy: user,
-	}
-
-	if err := s.Kc.UpdateEnvVars(ctx, locoApp, req.Msg.EnvVars, req.Msg.Restart); err != nil {
-		slog.ErrorContext(ctx, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update env vars: %w", err))
-	}
-
-	return connect.NewResponse(&appv1.UpdateEnvVarsResponse{
-		Message: "Environment variables updated successfully",
-	}), nil
 }

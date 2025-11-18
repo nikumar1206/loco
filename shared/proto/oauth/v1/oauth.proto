@@ -4,13 +4,27 @@ package shared.proto.oauth.v1;
 
 option go_package = "github.com/nikumar1206/loco/shared/proto/oauth/v1;oauthv1";
 
-
 message GithubOAuthDetailsRequest {}
 message GithubOAuthDetailsResponse {
   string client_id = 1;
   double token_ttl = 2;
 }
 
+message ExchangeGithubTokenRequest {
+  string github_access_token = 1;
+  bool createUserIfNotExists = 2;
+}
+
+message ExchangeGithubTokenResponse {
+  string loco_token = 1;
+  int64 expires_in = 2; // seconds
+  int64 workspace_id = 3;
+  int64 org_id = 4;
+  int64 user_id = 5;
+  string username = 6;
+}
+
 service OAuthService {
   rpc GithubOAuthDetails(GithubOAuthDetailsRequest) returns (GithubOAuthDetailsResponse) {}
+  rpc ExchangeGithubToken(ExchangeGithubTokenRequest) returns (ExchangeGithubTokenResponse);
 }

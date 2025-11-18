@@ -287,11 +287,9 @@ func (s *LogStream) Start(ctx context.Context) error {
 		},
 	})
 
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
+	s.wg.Go(func() {
 		informer.Run(s.ctx.Done())
-	}()
+	})
 
 	return nil
 }
@@ -518,15 +516,16 @@ func (s *LogStream) applyTransforms(entry LogEntry) LogEntry {
 }
 
 // cleanupStreams stops all pod streams
-func (s *LogStream) cleanupStreams() {
-	s.pods.Range(func(key, value any) bool {
-		if ps := value.(*podStream); ps != nil {
-			ps.cancel()
-		}
-		s.pods.Delete(key)
-		return true // continue iteration
-	})
-}
+// todo: see what we need to do with this code...
+// func (s *LogStream) cleanupStreams() {
+// 	s.pods.Range(func(key, value any) bool {
+// 		if ps := value.(*podStream); ps != nil {
+// 			ps.cancel()
+// 		}
+// 		s.pods.Delete(key)
+// 		return true // continue iteration
+// 	})
+// }
 
 // Convenience functions for common use cases
 

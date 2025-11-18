@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/ui"
-	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +20,7 @@ import (
 var logsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View application logs",
+	Long:  "Stream logs from an application's running deployment.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		output, err := cmd.Flags().GetString("output")
 		if err != nil {
@@ -29,95 +29,169 @@ var logsCmd = &cobra.Command{
 
 		switch output {
 		case "json":
-			return streamLogsAsJson(cmd, args)
+			return streamLogsAsJson(cmd)
 		case "table":
-			return streamLogsInteractive(cmd, args)
+			return streamLogsInteractive(cmd)
 		case "": // default
-			return streamLogsInteractive(cmd, args)
+			return streamLogsInteractive(cmd)
 		default:
 			return fmt.Errorf("invalid output format: %s", output)
 		}
 	},
 }
 
-func streamLogsAsJson(cmd *cobra.Command, _ []string) error {
+func streamLogsAsJson(cmd *cobra.Command) error {
+	ctx := context.Background()
+
 	host, err := getHost(cmd)
 	if err != nil {
 		return err
 	}
-	configPath, err := parseLocoTomlPath(cmd)
+
+	workspaceID, err := getWorkspaceId(cmd)
 	if err != nil {
 		return err
+	}
+
+	appName, err := cmd.Flags().GetString("app")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	if appName == "" {
+		return fmt.Errorf("app name is required. Use --app flag")
+	}
+
+	lines, err := cmd.Flags().GetInt32("lines")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	follow, err := cmd.Flags().GetBool("follow")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
 	}
 
 	locoToken, err := getLocoToken()
 	if err != nil {
-		slog.Debug("failed to get loco token", "error", err)
-		return err
+		return ErrLoginRequired
 	}
 
-	cfg, err := config.Load(configPath)
+	apiClient := client.NewClient(host, locoToken.Token)
+
+	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+
+	appList, err := apiClient.ListApps(ctx, fmt.Sprintf("%d", workspaceID))
 	if err != nil {
-		slog.Debug("failed to load config", "path", configPath, "error", err)
-		return fmt.Errorf("failed to load config: %w", err)
+		slog.Debug("failed to list apps", "error", err)
+		return fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	c := client.NewClient(host)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	logsChan := make(chan client.LogEntry)
-	errChan := make(chan error)
-
-	go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Metadata.Name}, logsChan, errChan)
-
-	for {
-		select {
-		case logEntry := <-logsChan:
-			jsonLog, err := json.Marshal(logEntry)
-			if err != nil {
-				slog.Debug("failed to marshal log entry to json", "error", err)
-				fmt.Fprintf(os.Stderr, "Error marshaling log: %v\n", err)
-				continue
-			}
-			fmt.Println(string(jsonLog))
-		case err := <-errChan:
-			return err
-		case <-ctx.Done():
-			return nil
+	var appID int64
+	for _, app := range appList {
+		if app.Name == appName {
+			appID = app.Id
+			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
+			break
 		}
 	}
+
+	if appID == 0 {
+		return fmt.Errorf("app '%s' not found in workspace", appName)
+	}
+
+	slog.Debug("streaming logs as json", "app_id", appID, "app_name", appName)
+
+	var linesPtr *int32
+	if lines > 0 {
+		linesPtr = &lines
+	}
+
+	var followPtr *bool
+	if follow {
+		followPtr = &follow
+	}
+
+	err = apiClient.StreamLogs(ctx, appID, linesPtr, followPtr, func(logEntry *appv1.LogEntry) error {
+		jsonLog, err := json.Marshal(logEntry)
+		if err != nil {
+			slog.Debug("failed to marshal log entry to json", "error", err)
+			fmt.Fprintf(os.Stderr, "Error marshaling log: %v\n", err)
+			return nil
+		}
+		fmt.Println(string(jsonLog))
+		return nil
+	})
+	if err != nil {
+		slog.Error("failed to stream logs", "error", err)
+		return fmt.Errorf("failed to stream logs: %w", err)
+	}
+
+	return nil
 }
 
-func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
+func streamLogsInteractive(cmd *cobra.Command) error {
+	ctx := context.Background()
+
 	host, err := getHost(cmd)
 	if err != nil {
 		return err
 	}
-	configPath, err := parseLocoTomlPath(cmd)
+
+	workspaceID, err := getWorkspaceId(cmd)
 	if err != nil {
 		return err
+	}
+
+	appName, err := cmd.Flags().GetString("app")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	if appName == "" {
+		return fmt.Errorf("app name is required. Use --app flag")
+	}
+
+	lines, err := cmd.Flags().GetInt32("lines")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	follow, err := cmd.Flags().GetBool("follow")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
 	}
 
 	locoToken, err := getLocoToken()
 	if err != nil {
-		slog.Debug("failed to get loco token", "error", err)
-		return err
+		return ErrLoginRequired
 	}
 
-	cfg, err := config.Load(configPath)
+	apiClient := client.NewClient(host, locoToken.Token)
+
+	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+
+	appList, err := apiClient.ListApps(ctx, fmt.Sprintf("%d", workspaceID))
 	if err != nil {
-		slog.Debug("failed to load config", "path", configPath, "error", err)
-		return fmt.Errorf("failed to load config: %w", err)
+		slog.Debug("failed to list apps", "error", err)
+		return fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	c := client.NewClient(host)
-	ctx, cancel := context.WithCancel(context.Background())
+	var appID int64
+	for _, app := range appList {
+		if app.Name == appName {
+			appID = app.Id
+			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
+			break
+		}
+	}
+
+	if appID == 0 {
+		return fmt.Errorf("app '%s' not found in workspace", appName)
+	}
 
 	columns := []table.Column{
 		{Title: "Time", Width: 20},
-		{Title: "Level", Width: 8},
-		{Title: "Message", Width: 100},
+		{Title: "Pod", Width: 30},
+		{Title: "Message", Width: 80},
 	}
 
 	t := table.New(
@@ -139,11 +213,30 @@ func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
 		Bold(false)
 	t.SetStyles(s)
 
-	logsChan := make(chan client.LogEntry)
+	logsChan := make(chan *appv1.LogEntry)
 	errChan := make(chan error)
 
-	go c.StreamLogs(ctx, locoToken.Token, &appv1.LogsRequest{AppName: cfg.LocoConfig.Metadata.Name}, logsChan, errChan)
-	slog.Debug("streaming logs for app", "app_name", cfg.LocoConfig.Metadata.Name)
+	var linesPtr *int32
+	if lines > 0 {
+		linesPtr = &lines
+	}
+
+	var followPtr *bool
+	if follow {
+		followPtr = &follow
+	}
+
+	go func() {
+		err := apiClient.StreamLogs(ctx, appID, linesPtr, followPtr, func(logEntry *appv1.LogEntry) error {
+			logsChan <- logEntry
+			return nil
+		})
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
+	slog.Debug("streaming logs for app", "app_name", appName, "app_id", appID)
 
 	m := logModel{
 		table:     t,
@@ -152,7 +245,6 @@ func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
 		logsChan:  logsChan,
 		errChan:   errChan,
 		ctx:       ctx,
-		cancel:    cancel,
 	}
 
 	if finalModel, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
@@ -168,7 +260,7 @@ func streamLogsInteractive(cmd *cobra.Command, _ []string) error {
 
 type logMsg struct {
 	Time    string
-	PodId   string
+	PodName string
 	Message string
 }
 
@@ -178,8 +270,7 @@ type logModel struct {
 	logs      []table.Row
 	err       error
 	ctx       context.Context
-	cancel    context.CancelFunc
-	logsChan  chan client.LogEntry
+	logsChan  chan *appv1.LogEntry
 	errChan   chan error
 	table     table.Model
 	baseStyle lipgloss.Style
@@ -189,14 +280,13 @@ func (m logModel) Init() tea.Cmd {
 	return m.waitForLog()
 }
 
-// The polling command: checks for new logs or errors and emits tea.Msg
 func (m logModel) waitForLog() tea.Cmd {
 	return func() tea.Msg {
 		select {
 		case log := <-m.logsChan:
 			return logMsg{
-				Time:    log.Timestamp.Local().Format(time.RFC3339),
-				PodId:   log.PodName,
+				Time:    log.Timestamp.AsTime().Format(time.RFC3339),
+				PodName: log.PodName,
 				Message: log.Log,
 			}
 		case err := <-m.errChan:
@@ -204,7 +294,6 @@ func (m logModel) waitForLog() tea.Cmd {
 		case <-m.ctx.Done():
 			return tea.Quit()
 		case <-time.After(100 * time.Millisecond):
-			// Timeout to keep the program responsive, even if no logs come in
 			return m.waitForLog()
 		}
 	}
@@ -215,10 +304,10 @@ func (m logModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case logMsg:
-		newRow := table.Row{msg.Time, msg.PodId, msg.Message}
+		newRow := table.Row{msg.Time, msg.PodName, msg.Message}
 		m.logs = append(m.logs, newRow)
 		m.table.SetRows(m.logs)
-		return m, m.waitForLog() // Continue polling
+		return m, m.waitForLog()
 
 	case errMsg:
 		m.err = msg.error
@@ -233,7 +322,6 @@ func (m logModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.table.Focus()
 			}
 		case "q", "ctrl+c":
-			m.cancel()
 			return m, tea.Quit
 		}
 	}
@@ -253,9 +341,11 @@ func (m logModel) View() string {
 }
 
 func init() {
-	logsCmd.Flags().StringP("config", "c", "", "Path to loco.toml config file")
-	logsCmd.Flags().BoolP("follow", "f", false, "Follow log output")
-	logsCmd.Flags().IntP("lines", "n", 0, "Number of lines to show")
+	logsCmd.Flags().StringP("app", "a", "", "Application name")
+	logsCmd.Flags().String("org", "", "organization ID")
+	logsCmd.Flags().String("workspace", "", "workspace ID")
+	logsCmd.Flags().BoolP("follow", "f", false, "Follow log output (tail -f style)")
+	logsCmd.Flags().Int32P("lines", "n", 0, "Number of lines to show (0 = all)")
 	logsCmd.Flags().StringP("output", "o", "", "Output format (json, table). Defaults to table.")
 	logsCmd.Flags().String("host", "", "Set the host URL")
 }

@@ -9,6 +9,7 @@ package appv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -22,103 +23,83 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// --- deploy app ---
-type DeployAppRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	LocoConfig     *LocoConfig            `protobuf:"bytes,1,opt,name=loco_config,json=locoConfig,proto3" json:"loco_config,omitempty"`
-	ContainerImage string                 `protobuf:"bytes,2,opt,name=container_image,json=containerImage,proto3" json:"container_image,omitempty"`
-	EnvVars        []*EnvVar              `protobuf:"bytes,3,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty"`
-	Wait           bool                   `protobuf:"varint,4,opt,name=wait,proto3" json:"wait,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
+type AppType int32
 
-func (x *DeployAppRequest) Reset() {
-	*x = DeployAppRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
+const (
+	AppType_SERVICE  AppType = 0
+	AppType_DATABASE AppType = 1
+)
 
-func (x *DeployAppRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeployAppRequest) ProtoMessage() {}
-
-func (x *DeployAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+// Enum value maps for AppType.
+var (
+	AppType_name = map[int32]string{
+		0: "SERVICE",
+		1: "DATABASE",
 	}
-	return mi.MessageOf(x)
+	AppType_value = map[string]int32{
+		"SERVICE":  0,
+		"DATABASE": 1,
+	}
+)
+
+func (x AppType) Enum() *AppType {
+	p := new(AppType)
+	*p = x
+	return p
 }
 
-// Deprecated: Use DeployAppRequest.ProtoReflect.Descriptor instead.
-func (*DeployAppRequest) Descriptor() ([]byte, []int) {
+func (x AppType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppType) Descriptor() protoreflect.EnumDescriptor {
+	return file_shared_proto_app_v1_app_proto_enumTypes[0].Descriptor()
+}
+
+func (AppType) Type() protoreflect.EnumType {
+	return &file_shared_proto_app_v1_app_proto_enumTypes[0]
+}
+
+func (x AppType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppType.Descriptor instead.
+func (AppType) EnumDescriptor() ([]byte, []int) {
 	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DeployAppRequest) GetLocoConfig() *LocoConfig {
-	if x != nil {
-		return x.LocoConfig
-	}
-	return nil
-}
-
-func (x *DeployAppRequest) GetContainerImage() string {
-	if x != nil {
-		return x.ContainerImage
-	}
-	return ""
-}
-
-func (x *DeployAppRequest) GetEnvVars() []*EnvVar {
-	if x != nil {
-		return x.EnvVars
-	}
-	return nil
-}
-
-func (x *DeployAppRequest) GetWait() bool {
-	if x != nil {
-		return x.Wait
-	}
-	return false
-}
-
-type LocoConfig struct {
+type App struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metadata      *Metadata              `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	Resources     *Resources             `protobuf:"bytes,2,opt,name=resources,proto3" json:"resources,omitempty"`
-	Build         *Build                 `protobuf:"bytes,3,opt,name=build,proto3" json:"build,omitempty"`
-	Routing       *Routing               `protobuf:"bytes,4,opt,name=routing,proto3" json:"routing,omitempty"`
-	Health        *HealthCheck           `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
-	Env           *Env                   `protobuf:"bytes,6,opt,name=env,proto3" json:"env,omitempty"`
-	Obs           *Obs                   `protobuf:"bytes,7,opt,name=obs,proto3" json:"obs,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	WorkspaceId   int64                  `protobuf:"varint,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace     string                 `protobuf:"bytes,5,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Type          AppType                `protobuf:"varint,6,opt,name=type,proto3,enum=loco.app.v1.AppType" json:"type,omitempty"`
+	Subdomain     string                 `protobuf:"bytes,7,opt,name=subdomain,proto3" json:"subdomain,omitempty"`
+	Domain        string                 `protobuf:"bytes,8,opt,name=domain,proto3" json:"domain,omitempty"`
+	CreatedBy     int64                  `protobuf:"varint,11,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocoConfig) Reset() {
-	*x = LocoConfig{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[1]
+func (x *App) Reset() {
+	*x = App{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocoConfig) String() string {
+func (x *App) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocoConfig) ProtoMessage() {}
+func (*App) ProtoMessage() {}
 
-func (x *LocoConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[1]
+func (x *App) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -129,571 +110,107 @@ func (x *LocoConfig) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocoConfig.ProtoReflect.Descriptor instead.
-func (*LocoConfig) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use App.ProtoReflect.Descriptor instead.
+func (*App) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LocoConfig) GetMetadata() *Metadata {
+func (x *App) GetId() int64 {
 	if x != nil {
-		return x.Metadata
+		return x.Id
 	}
-	return nil
+	return 0
 }
 
-func (x *LocoConfig) GetResources() *Resources {
+func (x *App) GetWorkspaceId() int64 {
 	if x != nil {
-		return x.Resources
+		return x.WorkspaceId
 	}
-	return nil
+	return 0
 }
 
-func (x *LocoConfig) GetBuild() *Build {
-	if x != nil {
-		return x.Build
-	}
-	return nil
-}
-
-func (x *LocoConfig) GetRouting() *Routing {
-	if x != nil {
-		return x.Routing
-	}
-	return nil
-}
-
-func (x *LocoConfig) GetHealth() *HealthCheck {
-	if x != nil {
-		return x.Health
-	}
-	return nil
-}
-
-func (x *LocoConfig) GetEnv() *Env {
-	if x != nil {
-		return x.Env
-	}
-	return nil
-}
-
-func (x *LocoConfig) GetObs() *Obs {
-	if x != nil {
-		return x.Obs
-	}
-	return nil
-}
-
-type Metadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConfigVersion string                 `protobuf:"bytes,1,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Metadata) Reset() {
-	*x = Metadata{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Metadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Metadata) ProtoMessage() {}
-
-func (x *Metadata) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Metadata.ProtoReflect.Descriptor instead.
-func (*Metadata) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *Metadata) GetConfigVersion() string {
-	if x != nil {
-		return x.ConfigVersion
-	}
-	return ""
-}
-
-func (x *Metadata) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *Metadata) GetName() string {
+func (x *App) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-type Replicas struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Max           int32                  `protobuf:"varint,1,opt,name=max,proto3" json:"max,omitempty"`
-	Min           int32                  `protobuf:"varint,2,opt,name=min,proto3" json:"min,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Replicas) Reset() {
-	*x = Replicas{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Replicas) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Replicas) ProtoMessage() {}
-
-func (x *Replicas) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[3]
+func (x *App) GetNamespace() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Replicas.ProtoReflect.Descriptor instead.
-func (*Replicas) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Replicas) GetMax() int32 {
-	if x != nil {
-		return x.Max
-	}
-	return 0
-}
-
-func (x *Replicas) GetMin() int32 {
-	if x != nil {
-		return x.Min
-	}
-	return 0
-}
-
-type Scalers struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CpuTarget     int32                  `protobuf:"varint,1,opt,name=cpu_target,json=cpuTarget,proto3" json:"cpu_target,omitempty"`
-	MemoryTarget  int32                  `protobuf:"varint,2,opt,name=memory_target,json=memoryTarget,proto3" json:"memory_target,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Scalers) Reset() {
-	*x = Scalers{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Scalers) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Scalers) ProtoMessage() {}
-
-func (x *Scalers) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Scalers.ProtoReflect.Descriptor instead.
-func (*Scalers) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Scalers) GetCpuTarget() int32 {
-	if x != nil {
-		return x.CpuTarget
-	}
-	return 0
-}
-
-func (x *Scalers) GetMemoryTarget() int32 {
-	if x != nil {
-		return x.MemoryTarget
-	}
-	return 0
-}
-
-func (x *Scalers) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-type Resources struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cpu           string                 `protobuf:"bytes,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
-	Memory        string                 `protobuf:"bytes,2,opt,name=memory,proto3" json:"memory,omitempty"`
-	Replicas      *Replicas              `protobuf:"bytes,3,opt,name=replicas,proto3" json:"replicas,omitempty"`
-	Scalers       *Scalers               `protobuf:"bytes,4,opt,name=scalers,proto3" json:"scalers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Resources) Reset() {
-	*x = Resources{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Resources) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Resources) ProtoMessage() {}
-
-func (x *Resources) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Resources.ProtoReflect.Descriptor instead.
-func (*Resources) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Resources) GetCpu() string {
-	if x != nil {
-		return x.Cpu
+		return x.Namespace
 	}
 	return ""
 }
 
-func (x *Resources) GetMemory() string {
-	if x != nil {
-		return x.Memory
-	}
-	return ""
-}
-
-func (x *Resources) GetReplicas() *Replicas {
-	if x != nil {
-		return x.Replicas
-	}
-	return nil
-}
-
-func (x *Resources) GetScalers() *Scalers {
-	if x != nil {
-		return x.Scalers
-	}
-	return nil
-}
-
-type Build struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	DockerfilePath string                 `protobuf:"bytes,1,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
-	Type           string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *Build) Reset() {
-	*x = Build{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Build) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Build) ProtoMessage() {}
-
-func (x *Build) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Build.ProtoReflect.Descriptor instead.
-func (*Build) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *Build) GetDockerfilePath() string {
-	if x != nil {
-		return x.DockerfilePath
-	}
-	return ""
-}
-
-func (x *Build) GetType() string {
+func (x *App) GetType() AppType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return AppType_SERVICE
 }
 
-type Routing struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IdleTimeout   int32                  `protobuf:"varint,1,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
-	PathPrefix    string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
-	Port          int32                  `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
-	Subdomain     string                 `protobuf:"bytes,4,opt,name=subdomain,proto3" json:"subdomain,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Routing) Reset() {
-	*x = Routing{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Routing) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Routing) ProtoMessage() {}
-
-func (x *Routing) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Routing.ProtoReflect.Descriptor instead.
-func (*Routing) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *Routing) GetIdleTimeout() int32 {
-	if x != nil {
-		return x.IdleTimeout
-	}
-	return 0
-}
-
-func (x *Routing) GetPathPrefix() string {
-	if x != nil {
-		return x.PathPrefix
-	}
-	return ""
-}
-
-func (x *Routing) GetPort() int32 {
-	if x != nil {
-		return x.Port
-	}
-	return 0
-}
-
-func (x *Routing) GetSubdomain() string {
+func (x *App) GetSubdomain() string {
 	if x != nil {
 		return x.Subdomain
 	}
 	return ""
 }
 
-type HealthCheck struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Interval           int32                  `protobuf:"varint,1,opt,name=interval,proto3" json:"interval,omitempty"`
-	Path               string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	StartupGracePeriod int32                  `protobuf:"varint,3,opt,name=startup_grace_period,json=startupGracePeriod,proto3" json:"startup_grace_period,omitempty"`
-	Timeout            int32                  `protobuf:"varint,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	FailThreshold      int32                  `protobuf:"varint,5,opt,name=fail_threshold,json=failThreshold,proto3" json:"fail_threshold,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *HealthCheck) Reset() {
-	*x = HealthCheck{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HealthCheck) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HealthCheck) ProtoMessage() {}
-
-func (x *HealthCheck) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[8]
+func (x *App) GetDomain() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HealthCheck.ProtoReflect.Descriptor instead.
-func (*HealthCheck) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *HealthCheck) GetInterval() int32 {
-	if x != nil {
-		return x.Interval
-	}
-	return 0
-}
-
-func (x *HealthCheck) GetPath() string {
-	if x != nil {
-		return x.Path
+		return x.Domain
 	}
 	return ""
 }
 
-func (x *HealthCheck) GetStartupGracePeriod() int32 {
+func (x *App) GetCreatedBy() int64 {
 	if x != nil {
-		return x.StartupGracePeriod
+		return x.CreatedBy
 	}
 	return 0
 }
 
-func (x *HealthCheck) GetTimeout() int32 {
+func (x *App) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timeout
-	}
-	return 0
-}
-
-func (x *HealthCheck) GetFailThreshold() int32 {
-	if x != nil {
-		return x.FailThreshold
-	}
-	return 0
-}
-
-type Env struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	File          string                 `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
-	Variables     []*EnvVar              `protobuf:"bytes,2,rep,name=variables,proto3" json:"variables,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Env) Reset() {
-	*x = Env{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Env) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Env) ProtoMessage() {}
-
-func (x *Env) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Env.ProtoReflect.Descriptor instead.
-func (*Env) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *Env) GetFile() string {
-	if x != nil {
-		return x.File
-	}
-	return ""
-}
-
-func (x *Env) GetVariables() []*EnvVar {
-	if x != nil {
-		return x.Variables
+		return x.CreatedAt
 	}
 	return nil
 }
 
-type EnvVar struct {
+func (x *App) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type CreateAppRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	WorkspaceId   int64                  `protobuf:"varint,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Type          AppType                `protobuf:"varint,4,opt,name=type,proto3,enum=loco.app.v1.AppType" json:"type,omitempty"`
+	Subdomain     string                 `protobuf:"bytes,5,opt,name=subdomain,proto3" json:"subdomain,omitempty"`
+	Domain        *string                `protobuf:"bytes,6,opt,name=domain,proto3,oneof" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EnvVar) Reset() {
-	*x = EnvVar{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[10]
+func (x *CreateAppRequest) Reset() {
+	*x = CreateAppRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EnvVar) String() string {
+func (x *CreateAppRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EnvVar) ProtoMessage() {}
+func (*CreateAppRequest) ProtoMessage() {}
 
-func (x *EnvVar) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[10]
+func (x *CreateAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -704,48 +221,489 @@ func (x *EnvVar) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EnvVar.ProtoReflect.Descriptor instead.
-func (*EnvVar) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{10}
+// Deprecated: Use CreateAppRequest.ProtoReflect.Descriptor instead.
+func (*CreateAppRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *EnvVar) GetName() string {
+func (x *CreateAppRequest) GetWorkspaceId() int64 {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return 0
+}
+
+func (x *CreateAppRequest) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *EnvVar) GetValue() string {
+func (x *CreateAppRequest) GetType() AppType {
 	if x != nil {
-		return x.Value
+		return x.Type
+	}
+	return AppType_SERVICE
+}
+
+func (x *CreateAppRequest) GetSubdomain() string {
+	if x != nil {
+		return x.Subdomain
 	}
 	return ""
 }
 
-type Logging struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Enabled         bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	RetentionPeriod string                 `protobuf:"bytes,2,opt,name=retention_period,json=retentionPeriod,proto3" json:"retention_period,omitempty"`
-	Structured      bool                   `protobuf:"varint,3,opt,name=structured,proto3" json:"structured,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+func (x *CreateAppRequest) GetDomain() string {
+	if x != nil && x.Domain != nil {
+		return *x.Domain
+	}
+	return ""
 }
 
-func (x *Logging) Reset() {
-	*x = Logging{}
+type CreateAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           *App                   `protobuf:"bytes,1,opt,name=app,proto3" json:"app,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAppResponse) Reset() {
+	*x = CreateAppResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAppResponse) ProtoMessage() {}
+
+func (x *CreateAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAppResponse.ProtoReflect.Descriptor instead.
+func (*CreateAppResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateAppResponse) GetApp() *App {
+	if x != nil {
+		return x.App
+	}
+	return nil
+}
+
+type GetAppRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppRequest) Reset() {
+	*x = GetAppRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppRequest) ProtoMessage() {}
+
+func (x *GetAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppRequest.ProtoReflect.Descriptor instead.
+func (*GetAppRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetAppRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           *App                   `protobuf:"bytes,1,opt,name=app,proto3" json:"app,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppResponse) Reset() {
+	*x = GetAppResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppResponse) ProtoMessage() {}
+
+func (x *GetAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppResponse.ProtoReflect.Descriptor instead.
+func (*GetAppResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetAppResponse) GetApp() *App {
+	if x != nil {
+		return x.App
+	}
+	return nil
+}
+
+type ListAppsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId   int64                  `protobuf:"varint,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppsRequest) Reset() {
+	*x = ListAppsRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppsRequest) ProtoMessage() {}
+
+func (x *ListAppsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppsRequest.ProtoReflect.Descriptor instead.
+func (*ListAppsRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListAppsRequest) GetWorkspaceId() int64 {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return 0
+}
+
+type ListAppsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Apps          []*App                 `protobuf:"bytes,1,rep,name=apps,proto3" json:"apps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppsResponse) Reset() {
+	*x = ListAppsResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppsResponse) ProtoMessage() {}
+
+func (x *ListAppsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppsResponse.ProtoReflect.Descriptor instead.
+func (*ListAppsResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListAppsResponse) GetApps() []*App {
+	if x != nil {
+		return x.Apps
+	}
+	return nil
+}
+
+type UpdateAppRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Subdomain     *string                `protobuf:"bytes,3,opt,name=subdomain,proto3,oneof" json:"subdomain,omitempty"`
+	Domain        *string                `protobuf:"bytes,4,opt,name=domain,proto3,oneof" json:"domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAppRequest) Reset() {
+	*x = UpdateAppRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAppRequest) ProtoMessage() {}
+
+func (x *UpdateAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAppRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAppRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateAppRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateAppRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateAppRequest) GetSubdomain() string {
+	if x != nil && x.Subdomain != nil {
+		return *x.Subdomain
+	}
+	return ""
+}
+
+func (x *UpdateAppRequest) GetDomain() string {
+	if x != nil && x.Domain != nil {
+		return *x.Domain
+	}
+	return ""
+}
+
+type UpdateAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           *App                   `protobuf:"bytes,1,opt,name=app,proto3" json:"app,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAppResponse) Reset() {
+	*x = UpdateAppResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAppResponse) ProtoMessage() {}
+
+func (x *UpdateAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAppResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAppResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateAppResponse) GetApp() *App {
+	if x != nil {
+		return x.App
+	}
+	return nil
+}
+
+type DeleteAppRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAppRequest) Reset() {
+	*x = DeleteAppRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAppRequest) ProtoMessage() {}
+
+func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAppRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAppRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteAppRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type DeleteAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAppResponse) Reset() {
+	*x = DeleteAppResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAppResponse) ProtoMessage() {}
+
+func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAppResponse.ProtoReflect.Descriptor instead.
+func (*DeleteAppResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteAppResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// --- Subdomain ---
+type CheckSubdomainAvailabilityRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subdomain     string                 `protobuf:"bytes,1,opt,name=subdomain,proto3" json:"subdomain,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckSubdomainAvailabilityRequest) Reset() {
+	*x = CheckSubdomainAvailabilityRequest{}
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Logging) String() string {
+func (x *CheckSubdomainAvailabilityRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Logging) ProtoMessage() {}
+func (*CheckSubdomainAvailabilityRequest) ProtoMessage() {}
 
-func (x *Logging) ProtoReflect() protoreflect.Message {
+func (x *CheckSubdomainAvailabilityRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -757,55 +715,46 @@ func (x *Logging) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Logging.ProtoReflect.Descriptor instead.
-func (*Logging) Descriptor() ([]byte, []int) {
+// Deprecated: Use CheckSubdomainAvailabilityRequest.ProtoReflect.Descriptor instead.
+func (*CheckSubdomainAvailabilityRequest) Descriptor() ([]byte, []int) {
 	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *Logging) GetEnabled() bool {
+func (x *CheckSubdomainAvailabilityRequest) GetSubdomain() string {
 	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *Logging) GetRetentionPeriod() string {
-	if x != nil {
-		return x.RetentionPeriod
+		return x.Subdomain
 	}
 	return ""
 }
 
-func (x *Logging) GetStructured() bool {
+func (x *CheckSubdomainAvailabilityRequest) GetDomain() string {
 	if x != nil {
-		return x.Structured
+		return x.Domain
 	}
-	return false
+	return ""
 }
 
-type Metrics struct {
+type CheckSubdomainAvailabilityResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Port          int32                  `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Metrics) Reset() {
-	*x = Metrics{}
+func (x *CheckSubdomainAvailabilityResponse) Reset() {
+	*x = CheckSubdomainAvailabilityResponse{}
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Metrics) String() string {
+func (x *CheckSubdomainAvailabilityResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Metrics) ProtoMessage() {}
+func (*CheckSubdomainAvailabilityResponse) ProtoMessage() {}
 
-func (x *Metrics) ProtoReflect() protoreflect.Message {
+func (x *CheckSubdomainAvailabilityResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -817,55 +766,39 @@ func (x *Metrics) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Metrics.ProtoReflect.Descriptor instead.
-func (*Metrics) Descriptor() ([]byte, []int) {
+// Deprecated: Use CheckSubdomainAvailabilityResponse.ProtoReflect.Descriptor instead.
+func (*CheckSubdomainAvailabilityResponse) Descriptor() ([]byte, []int) {
 	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *Metrics) GetEnabled() bool {
+func (x *CheckSubdomainAvailabilityResponse) GetAvailable() bool {
 	if x != nil {
-		return x.Enabled
+		return x.Available
 	}
 	return false
 }
 
-func (x *Metrics) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *Metrics) GetPort() int32 {
-	if x != nil {
-		return x.Port
-	}
-	return 0
-}
-
-type Tracing struct {
+type GetAppStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	SampleRate    float64                `protobuf:"fixed64,2,opt,name=sample_rate,json=sampleRate,proto3" json:"sample_rate,omitempty"`
-	Tags          map[string]string      `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Tracing) Reset() {
-	*x = Tracing{}
+func (x *GetAppStatusRequest) Reset() {
+	*x = GetAppStatusRequest{}
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Tracing) String() string {
+func (x *GetAppStatusRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Tracing) ProtoMessage() {}
+func (*GetAppStatusRequest) ProtoMessage() {}
 
-func (x *Tracing) ProtoReflect() protoreflect.Message {
+func (x *GetAppStatusRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -877,55 +810,43 @@ func (x *Tracing) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Tracing.ProtoReflect.Descriptor instead.
-func (*Tracing) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetAppStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetAppStatusRequest) Descriptor() ([]byte, []int) {
 	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *Tracing) GetEnabled() bool {
+func (x *GetAppStatusRequest) GetAppId() int64 {
 	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *Tracing) GetSampleRate() float64 {
-	if x != nil {
-		return x.SampleRate
+		return x.AppId
 	}
 	return 0
 }
 
-func (x *Tracing) GetTags() map[string]string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
-type Obs struct {
+type DeploymentStatus struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Logging       *Logging               `protobuf:"bytes,1,opt,name=logging,proto3" json:"logging,omitempty"`
-	Metrics       *Metrics               `protobuf:"bytes,2,opt,name=metrics,proto3" json:"metrics,omitempty"`
-	Tracing       *Tracing               `protobuf:"bytes,3,opt,name=tracing,proto3" json:"tracing,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Replicas      int32                  `protobuf:"varint,3,opt,name=replicas,proto3" json:"replicas,omitempty"`
+	Message       *string                `protobuf:"bytes,4,opt,name=message,proto3,oneof" json:"message,omitempty"`
+	ErrorMessage  *string                `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Obs) Reset() {
-	*x = Obs{}
+func (x *DeploymentStatus) Reset() {
+	*x = DeploymentStatus{}
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Obs) String() string {
+func (x *DeploymentStatus) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Obs) ProtoMessage() {}
+func (*DeploymentStatus) ProtoMessage() {}
 
-func (x *Obs) ProtoReflect() protoreflect.Message {
+func (x *DeploymentStatus) ProtoReflect() protoreflect.Message {
 	mi := &file_shared_proto_app_v1_app_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -937,338 +858,256 @@ func (x *Obs) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Obs.ProtoReflect.Descriptor instead.
-func (*Obs) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeploymentStatus.ProtoReflect.Descriptor instead.
+func (*DeploymentStatus) Descriptor() ([]byte, []int) {
 	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *Obs) GetLogging() *Logging {
+func (x *DeploymentStatus) GetId() int64 {
 	if x != nil {
-		return x.Logging
-	}
-	return nil
-}
-
-func (x *Obs) GetMetrics() *Metrics {
-	if x != nil {
-		return x.Metrics
-	}
-	return nil
-}
-
-func (x *Obs) GetTracing() *Tracing {
-	if x != nil {
-		return x.Tracing
-	}
-	return nil
-}
-
-type DeployAppResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"` // "info", "error", "progress"
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeployAppResponse) Reset() {
-	*x = DeployAppResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeployAppResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeployAppResponse) ProtoMessage() {}
-
-func (x *DeployAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeployAppResponse.ProtoReflect.Descriptor instead.
-func (*DeployAppResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *DeployAppResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *DeployAppResponse) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
-type LogsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppName       string                 `protobuf:"bytes,1,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
-	Tail          int64                  `protobuf:"varint,2,opt,name=tail,proto3" json:"tail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LogsRequest) Reset() {
-	*x = LogsRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LogsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LogsRequest) ProtoMessage() {}
-
-func (x *LogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LogsRequest.ProtoReflect.Descriptor instead.
-func (*LogsRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *LogsRequest) GetAppName() string {
-	if x != nil {
-		return x.AppName
-	}
-	return ""
-}
-
-func (x *LogsRequest) GetTail() int64 {
-	if x != nil {
-		return x.Tail
+		return x.Id
 	}
 	return 0
 }
 
-type LogsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
-	Log           string                 `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LogsResponse) Reset() {
-	*x = LogsResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LogsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LogsResponse) ProtoMessage() {}
-
-func (x *LogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LogsResponse.ProtoReflect.Descriptor instead.
-func (*LogsResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *LogsResponse) GetTimestamp() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Timestamp
-	}
-	return nil
-}
-
-func (x *LogsResponse) GetPodName() string {
-	if x != nil {
-		return x.PodName
-	}
-	return ""
-}
-
-func (x *LogsResponse) GetLog() string {
-	if x != nil {
-		return x.Log
-	}
-	return ""
-}
-
-// --- status ---
-type StatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppName       string                 `protobuf:"bytes,1,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StatusRequest) Reset() {
-	*x = StatusRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StatusRequest) ProtoMessage() {}
-
-func (x *StatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StatusRequest.ProtoReflect.Descriptor instead.
-func (*StatusRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *StatusRequest) GetAppName() string {
-	if x != nil {
-		return x.AppName
-	}
-	return ""
-}
-
-type StatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`      // whether deployment is up or down
-	Replicas      int32                  `protobuf:"varint,2,opt,name=replicas,proto3" json:"replicas,omitempty"` // healthy active replicas
-	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
-	DeployedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=deployed_at,json=deployedAt,proto3" json:"deployed_at,omitempty"`
-	Health        string                 `protobuf:"bytes,5,opt,name=health,proto3" json:"health,omitempty"`
-	Events        []*Event               `protobuf:"bytes,6,rep,name=events,proto3" json:"events,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StatusResponse) Reset() {
-	*x = StatusResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StatusResponse) ProtoMessage() {}
-
-func (x *StatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
-func (*StatusResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *StatusResponse) GetStatus() string {
+func (x *DeploymentStatus) GetStatus() string {
 	if x != nil {
 		return x.Status
 	}
 	return ""
 }
 
-func (x *StatusResponse) GetReplicas() int32 {
+func (x *DeploymentStatus) GetReplicas() int32 {
 	if x != nil {
 		return x.Replicas
 	}
 	return 0
 }
 
-func (x *StatusResponse) GetUrl() string {
-	if x != nil {
-		return x.Url
+func (x *DeploymentStatus) GetMessage() string {
+	if x != nil && x.Message != nil {
+		return *x.Message
 	}
 	return ""
 }
 
-func (x *StatusResponse) GetDeployedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.DeployedAt
-	}
-	return nil
-}
-
-func (x *StatusResponse) GetHealth() string {
-	if x != nil {
-		return x.Health
+func (x *DeploymentStatus) GetErrorMessage() string {
+	if x != nil && x.ErrorMessage != nil {
+		return *x.ErrorMessage
 	}
 	return ""
 }
 
-func (x *StatusResponse) GetEvents() []*Event {
+type GetAppStatusResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	App               *App                   `protobuf:"bytes,1,opt,name=app,proto3" json:"app,omitempty"`
+	CurrentDeployment *DeploymentStatus      `protobuf:"bytes,2,opt,name=current_deployment,json=currentDeployment,proto3" json:"current_deployment,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetAppStatusResponse) Reset() {
+	*x = GetAppStatusResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppStatusResponse) ProtoMessage() {}
+
+func (x *GetAppStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[15]
 	if x != nil {
-		return x.Events
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetAppStatusResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetAppStatusResponse) GetApp() *App {
+	if x != nil {
+		return x.App
 	}
 	return nil
+}
+
+func (x *GetAppStatusResponse) GetCurrentDeployment() *DeploymentStatus {
+	if x != nil {
+		return x.CurrentDeployment
+	}
+	return nil
+}
+
+type StreamLogsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Limit         *int32                 `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	Follow        *bool                  `protobuf:"varint,3,opt,name=follow,proto3,oneof" json:"follow,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamLogsRequest) Reset() {
+	*x = StreamLogsRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamLogsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamLogsRequest) ProtoMessage() {}
+
+func (x *StreamLogsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamLogsRequest.ProtoReflect.Descriptor instead.
+func (*StreamLogsRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *StreamLogsRequest) GetAppId() int64 {
+	if x != nil {
+		return x.AppId
+	}
+	return 0
+}
+
+func (x *StreamLogsRequest) GetLimit() int32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+func (x *StreamLogsRequest) GetFollow() bool {
+	if x != nil && x.Follow != nil {
+		return *x.Follow
+	}
+	return false
+}
+
+type LogEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PodName       string                 `protobuf:"bytes,1,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	Namespace     string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Container     string                 `protobuf:"bytes,3,opt,name=container,proto3" json:"container,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Log           string                 `protobuf:"bytes,5,opt,name=log,proto3" json:"log,omitempty"`
+	Level         string                 `protobuf:"bytes,6,opt,name=level,proto3" json:"level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogEntry) Reset() {
+	*x = LogEntry{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogEntry) ProtoMessage() {}
+
+func (x *LogEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
+func (*LogEntry) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *LogEntry) GetPodName() string {
+	if x != nil {
+		return x.PodName
+	}
+	return ""
+}
+
+func (x *LogEntry) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *LogEntry) GetContainer() string {
+	if x != nil {
+		return x.Container
+	}
+	return ""
+}
+
+func (x *LogEntry) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *LogEntry) GetLog() string {
+	if x != nil {
+		return x.Log
+	}
+	return ""
+}
+
+func (x *LogEntry) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
 }
 
 type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
+	PodName       string                 `protobuf:"bytes,5,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[20]
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1280,7 +1119,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[20]
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1293,14 +1132,14 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{20}
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *Event) GetType() string {
+func (x *Event) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Type
+		return x.Timestamp
 	}
-	return ""
+	return nil
 }
 
 func (x *Event) GetReason() string {
@@ -1317,36 +1156,43 @@ func (x *Event) GetMessage() string {
 	return ""
 }
 
-func (x *Event) GetTimestamp() *timestamppb.Timestamp {
+func (x *Event) GetType() string {
 	if x != nil {
-		return x.Timestamp
+		return x.Type
 	}
-	return nil
+	return ""
 }
 
-// --- destroy app ---
-type DestroyAppRequest struct {
+func (x *Event) GetPodName() string {
+	if x != nil {
+		return x.PodName
+	}
+	return ""
+}
+
+type GetEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Limit         *int32                 `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DestroyAppRequest) Reset() {
-	*x = DestroyAppRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[21]
+func (x *GetEventsRequest) Reset() {
+	*x = GetEventsRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DestroyAppRequest) String() string {
+func (x *GetEventsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DestroyAppRequest) ProtoMessage() {}
+func (*GetEventsRequest) ProtoMessage() {}
 
-func (x *DestroyAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[21]
+func (x *GetEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1357,153 +1203,47 @@ func (x *DestroyAppRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DestroyAppRequest.ProtoReflect.Descriptor instead.
-func (*DestroyAppRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{21}
+// Deprecated: Use GetEventsRequest.ProtoReflect.Descriptor instead.
+func (*GetEventsRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *DestroyAppRequest) GetName() string {
+func (x *GetEventsRequest) GetAppId() int64 {
 	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-type DestroyAppResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DestroyAppResponse) Reset() {
-	*x = DestroyAppResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DestroyAppResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DestroyAppResponse) ProtoMessage() {}
-
-func (x *DestroyAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DestroyAppResponse.ProtoReflect.Descriptor instead.
-func (*DestroyAppResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *DestroyAppResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-// --- scale app ---
-type ScaleAppRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Replicas      *int32                 `protobuf:"varint,2,opt,name=replicas,proto3,oneof" json:"replicas,omitempty"`
-	Cpu           *string                `protobuf:"bytes,3,opt,name=cpu,proto3,oneof" json:"cpu,omitempty"`
-	Memory        *string                `protobuf:"bytes,4,opt,name=memory,proto3,oneof" json:"memory,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ScaleAppRequest) Reset() {
-	*x = ScaleAppRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ScaleAppRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ScaleAppRequest) ProtoMessage() {}
-
-func (x *ScaleAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ScaleAppRequest.ProtoReflect.Descriptor instead.
-func (*ScaleAppRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *ScaleAppRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *ScaleAppRequest) GetReplicas() int32 {
-	if x != nil && x.Replicas != nil {
-		return *x.Replicas
+		return x.AppId
 	}
 	return 0
 }
 
-func (x *ScaleAppRequest) GetCpu() string {
-	if x != nil && x.Cpu != nil {
-		return *x.Cpu
+func (x *GetEventsRequest) GetLimit() int32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
 	}
-	return ""
+	return 0
 }
 
-func (x *ScaleAppRequest) GetMemory() string {
-	if x != nil && x.Memory != nil {
-		return *x.Memory
-	}
-	return ""
-}
-
-type ScaleAppResponse struct {
+type GetEventsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ScaleAppResponse) Reset() {
-	*x = ScaleAppResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[24]
+func (x *GetEventsResponse) Reset() {
+	*x = GetEventsResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ScaleAppResponse) String() string {
+func (x *GetEventsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ScaleAppResponse) ProtoMessage() {}
+func (*GetEventsResponse) ProtoMessage() {}
 
-func (x *ScaleAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[24]
+func (x *GetEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,258 +1254,128 @@ func (x *ScaleAppResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ScaleAppResponse.ProtoReflect.Descriptor instead.
-func (*ScaleAppResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{24}
+// Deprecated: Use GetEventsResponse.ProtoReflect.Descriptor instead.
+func (*GetEventsResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{20}
 }
 
-func (x *ScaleAppResponse) GetMessage() string {
+func (x *GetEventsResponse) GetEvents() []*Event {
 	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-// --- update env vars ---
-type UpdateEnvVarsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	EnvVars       []*EnvVar              `protobuf:"bytes,2,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty"`
-	Restart       bool                   `protobuf:"varint,3,opt,name=restart,proto3" json:"restart,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateEnvVarsRequest) Reset() {
-	*x = UpdateEnvVarsRequest{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateEnvVarsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateEnvVarsRequest) ProtoMessage() {}
-
-func (x *UpdateEnvVarsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateEnvVarsRequest.ProtoReflect.Descriptor instead.
-func (*UpdateEnvVarsRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *UpdateEnvVarsRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *UpdateEnvVarsRequest) GetEnvVars() []*EnvVar {
-	if x != nil {
-		return x.EnvVars
+		return x.Events
 	}
 	return nil
-}
-
-func (x *UpdateEnvVarsRequest) GetRestart() bool {
-	if x != nil {
-		return x.Restart
-	}
-	return false
-}
-
-type UpdateEnvVarsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateEnvVarsResponse) Reset() {
-	*x = UpdateEnvVarsResponse{}
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateEnvVarsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateEnvVarsResponse) ProtoMessage() {}
-
-func (x *UpdateEnvVarsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_app_v1_app_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateEnvVarsResponse.ProtoReflect.Descriptor instead.
-func (*UpdateEnvVarsResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *UpdateEnvVarsResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
 }
 
 var File_shared_proto_app_v1_app_proto protoreflect.FileDescriptor
 
 const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x1dshared/proto/app/v1/app.proto\x12\x13shared.proto.app.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc9\x01\n" +
-	"\x10DeployAppRequest\x12@\n" +
-	"\vloco_config\x18\x01 \x01(\v2\x1f.shared.proto.app.v1.LocoConfigR\n" +
-	"locoConfig\x12'\n" +
-	"\x0fcontainer_image\x18\x02 \x01(\tR\x0econtainerImage\x126\n" +
-	"\benv_vars\x18\x03 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\aenvVars\x12\x12\n" +
-	"\x04wait\x18\x04 \x01(\bR\x04wait\"\x81\x03\n" +
+	"\x1dshared/proto/app/v1/app.proto\x12\vloco.app.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x02\n" +
+	"\x03App\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\x03R\vworkspaceId\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x1c\n" +
+	"\tnamespace\x18\x05 \x01(\tR\tnamespace\x12(\n" +
+	"\x04type\x18\x06 \x01(\x0e2\x14.loco.app.v1.AppTypeR\x04type\x12\x1c\n" +
+	"\tsubdomain\x18\a \x01(\tR\tsubdomain\x12\x16\n" +
+	"\x06domain\x18\b \x01(\tR\x06domain\x12\x1d\n" +
 	"\n" +
-	"LocoConfig\x129\n" +
-	"\bmetadata\x18\x01 \x01(\v2\x1d.shared.proto.app.v1.MetadataR\bmetadata\x12<\n" +
-	"\tresources\x18\x02 \x01(\v2\x1e.shared.proto.app.v1.ResourcesR\tresources\x120\n" +
-	"\x05build\x18\x03 \x01(\v2\x1a.shared.proto.app.v1.BuildR\x05build\x126\n" +
-	"\arouting\x18\x04 \x01(\v2\x1c.shared.proto.app.v1.RoutingR\arouting\x128\n" +
-	"\x06health\x18\x05 \x01(\v2 .shared.proto.app.v1.HealthCheckR\x06health\x12*\n" +
-	"\x03env\x18\x06 \x01(\v2\x18.shared.proto.app.v1.EnvR\x03env\x12*\n" +
-	"\x03obs\x18\a \x01(\v2\x18.shared.proto.app.v1.ObsR\x03obs\"g\n" +
-	"\bMetadata\x12%\n" +
-	"\x0econfig_version\x18\x01 \x01(\tR\rconfigVersion\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\".\n" +
-	"\bReplicas\x12\x10\n" +
-	"\x03max\x18\x01 \x01(\x05R\x03max\x12\x10\n" +
-	"\x03min\x18\x02 \x01(\x05R\x03min\"g\n" +
-	"\aScalers\x12\x1d\n" +
+	"created_by\x18\v \x01(\x03R\tcreatedBy\x129\n" +
 	"\n" +
-	"cpu_target\x18\x01 \x01(\x05R\tcpuTarget\x12#\n" +
-	"\rmemory_target\x18\x02 \x01(\x05R\fmemoryTarget\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabled\"\xa8\x01\n" +
-	"\tResources\x12\x10\n" +
-	"\x03cpu\x18\x01 \x01(\tR\x03cpu\x12\x16\n" +
-	"\x06memory\x18\x02 \x01(\tR\x06memory\x129\n" +
-	"\breplicas\x18\x03 \x01(\v2\x1d.shared.proto.app.v1.ReplicasR\breplicas\x126\n" +
-	"\ascalers\x18\x04 \x01(\v2\x1c.shared.proto.app.v1.ScalersR\ascalers\"D\n" +
-	"\x05Build\x12'\n" +
-	"\x0fdockerfile_path\x18\x01 \x01(\tR\x0edockerfilePath\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\"\x7f\n" +
-	"\aRouting\x12!\n" +
-	"\fidle_timeout\x18\x01 \x01(\x05R\vidleTimeout\x12\x1f\n" +
-	"\vpath_prefix\x18\x02 \x01(\tR\n" +
-	"pathPrefix\x12\x12\n" +
-	"\x04port\x18\x03 \x01(\x05R\x04port\x12\x1c\n" +
-	"\tsubdomain\x18\x04 \x01(\tR\tsubdomain\"\xb0\x01\n" +
-	"\vHealthCheck\x12\x1a\n" +
-	"\binterval\x18\x01 \x01(\x05R\binterval\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\x120\n" +
-	"\x14startup_grace_period\x18\x03 \x01(\x05R\x12startupGracePeriod\x12\x18\n" +
-	"\atimeout\x18\x04 \x01(\x05R\atimeout\x12%\n" +
-	"\x0efail_threshold\x18\x05 \x01(\x05R\rfailThreshold\"T\n" +
-	"\x03Env\x12\x12\n" +
-	"\x04file\x18\x01 \x01(\tR\x04file\x129\n" +
-	"\tvariables\x18\x02 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\tvariables\"2\n" +
-	"\x06EnvVar\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"n\n" +
-	"\aLogging\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12)\n" +
-	"\x10retention_period\x18\x02 \x01(\tR\x0fretentionPeriod\x12\x1e\n" +
+	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"structured\x18\x03 \x01(\bR\n" +
-	"structured\"K\n" +
-	"\aMetrics\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
-	"\x04port\x18\x03 \x01(\x05R\x04port\"\xb9\x01\n" +
-	"\aTracing\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1f\n" +
-	"\vsample_rate\x18\x02 \x01(\x01R\n" +
-	"sampleRate\x12:\n" +
-	"\x04tags\x18\x03 \x03(\v2&.shared.proto.app.v1.Tracing.TagsEntryR\x04tags\x1a7\n" +
-	"\tTagsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xad\x01\n" +
-	"\x03Obs\x126\n" +
-	"\alogging\x18\x01 \x01(\v2\x1c.shared.proto.app.v1.LoggingR\alogging\x126\n" +
-	"\ametrics\x18\x02 \x01(\v2\x1c.shared.proto.app.v1.MetricsR\ametrics\x126\n" +
-	"\atracing\x18\x03 \x01(\v2\x1c.shared.proto.app.v1.TracingR\atracing\"L\n" +
-	"\x11DeployAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1d\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xb9\x01\n" +
+	"\x10CreateAppRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\x03R\vworkspaceId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12(\n" +
+	"\x04type\x18\x04 \x01(\x0e2\x14.loco.app.v1.AppTypeR\x04type\x12\x1c\n" +
+	"\tsubdomain\x18\x05 \x01(\tR\tsubdomain\x12\x1b\n" +
+	"\x06domain\x18\x06 \x01(\tH\x00R\x06domain\x88\x01\x01B\t\n" +
+	"\a_domain\"7\n" +
+	"\x11CreateAppResponse\x12\"\n" +
+	"\x03app\x18\x01 \x01(\v2\x10.loco.app.v1.AppR\x03app\"\x1f\n" +
+	"\rGetAppRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"4\n" +
+	"\x0eGetAppResponse\x12\"\n" +
+	"\x03app\x18\x01 \x01(\v2\x10.loco.app.v1.AppR\x03app\"4\n" +
+	"\x0fListAppsRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\x03R\vworkspaceId\"8\n" +
+	"\x10ListAppsResponse\x12$\n" +
+	"\x04apps\x18\x01 \x03(\v2\x10.loco.app.v1.AppR\x04apps\"\x9d\x01\n" +
+	"\x10UpdateAppRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12!\n" +
+	"\tsubdomain\x18\x03 \x01(\tH\x01R\tsubdomain\x88\x01\x01\x12\x1b\n" +
+	"\x06domain\x18\x04 \x01(\tH\x02R\x06domain\x88\x01\x01B\a\n" +
+	"\x05_nameB\f\n" +
 	"\n" +
-	"event_type\x18\x02 \x01(\tR\teventType\"<\n" +
-	"\vLogsRequest\x12\x19\n" +
-	"\bapp_name\x18\x01 \x01(\tR\aappName\x12\x12\n" +
-	"\x04tail\x18\x02 \x01(\x03R\x04tail\"u\n" +
-	"\fLogsResponse\x128\n" +
-	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x19\n" +
-	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x10\n" +
-	"\x03log\x18\x03 \x01(\tR\x03log\"*\n" +
-	"\rStatusRequest\x12\x19\n" +
-	"\bapp_name\x18\x01 \x01(\tR\aappName\"\xdf\x01\n" +
-	"\x0eStatusResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1a\n" +
-	"\breplicas\x18\x02 \x01(\x05R\breplicas\x12\x10\n" +
-	"\x03url\x18\x03 \x01(\tR\x03url\x12;\n" +
-	"\vdeployed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"deployedAt\x12\x16\n" +
-	"\x06health\x18\x05 \x01(\tR\x06health\x122\n" +
-	"\x06events\x18\x06 \x03(\v2\x1a.shared.proto.app.v1.EventR\x06events\"\x87\x01\n" +
-	"\x05Event\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
+	"_subdomainB\t\n" +
+	"\a_domain\"7\n" +
+	"\x11UpdateAppResponse\x12\"\n" +
+	"\x03app\x18\x01 \x01(\v2\x10.loco.app.v1.AppR\x03app\"\"\n" +
+	"\x10DeleteAppRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"-\n" +
+	"\x11DeleteAppResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"Y\n" +
+	"!CheckSubdomainAvailabilityRequest\x12\x1c\n" +
+	"\tsubdomain\x18\x01 \x01(\tR\tsubdomain\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\"B\n" +
+	"\"CheckSubdomainAvailabilityResponse\x12\x1c\n" +
+	"\tavailable\x18\x01 \x01(\bR\tavailable\",\n" +
+	"\x13GetAppStatusRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\x03R\x05appId\"\xbd\x01\n" +
+	"\x10DeploymentStatus\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1a\n" +
+	"\breplicas\x18\x03 \x01(\x05R\breplicas\x12\x1d\n" +
+	"\amessage\x18\x04 \x01(\tH\x00R\amessage\x88\x01\x01\x12(\n" +
+	"\rerror_message\x18\x05 \x01(\tH\x01R\ferrorMessage\x88\x01\x01B\n" +
+	"\n" +
+	"\b_messageB\x10\n" +
+	"\x0e_error_message\"\x88\x01\n" +
+	"\x14GetAppStatusResponse\x12\"\n" +
+	"\x03app\x18\x01 \x01(\v2\x10.loco.app.v1.AppR\x03app\x12L\n" +
+	"\x12current_deployment\x18\x02 \x01(\v2\x1d.loco.app.v1.DeploymentStatusR\x11currentDeployment\"w\n" +
+	"\x11StreamLogsRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12\x19\n" +
+	"\x05limit\x18\x02 \x01(\x05H\x00R\x05limit\x88\x01\x01\x12\x1b\n" +
+	"\x06follow\x18\x03 \x01(\bH\x01R\x06follow\x88\x01\x01B\b\n" +
+	"\x06_limitB\t\n" +
+	"\a_follow\"\xc3\x01\n" +
+	"\bLogEntry\x12\x19\n" +
+	"\bpod_name\x18\x01 \x01(\tR\apodName\x12\x1c\n" +
+	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x1c\n" +
+	"\tcontainer\x18\x03 \x01(\tR\tcontainer\x128\n" +
+	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x10\n" +
+	"\x03log\x18\x05 \x01(\tR\x03log\x12\x14\n" +
+	"\x05level\x18\x06 \x01(\tR\x05level\"\xa2\x01\n" +
+	"\x05Event\x128\n" +
+	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\x128\n" +
-	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"'\n" +
-	"\x11DestroyAppRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\".\n" +
-	"\x12DestroyAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\x9a\x01\n" +
-	"\x0fScaleAppRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
-	"\breplicas\x18\x02 \x01(\x05H\x00R\breplicas\x88\x01\x01\x12\x15\n" +
-	"\x03cpu\x18\x03 \x01(\tH\x01R\x03cpu\x88\x01\x01\x12\x1b\n" +
-	"\x06memory\x18\x04 \x01(\tH\x02R\x06memory\x88\x01\x01B\v\n" +
-	"\t_replicasB\x06\n" +
-	"\x04_cpuB\t\n" +
-	"\a_memory\",\n" +
-	"\x10ScaleAppResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"|\n" +
-	"\x14UpdateEnvVarsRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x126\n" +
-	"\benv_vars\x18\x02 \x03(\v2\x1b.shared.proto.app.v1.EnvVarR\aenvVars\x12\x18\n" +
-	"\arestart\x18\x03 \x01(\bR\arestart\"1\n" +
-	"\x15UpdateEnvVarsResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xb8\x04\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\tR\x04type\x12\x19\n" +
+	"\bpod_name\x18\x05 \x01(\tR\apodName\"N\n" +
+	"\x10GetEventsRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12\x19\n" +
+	"\x05limit\x18\x02 \x01(\x05H\x00R\x05limit\x88\x01\x01B\b\n" +
+	"\x06_limit\"?\n" +
+	"\x11GetEventsResponse\x12*\n" +
+	"\x06events\x18\x01 \x03(\v2\x12.loco.app.v1.EventR\x06events*$\n" +
+	"\aAppType\x12\v\n" +
+	"\aSERVICE\x10\x00\x12\f\n" +
+	"\bDATABASE\x10\x012\xe3\x05\n" +
 	"\n" +
-	"AppService\x12^\n" +
-	"\tDeployApp\x12%.shared.proto.app.v1.DeployAppRequest\x1a&.shared.proto.app.v1.DeployAppResponse\"\x000\x01\x12O\n" +
-	"\x04Logs\x12 .shared.proto.app.v1.LogsRequest\x1a!.shared.proto.app.v1.LogsResponse\"\x000\x01\x12S\n" +
-	"\x06Status\x12\".shared.proto.app.v1.StatusRequest\x1a#.shared.proto.app.v1.StatusResponse\"\x00\x12_\n" +
+	"AppService\x12J\n" +
+	"\tCreateApp\x12\x1d.loco.app.v1.CreateAppRequest\x1a\x1e.loco.app.v1.CreateAppResponse\x12A\n" +
+	"\x06GetApp\x12\x1a.loco.app.v1.GetAppRequest\x1a\x1b.loco.app.v1.GetAppResponse\x12G\n" +
+	"\bListApps\x12\x1c.loco.app.v1.ListAppsRequest\x1a\x1d.loco.app.v1.ListAppsResponse\x12J\n" +
+	"\tUpdateApp\x12\x1d.loco.app.v1.UpdateAppRequest\x1a\x1e.loco.app.v1.UpdateAppResponse\x12J\n" +
+	"\tDeleteApp\x12\x1d.loco.app.v1.DeleteAppRequest\x1a\x1e.loco.app.v1.DeleteAppResponse\x12S\n" +
+	"\fGetAppStatus\x12 .loco.app.v1.GetAppStatusRequest\x1a!.loco.app.v1.GetAppStatusResponse\x12}\n" +
+	"\x1aCheckSubdomainAvailability\x12..loco.app.v1.CheckSubdomainAvailabilityRequest\x1a/.loco.app.v1.CheckSubdomainAvailabilityResponse\x12E\n" +
 	"\n" +
-	"DestroyApp\x12&.shared.proto.app.v1.DestroyAppRequest\x1a'.shared.proto.app.v1.DestroyAppResponse\"\x00\x12Y\n" +
-	"\bScaleApp\x12$.shared.proto.app.v1.ScaleAppRequest\x1a%.shared.proto.app.v1.ScaleAppResponse\"\x00\x12h\n" +
-	"\rUpdateEnvVars\x12).shared.proto.app.v1.UpdateEnvVarsRequest\x1a*.shared.proto.app.v1.UpdateEnvVarsResponse\"\x00B7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
+	"StreamLogs\x12\x1e.loco.app.v1.StreamLogsRequest\x1a\x15.loco.app.v1.LogEntry0\x01\x12J\n" +
+	"\tGetEvents\x12\x1d.loco.app.v1.GetEventsRequest\x1a\x1e.loco.app.v1.GetEventsResponseB7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
 
 var (
 	file_shared_proto_app_v1_app_proto_rawDescOnce sync.Once
@@ -1779,77 +1389,70 @@ func file_shared_proto_app_v1_app_proto_rawDescGZIP() []byte {
 	return file_shared_proto_app_v1_app_proto_rawDescData
 }
 
-var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_shared_proto_app_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_shared_proto_app_v1_app_proto_goTypes = []any{
-	(*DeployAppRequest)(nil),      // 0: shared.proto.app.v1.DeployAppRequest
-	(*LocoConfig)(nil),            // 1: shared.proto.app.v1.LocoConfig
-	(*Metadata)(nil),              // 2: shared.proto.app.v1.Metadata
-	(*Replicas)(nil),              // 3: shared.proto.app.v1.Replicas
-	(*Scalers)(nil),               // 4: shared.proto.app.v1.Scalers
-	(*Resources)(nil),             // 5: shared.proto.app.v1.Resources
-	(*Build)(nil),                 // 6: shared.proto.app.v1.Build
-	(*Routing)(nil),               // 7: shared.proto.app.v1.Routing
-	(*HealthCheck)(nil),           // 8: shared.proto.app.v1.HealthCheck
-	(*Env)(nil),                   // 9: shared.proto.app.v1.Env
-	(*EnvVar)(nil),                // 10: shared.proto.app.v1.EnvVar
-	(*Logging)(nil),               // 11: shared.proto.app.v1.Logging
-	(*Metrics)(nil),               // 12: shared.proto.app.v1.Metrics
-	(*Tracing)(nil),               // 13: shared.proto.app.v1.Tracing
-	(*Obs)(nil),                   // 14: shared.proto.app.v1.Obs
-	(*DeployAppResponse)(nil),     // 15: shared.proto.app.v1.DeployAppResponse
-	(*LogsRequest)(nil),           // 16: shared.proto.app.v1.LogsRequest
-	(*LogsResponse)(nil),          // 17: shared.proto.app.v1.LogsResponse
-	(*StatusRequest)(nil),         // 18: shared.proto.app.v1.StatusRequest
-	(*StatusResponse)(nil),        // 19: shared.proto.app.v1.StatusResponse
-	(*Event)(nil),                 // 20: shared.proto.app.v1.Event
-	(*DestroyAppRequest)(nil),     // 21: shared.proto.app.v1.DestroyAppRequest
-	(*DestroyAppResponse)(nil),    // 22: shared.proto.app.v1.DestroyAppResponse
-	(*ScaleAppRequest)(nil),       // 23: shared.proto.app.v1.ScaleAppRequest
-	(*ScaleAppResponse)(nil),      // 24: shared.proto.app.v1.ScaleAppResponse
-	(*UpdateEnvVarsRequest)(nil),  // 25: shared.proto.app.v1.UpdateEnvVarsRequest
-	(*UpdateEnvVarsResponse)(nil), // 26: shared.proto.app.v1.UpdateEnvVarsResponse
-	nil,                           // 27: shared.proto.app.v1.Tracing.TagsEntry
-	(*timestamppb.Timestamp)(nil), // 28: google.protobuf.Timestamp
+	(AppType)(0),                               // 0: loco.app.v1.AppType
+	(*App)(nil),                                // 1: loco.app.v1.App
+	(*CreateAppRequest)(nil),                   // 2: loco.app.v1.CreateAppRequest
+	(*CreateAppResponse)(nil),                  // 3: loco.app.v1.CreateAppResponse
+	(*GetAppRequest)(nil),                      // 4: loco.app.v1.GetAppRequest
+	(*GetAppResponse)(nil),                     // 5: loco.app.v1.GetAppResponse
+	(*ListAppsRequest)(nil),                    // 6: loco.app.v1.ListAppsRequest
+	(*ListAppsResponse)(nil),                   // 7: loco.app.v1.ListAppsResponse
+	(*UpdateAppRequest)(nil),                   // 8: loco.app.v1.UpdateAppRequest
+	(*UpdateAppResponse)(nil),                  // 9: loco.app.v1.UpdateAppResponse
+	(*DeleteAppRequest)(nil),                   // 10: loco.app.v1.DeleteAppRequest
+	(*DeleteAppResponse)(nil),                  // 11: loco.app.v1.DeleteAppResponse
+	(*CheckSubdomainAvailabilityRequest)(nil),  // 12: loco.app.v1.CheckSubdomainAvailabilityRequest
+	(*CheckSubdomainAvailabilityResponse)(nil), // 13: loco.app.v1.CheckSubdomainAvailabilityResponse
+	(*GetAppStatusRequest)(nil),                // 14: loco.app.v1.GetAppStatusRequest
+	(*DeploymentStatus)(nil),                   // 15: loco.app.v1.DeploymentStatus
+	(*GetAppStatusResponse)(nil),               // 16: loco.app.v1.GetAppStatusResponse
+	(*StreamLogsRequest)(nil),                  // 17: loco.app.v1.StreamLogsRequest
+	(*LogEntry)(nil),                           // 18: loco.app.v1.LogEntry
+	(*Event)(nil),                              // 19: loco.app.v1.Event
+	(*GetEventsRequest)(nil),                   // 20: loco.app.v1.GetEventsRequest
+	(*GetEventsResponse)(nil),                  // 21: loco.app.v1.GetEventsResponse
+	(*timestamppb.Timestamp)(nil),              // 22: google.protobuf.Timestamp
 }
 var file_shared_proto_app_v1_app_proto_depIdxs = []int32{
-	1,  // 0: shared.proto.app.v1.DeployAppRequest.loco_config:type_name -> shared.proto.app.v1.LocoConfig
-	10, // 1: shared.proto.app.v1.DeployAppRequest.env_vars:type_name -> shared.proto.app.v1.EnvVar
-	2,  // 2: shared.proto.app.v1.LocoConfig.metadata:type_name -> shared.proto.app.v1.Metadata
-	5,  // 3: shared.proto.app.v1.LocoConfig.resources:type_name -> shared.proto.app.v1.Resources
-	6,  // 4: shared.proto.app.v1.LocoConfig.build:type_name -> shared.proto.app.v1.Build
-	7,  // 5: shared.proto.app.v1.LocoConfig.routing:type_name -> shared.proto.app.v1.Routing
-	8,  // 6: shared.proto.app.v1.LocoConfig.health:type_name -> shared.proto.app.v1.HealthCheck
-	9,  // 7: shared.proto.app.v1.LocoConfig.env:type_name -> shared.proto.app.v1.Env
-	14, // 8: shared.proto.app.v1.LocoConfig.obs:type_name -> shared.proto.app.v1.Obs
-	3,  // 9: shared.proto.app.v1.Resources.replicas:type_name -> shared.proto.app.v1.Replicas
-	4,  // 10: shared.proto.app.v1.Resources.scalers:type_name -> shared.proto.app.v1.Scalers
-	10, // 11: shared.proto.app.v1.Env.variables:type_name -> shared.proto.app.v1.EnvVar
-	27, // 12: shared.proto.app.v1.Tracing.tags:type_name -> shared.proto.app.v1.Tracing.TagsEntry
-	11, // 13: shared.proto.app.v1.Obs.logging:type_name -> shared.proto.app.v1.Logging
-	12, // 14: shared.proto.app.v1.Obs.metrics:type_name -> shared.proto.app.v1.Metrics
-	13, // 15: shared.proto.app.v1.Obs.tracing:type_name -> shared.proto.app.v1.Tracing
-	28, // 16: shared.proto.app.v1.LogsResponse.timestamp:type_name -> google.protobuf.Timestamp
-	28, // 17: shared.proto.app.v1.StatusResponse.deployed_at:type_name -> google.protobuf.Timestamp
-	20, // 18: shared.proto.app.v1.StatusResponse.events:type_name -> shared.proto.app.v1.Event
-	28, // 19: shared.proto.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
-	10, // 20: shared.proto.app.v1.UpdateEnvVarsRequest.env_vars:type_name -> shared.proto.app.v1.EnvVar
-	0,  // 21: shared.proto.app.v1.AppService.DeployApp:input_type -> shared.proto.app.v1.DeployAppRequest
-	16, // 22: shared.proto.app.v1.AppService.Logs:input_type -> shared.proto.app.v1.LogsRequest
-	18, // 23: shared.proto.app.v1.AppService.Status:input_type -> shared.proto.app.v1.StatusRequest
-	21, // 24: shared.proto.app.v1.AppService.DestroyApp:input_type -> shared.proto.app.v1.DestroyAppRequest
-	23, // 25: shared.proto.app.v1.AppService.ScaleApp:input_type -> shared.proto.app.v1.ScaleAppRequest
-	25, // 26: shared.proto.app.v1.AppService.UpdateEnvVars:input_type -> shared.proto.app.v1.UpdateEnvVarsRequest
-	15, // 27: shared.proto.app.v1.AppService.DeployApp:output_type -> shared.proto.app.v1.DeployAppResponse
-	17, // 28: shared.proto.app.v1.AppService.Logs:output_type -> shared.proto.app.v1.LogsResponse
-	19, // 29: shared.proto.app.v1.AppService.Status:output_type -> shared.proto.app.v1.StatusResponse
-	22, // 30: shared.proto.app.v1.AppService.DestroyApp:output_type -> shared.proto.app.v1.DestroyAppResponse
-	24, // 31: shared.proto.app.v1.AppService.ScaleApp:output_type -> shared.proto.app.v1.ScaleAppResponse
-	26, // 32: shared.proto.app.v1.AppService.UpdateEnvVars:output_type -> shared.proto.app.v1.UpdateEnvVarsResponse
-	27, // [27:33] is the sub-list for method output_type
-	21, // [21:27] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	0,  // 0: loco.app.v1.App.type:type_name -> loco.app.v1.AppType
+	22, // 1: loco.app.v1.App.created_at:type_name -> google.protobuf.Timestamp
+	22, // 2: loco.app.v1.App.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 3: loco.app.v1.CreateAppRequest.type:type_name -> loco.app.v1.AppType
+	1,  // 4: loco.app.v1.CreateAppResponse.app:type_name -> loco.app.v1.App
+	1,  // 5: loco.app.v1.GetAppResponse.app:type_name -> loco.app.v1.App
+	1,  // 6: loco.app.v1.ListAppsResponse.apps:type_name -> loco.app.v1.App
+	1,  // 7: loco.app.v1.UpdateAppResponse.app:type_name -> loco.app.v1.App
+	1,  // 8: loco.app.v1.GetAppStatusResponse.app:type_name -> loco.app.v1.App
+	15, // 9: loco.app.v1.GetAppStatusResponse.current_deployment:type_name -> loco.app.v1.DeploymentStatus
+	22, // 10: loco.app.v1.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
+	22, // 11: loco.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	19, // 12: loco.app.v1.GetEventsResponse.events:type_name -> loco.app.v1.Event
+	2,  // 13: loco.app.v1.AppService.CreateApp:input_type -> loco.app.v1.CreateAppRequest
+	4,  // 14: loco.app.v1.AppService.GetApp:input_type -> loco.app.v1.GetAppRequest
+	6,  // 15: loco.app.v1.AppService.ListApps:input_type -> loco.app.v1.ListAppsRequest
+	8,  // 16: loco.app.v1.AppService.UpdateApp:input_type -> loco.app.v1.UpdateAppRequest
+	10, // 17: loco.app.v1.AppService.DeleteApp:input_type -> loco.app.v1.DeleteAppRequest
+	14, // 18: loco.app.v1.AppService.GetAppStatus:input_type -> loco.app.v1.GetAppStatusRequest
+	12, // 19: loco.app.v1.AppService.CheckSubdomainAvailability:input_type -> loco.app.v1.CheckSubdomainAvailabilityRequest
+	17, // 20: loco.app.v1.AppService.StreamLogs:input_type -> loco.app.v1.StreamLogsRequest
+	20, // 21: loco.app.v1.AppService.GetEvents:input_type -> loco.app.v1.GetEventsRequest
+	3,  // 22: loco.app.v1.AppService.CreateApp:output_type -> loco.app.v1.CreateAppResponse
+	5,  // 23: loco.app.v1.AppService.GetApp:output_type -> loco.app.v1.GetAppResponse
+	7,  // 24: loco.app.v1.AppService.ListApps:output_type -> loco.app.v1.ListAppsResponse
+	9,  // 25: loco.app.v1.AppService.UpdateApp:output_type -> loco.app.v1.UpdateAppResponse
+	11, // 26: loco.app.v1.AppService.DeleteApp:output_type -> loco.app.v1.DeleteAppResponse
+	16, // 27: loco.app.v1.AppService.GetAppStatus:output_type -> loco.app.v1.GetAppStatusResponse
+	13, // 28: loco.app.v1.AppService.CheckSubdomainAvailability:output_type -> loco.app.v1.CheckSubdomainAvailabilityResponse
+	18, // 29: loco.app.v1.AppService.StreamLogs:output_type -> loco.app.v1.LogEntry
+	21, // 30: loco.app.v1.AppService.GetEvents:output_type -> loco.app.v1.GetEventsResponse
+	22, // [22:31] is the sub-list for method output_type
+	13, // [13:22] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_shared_proto_app_v1_app_proto_init() }
@@ -1857,19 +1460,24 @@ func file_shared_proto_app_v1_app_proto_init() {
 	if File_shared_proto_app_v1_app_proto != nil {
 		return
 	}
-	file_shared_proto_app_v1_app_proto_msgTypes[23].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[1].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[7].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[14].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[16].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_app_v1_app_proto_rawDesc), len(file_shared_proto_app_v1_app_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   28,
+			NumEnums:      1,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_shared_proto_app_v1_app_proto_goTypes,
 		DependencyIndexes: file_shared_proto_app_v1_app_proto_depIdxs,
+		EnumInfos:         file_shared_proto_app_v1_app_proto_enumTypes,
 		MessageInfos:      file_shared_proto_app_v1_app_proto_msgTypes,
 	}.Build()
 	File_shared_proto_app_v1_app_proto = out.File

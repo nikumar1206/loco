@@ -12,38 +12,44 @@ import (
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validates a loco.toml file.",
-	Long:  "Validates a loco.toml file and catches most configuration errors before deployment, except namely cpu and memory limits.\nPlease validate against https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+	Short: "Validate a loco.toml configuration file",
+	Long: `Validate a loco.toml file and catch most configuration errors before deployment.
+
+Note: CPU and memory limits are validated against the Kubernetes resource format.
+See https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ for details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return validateCmdFunc(cmd, args)
+		return validateCmdFunc(cmd)
 	},
 }
 
-func init() {
-	validateCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
-}
-
-func validateCmdFunc(cmd *cobra.Command, _ []string) error {
+func validateCmdFunc(cmd *cobra.Command) error {
 	configPath, err := parseLocoTomlPath(cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading config flag: %w", err)
 	}
 
-	cfg, err := config.Load(configPath)
+	loadedCfg, err := config.Load(configPath)
 	if err != nil {
 		slog.Debug("failed to load config", "path", configPath, "error", err)
-		return fmt.Errorf("failed to load config: %w", err)
+		return fmt.Errorf("failed to load loco.toml: %w", err)
 	}
 
-	if err := config.Validate(cfg.LocoConfig); err != nil {
+	if err := config.Validate(loadedCfg.Config); err != nil {
 		slog.Debug("invalid configuration", "error", err)
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	cfgValid := lipgloss.NewStyle().
-		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 loco.toml is valid!")
-	fmt.Print(cfgValid)
+	style := lipgloss.NewStyle().Foreground(ui.LocoLightGreen).Bold(true)
+	fmt.Printf("\n%s loco.toml is valid!\n\n", style.Render("✓"))
+
+	fmt.Printf("Configuration loaded from: %s\n", loadedCfg.ProjectPath)
+	fmt.Printf("Application name: %s\n", loadedCfg.Config.Metadata.Name)
+	fmt.Printf("Subdomain: %s\n", loadedCfg.Config.Routing.Subdomain)
+	fmt.Printf("Port: %d\n", loadedCfg.Config.Routing.Port)
 
 	return nil
+}
+
+func init() {
+	validateCmd.Flags().StringP("config", "c", "", "path to loco.toml config file (defaults to ./loco.toml)")
 }

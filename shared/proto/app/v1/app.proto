@@ -1,184 +1,158 @@
 syntax = "proto3";
-package shared.proto.app.v1;
-option go_package = "github.com/nikumar1206/loco/shared/proto/app/v1;appv1";
+
+package loco.app.v1;
+
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
-// --- deploy app ---
-message DeployAppRequest {
-    LocoConfig loco_config = 1;
-    string container_image = 2;
-    repeated EnvVar env_vars = 3;
-    bool wait = 4;
-}
+option go_package = "github.com/nikumar1206/loco/shared/proto/app/v1;appv1";
 
-message LocoConfig {
-    Metadata metadata = 1;
-    Resources resources = 2;
-    Build build = 3;
-    Routing routing = 4;
-    HealthCheck health = 5;
-    Env env = 6;
-    Obs obs = 7;
-}
-
-// --- Sub-messages ---
-
-message Metadata {
-    string config_version = 1;
-    string description = 2;
-    string name = 3;
-}
-
-message Replicas {
-    int32 max = 1;
-    int32 min = 2;
-}
-
-message Scalers {
-    int32 cpu_target = 1;
-    int32 memory_target = 2;
-    bool enabled = 3;
-}
-
-message Resources {
-    string cpu = 1;
-    string memory = 2;
-    Replicas replicas = 3;
-    Scalers scalers = 4;
-}
-
-message Build {
-    string dockerfile_path = 1;
-    string type = 2;
-}
-
-message Routing {
-    int32 idle_timeout = 1;
-    string path_prefix = 2;
-    int32 port = 3;
-    string subdomain = 4;
-}
-
-message HealthCheck {
-    int32 interval = 1;
-    string path = 2;
-    int32 startup_grace_period = 3;
-    int32 timeout = 4;
-    int32 fail_threshold = 5;
-}
-
-message Env {
-    string file = 1;
-    repeated EnvVar variables = 2;
-}
-
-message EnvVar {
-    string name = 1;
-    string value = 2;
-}
-
-message Logging {
-    bool enabled = 1;
-    string retention_period = 2;
-    bool structured = 3;
-}
-
-message Metrics {
-    bool enabled = 1;
-    string path = 2;
-    int32 port = 3;
-}
-
-message Tracing {
-    bool enabled = 1;
-    double sample_rate = 2;
-    map<string, string> tags = 3;
-}
-
-message Obs {
-    Logging logging = 1;
-    Metrics metrics = 2;
-    Tracing tracing = 3;
-}
-
-message DeployAppResponse {
-    string message = 1;
-    string event_type = 2; // "info", "error", "progress"
-}
-
-// --- logs ---
-
-message LogsRequest {
-    string app_name = 1;
-    int64 tail = 2;
-}
-
-message LogsResponse {
-    google.protobuf.Timestamp timestamp = 1;
-    string pod_name = 2;
-    string log = 3;
-}
-
-// --- status ---
- message StatusRequest {
-     string app_name = 1;
-}
-
-message StatusResponse {
-    string status = 1; // whether deployment is up or down
-    int32 replicas = 2; // healthy active replicas
-    string url = 3;
-    google.protobuf.Timestamp deployed_at = 4;
-    string health = 5;
-    repeated Event events = 6;
-}
-
-message Event {
-    string type = 1;
-    string reason = 2;
-    string message = 3;
-    google.protobuf.Timestamp timestamp = 4;
-}
-
-
-
-// --- destroy app ---
-message DestroyAppRequest {
-    string name = 1;
-}
-
-message DestroyAppResponse {
-    string message = 1;
-}
-
-// --- scale app ---
-message ScaleAppRequest {
-    string name = 1;
-    optional int32 replicas = 2;
-    optional string cpu = 3;
-    optional string memory = 4;
-}
-
-message ScaleAppResponse {
-    string message = 1;
-}
-
-// --- update env vars ---
-message UpdateEnvVarsRequest {
-    string name = 1;
-    repeated EnvVar env_vars = 2;
-    bool restart = 3;
-}
-
-message UpdateEnvVarsResponse {
-    string message = 1;
+enum AppType {
+  SERVICE = 0;
+  DATABASE = 1;
 }
 
 service AppService {
-  rpc DeployApp(DeployAppRequest) returns (stream DeployAppResponse) {}
-  rpc Logs(LogsRequest) returns (stream LogsResponse) {}
-  rpc Status(StatusRequest) returns (StatusResponse) {}
-  rpc DestroyApp(DestroyAppRequest) returns (DestroyAppResponse) {}
-  rpc ScaleApp(ScaleAppRequest) returns (ScaleAppResponse) {}
-  rpc UpdateEnvVars(UpdateEnvVarsRequest) returns (UpdateEnvVarsResponse) {}
+  // App CRUD
+  rpc CreateApp(CreateAppRequest) returns (CreateAppResponse);
+  rpc GetApp(GetAppRequest) returns (GetAppResponse);
+  rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
+  rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
+  rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse);
+  rpc GetAppStatus(GetAppStatusRequest) returns (GetAppStatusResponse);
+
+  rpc CheckSubdomainAvailability(CheckSubdomainAvailabilityRequest) returns (CheckSubdomainAvailabilityResponse);
+
+  // Logs
+  rpc StreamLogs(StreamLogsRequest) returns (stream LogEntry);
+
+  // Events
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
+}
+
+message App {
+  int64 id = 1;
+  int64 workspace_id = 2;
+  string name = 4;
+  string namespace = 5;
+  AppType type = 6;
+  string subdomain = 7;
+  string domain = 8;
+  int64 created_by = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+// --- CRUD ---
+
+message CreateAppRequest {
+  int64 workspace_id = 1;
+  string name = 3;
+  AppType type = 4;
+  string subdomain = 5;
+  optional string domain = 6;
+}
+
+message CreateAppResponse {
+  App app = 1;
+}
+
+// todo: need a get app by name but also needs a workspace name since that combo should be unique.
+
+message GetAppRequest {
+  int64 id = 1;
+}
+
+message GetAppResponse {
+  App app = 1;
+}
+
+message ListAppsRequest {
+  int64 workspace_id = 1;
+}
+
+message ListAppsResponse {
+  repeated App apps = 1;
+}
+
+message UpdateAppRequest {
+  int64 id = 1;
+  optional string name = 2;
+  optional string subdomain = 3;
+  optional string domain = 4;
+}
+
+message UpdateAppResponse {
+  App app = 1;
+}
+
+message DeleteAppRequest {
+  int64 id = 1;
+}
+
+message DeleteAppResponse {
+  bool success = 1;
+}
+
+// --- Subdomain ---
+message CheckSubdomainAvailabilityRequest {
+  string subdomain = 1;
+  string domain = 2;
+}
+
+message CheckSubdomainAvailabilityResponse {
+  bool available = 1;
+}
+
+message GetAppStatusRequest {
+  int64 app_id = 1;
+}
+
+message DeploymentStatus {
+  int64 id = 1;
+  string status = 2;
+  int32 replicas = 3;
+  optional string message = 4;
+  optional string error_message = 5;
+}
+
+message GetAppStatusResponse {
+  App app = 1;
+  DeploymentStatus current_deployment = 2;
+}
+
+// --- Logs ---
+
+message StreamLogsRequest {
+  int64 app_id = 1;
+  optional int32 limit = 2;
+  optional bool follow = 3;
+}
+
+message LogEntry {
+  string pod_name = 1;
+  string namespace = 2;
+  string container = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string log = 5;
+  string level = 6;
+}
+
+// --- Events ---
+
+message Event {
+  google.protobuf.Timestamp timestamp = 1;
+  string reason = 2;
+  string message = 3;
+  string type = 4;
+  string pod_name = 5;
+}
+
+message GetEventsRequest {
+  int64 app_id = 1;
+  optional int32 limit = 2;
+}
+
+message GetEventsResponse {
+  repeated Event events = 1;
 }

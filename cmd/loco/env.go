@@ -1,104 +1,89 @@
 package loco
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 
+	"connectrpc.com/connect"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
 	"github.com/nikumar1206/loco/internal/client"
-	"github.com/nikumar1206/loco/shared/config"
+	"github.com/nikumar1206/loco/internal/ui"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"
 )
 
 var envCmd = &cobra.Command{
 	Use:   "env",
-	Short: "Sync environment variables for an application.",
-	Long:  `Sync environment variables for an application without redeploying.`,
+	Short: "Sync environment variables for an application",
+	Long:  "Sync environment variables for an application without redeploying.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return envCmdFunc(cmd)
 	},
 }
 
 func init() {
-	envCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
-	envCmd.Flags().String("env-file", "", "path to .env file (optional, overrides config)")
+	envCmd.Flags().StringP("app", "a", "", "Application name")
+	envCmd.Flags().String("org", "", "organization ID")
+	envCmd.Flags().String("workspace", "", "workspace ID")
+	envCmd.Flags().String("env-file", "", "path to .env file")
 	envCmd.Flags().StringSlice("set", []string{}, "set environment variables (e.g. --set KEY1=VALUE1 --set KEY2=VALUE2)")
-	envCmd.Flags().Bool("restart", false, "restart the deployment after updating env vars")
 	envCmd.Flags().String("host", "", "Set the host URL")
 }
 
 func envCmdFunc(cmd *cobra.Command) error {
-	configPath, err := parseLocoTomlPath(cmd)
+	ctx := context.Background()
+
+	host, err := getHost(cmd)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := config.Load(configPath)
+	workspaceID, err := getWorkspaceId(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return err
 	}
 
-	appName := cfg.LocoConfig.Metadata.Name
-
-	envVars := map[string]string{}
-
-	// First, load from config's env file if exists, else check for .env
-	envFilePath := cfg.LocoConfig.Env.File
-	if envFilePath == "" {
-		if _, err := os.Stat(".env"); err == nil {
-			envFilePath = ".env"
-		}
+	appName, err := cmd.Flags().GetString("app")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	if appName == "" {
+		return fmt.Errorf("app name is required. Use --app flag")
 	}
 
-	if envFilePath != "" {
-		if _, err := os.Stat(envFilePath); err == nil {
-			f, err := os.Open(envFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to open env file %s: %w", envFilePath, err)
-			}
-			defer f.Close()
-			parsed, err := godotenv.Parse(f)
-			if err != nil {
-				return fmt.Errorf("failed to parse env file %s: %w", envFilePath, err)
-			}
-			for k, v := range parsed {
-				envVars[k] = v
-			}
-		}
-	}
-
-	// Also load from config's Variables
-	for _, envVar := range cfg.LocoConfig.Env.Variables {
-		envVars[envVar.Name] = envVar.Value
-	}
-
-	// Override with --env-file if provided
 	envFile, err := cmd.Flags().GetString("env-file")
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
 	}
+
+	setVars, err := cmd.Flags().GetStringSlice("set")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	envVars := make(map[string]string)
+
 	if envFile != "" {
 		f, err := os.Open(envFile)
 		if err != nil {
-			return fmt.Errorf("failed to open specified env file: %w", err)
+			return fmt.Errorf("failed to open env file %s: %w", envFile, err)
 		}
 		defer f.Close()
 		parsed, err := godotenv.Parse(f)
 		if err != nil {
-			return fmt.Errorf("failed to parse specified env file: %w", err)
+			return fmt.Errorf("failed to parse env file %s: %w", envFile, err)
 		}
 		for k, v := range parsed {
 			envVars[k] = v
 		}
 	}
 
-	// Override with --set values
-	setVars, err := cmd.Flags().GetStringSlice("set")
-	if err != nil {
-		return err
-	}
 	for _, setVar := range setVars {
 		parts := strings.SplitN(setVar, "=", 2)
 		if len(parts) != 2 {
@@ -108,33 +93,57 @@ func envCmdFunc(cmd *cobra.Command) error {
 	}
 
 	if len(envVars) == 0 {
-		return fmt.Errorf("no environment variables to sync")
-	}
-
-	host, err := getHost(cmd)
-	if err != nil {
-		return err
+		return fmt.Errorf("no environment variables to sync. Use --env-file or --set")
 	}
 
 	locoToken, err := getLocoToken()
 	if err != nil {
-		return err
+		return ErrLoginRequired
 	}
 
-	restart, err := cmd.Flags().GetBool("restart")
+	appClient := appv1connect.NewAppServiceClient(http.DefaultClient, host)
+
+	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+
+	listAppsReq := connect.NewRequest(&appv1.ListAppsRequest{
+		WorkspaceId: workspaceID,
+	})
+	listAppsReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+
+	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
 	if err != nil {
-		return err
+		slog.Debug("failed to list apps", "error", err)
+		return fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	envVarList := []*appv1.EnvVar{}
-	for k, v := range envVars {
-		envVarList = append(envVarList, &appv1.EnvVar{Name: k, Value: v})
+	var appID int64
+	for _, app := range listAppsResp.Msg.Apps {
+		if app.Name == appName {
+			appID = app.Id
+			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
+			break
+		}
 	}
 
-	if err := client.UpdateEnvVars(host, appName, envVarList, restart, locoToken.Token); err != nil {
-		return err
+	if appID == 0 {
+		return fmt.Errorf("app '%s' not found in workspace", appName)
 	}
 
-	fmt.Printf("Environment variables synced for application %s\n", appName)
+	apiClient := client.NewClient(host, locoToken.Token)
+
+	slog.Debug("updating environment variables", "app_id", appID, "app_name", appName)
+
+	_, err = apiClient.UpdateDeploymentEnv(ctx, appID, envVars)
+	if err != nil {
+		slog.Error("failed to update environment variables", "error", err)
+		return fmt.Errorf("failed to update environment variables for app '%s': %w", appName, err)
+	}
+
+	s := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(ui.LocoLightGreen).
+		Render(fmt.Sprintf("\n🎉 Environment variables synced for application %s", appName))
+	fmt.Println(s)
+
 	return nil
 }

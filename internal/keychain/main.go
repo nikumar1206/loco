@@ -7,14 +7,14 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-var Service = "loco"
+const Service = "loco"
 
 type UserToken struct {
 	ExpiresAt time.Time
 	Token     string
 }
 
-func SetGithubToken(user string, t UserToken) error {
+func SetLocoToken(user string, t UserToken) error {
 	bytes, err := json.Marshal(t)
 	if err != nil {
 		return err
@@ -23,7 +23,7 @@ func SetGithubToken(user string, t UserToken) error {
 	return keyring.Set(Service, user, string(bytes))
 }
 
-func GetGithubToken(user string) (*UserToken, error) {
+func GetLocoToken(user string) (*UserToken, error) {
 	pass, err := keyring.Get(Service, user)
 	if err != nil {
 		return nil, err

@@ -358,3 +358,26 @@ Phase I ends Here
 - also just cheaper.
 
 - sql unique checks should ignore the current id;
+- inefficient order by in a lot of spots.
+
+  - we order by created_at a lot. we need to add index for whereveer we do that.
+  - lack of auditing. we will need an audit table? or atleast some sort of events recording.
+
+- will use github.com/grafana/grafana-openapi-client-go to generate the grafana dashboards programatically on workspace creation?
+- i think there is a better toml parser?
+- introduce interactivity during login.
+
+- saved from loco.toml:
+  # deploy settings, like regions, rollback settings, predeploy postdeploy scripts?
+
+# [Deploy]
+
+- update deployment to first request deployment.
+- this should return the container registry token short-lived, and an id the backend tied to a deployment request.
+- short lived id, ttl 30 mins. this will be better for async processing for container request and whatnot
+- imageTag is built on the cli; just feels weird.
+
+- 2 tone jwt secrets.
+  - basically let a jwt be parseable with 2 different secrets. (only one is really correct)
+  - but this lets us swap jwt secrets?
+  - could probably just do this with a kubernetes job?

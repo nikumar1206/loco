@@ -6,12 +6,12 @@ import (
 	"os"
 	runtimeDebug "runtime/debug"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/fang"
-	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/nikumar1206/loco/internal/ui"
 )
 
-// LocoColorScheme is the Southern Pacific 4449–inspired color scheme generator.
+// LocoColorScheme is a color scheme inspired by the Southern Pacific 4449.
 func LocoColorScheme() fang.ColorSchemeFunc {
 	return func(ldf lipgloss.LightDarkFunc) fang.ColorScheme {
 		return fang.ColorScheme{

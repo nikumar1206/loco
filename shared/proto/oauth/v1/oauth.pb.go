@@ -109,6 +109,142 @@ func (x *GithubOAuthDetailsResponse) GetTokenTtl() float64 {
 	return 0
 }
 
+type ExchangeGithubTokenRequest struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	GithubAccessToken     string                 `protobuf:"bytes,1,opt,name=github_access_token,json=githubAccessToken,proto3" json:"github_access_token,omitempty"`
+	CreateUserIfNotExists bool                   `protobuf:"varint,2,opt,name=createUserIfNotExists,proto3" json:"createUserIfNotExists,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ExchangeGithubTokenRequest) Reset() {
+	*x = ExchangeGithubTokenRequest{}
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeGithubTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeGithubTokenRequest) ProtoMessage() {}
+
+func (x *ExchangeGithubTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeGithubTokenRequest.ProtoReflect.Descriptor instead.
+func (*ExchangeGithubTokenRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ExchangeGithubTokenRequest) GetGithubAccessToken() string {
+	if x != nil {
+		return x.GithubAccessToken
+	}
+	return ""
+}
+
+func (x *ExchangeGithubTokenRequest) GetCreateUserIfNotExists() bool {
+	if x != nil {
+		return x.CreateUserIfNotExists
+	}
+	return false
+}
+
+type ExchangeGithubTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LocoToken     string                 `protobuf:"bytes,1,opt,name=loco_token,json=locoToken,proto3" json:"loco_token,omitempty"`
+	ExpiresIn     int64                  `protobuf:"varint,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"` // seconds
+	WorkspaceId   int64                  `protobuf:"varint,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	OrgId         int64                  `protobuf:"varint,4,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username      string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeGithubTokenResponse) Reset() {
+	*x = ExchangeGithubTokenResponse{}
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeGithubTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeGithubTokenResponse) ProtoMessage() {}
+
+func (x *ExchangeGithubTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_oauth_v1_oauth_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeGithubTokenResponse.ProtoReflect.Descriptor instead.
+func (*ExchangeGithubTokenResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ExchangeGithubTokenResponse) GetLocoToken() string {
+	if x != nil {
+		return x.LocoToken
+	}
+	return ""
+}
+
+func (x *ExchangeGithubTokenResponse) GetExpiresIn() int64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *ExchangeGithubTokenResponse) GetWorkspaceId() int64 {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return 0
+}
+
+func (x *ExchangeGithubTokenResponse) GetOrgId() int64 {
+	if x != nil {
+		return x.OrgId
+	}
+	return 0
+}
+
+func (x *ExchangeGithubTokenResponse) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *ExchangeGithubTokenResponse) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
 var File_shared_proto_oauth_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_shared_proto_oauth_v1_oauth_proto_rawDesc = "" +
@@ -117,9 +253,22 @@ const file_shared_proto_oauth_v1_oauth_proto_rawDesc = "" +
 	"\x19GithubOAuthDetailsRequest\"V\n" +
 	"\x1aGithubOAuthDetailsResponse\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1b\n" +
-	"\ttoken_ttl\x18\x02 \x01(\x01R\btokenTtl2\x8b\x01\n" +
+	"\ttoken_ttl\x18\x02 \x01(\x01R\btokenTtl\"\x82\x01\n" +
+	"\x1aExchangeGithubTokenRequest\x12.\n" +
+	"\x13github_access_token\x18\x01 \x01(\tR\x11githubAccessToken\x124\n" +
+	"\x15createUserIfNotExists\x18\x02 \x01(\bR\x15createUserIfNotExists\"\xca\x01\n" +
+	"\x1bExchangeGithubTokenResponse\x12\x1d\n" +
+	"\n" +
+	"loco_token\x18\x01 \x01(\tR\tlocoToken\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x02 \x01(\x03R\texpiresIn\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\x03R\vworkspaceId\x12\x15\n" +
+	"\x06org_id\x18\x04 \x01(\x03R\x05orgId\x12\x17\n" +
+	"\auser_id\x18\x05 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\busername\x18\x06 \x01(\tR\busername2\x89\x02\n" +
 	"\fOAuthService\x12{\n" +
-	"\x12GithubOAuthDetails\x120.shared.proto.oauth.v1.GithubOAuthDetailsRequest\x1a1.shared.proto.oauth.v1.GithubOAuthDetailsResponse\"\x00B;Z9github.com/nikumar1206/loco/shared/proto/oauth/v1;oauthv1b\x06proto3"
+	"\x12GithubOAuthDetails\x120.shared.proto.oauth.v1.GithubOAuthDetailsRequest\x1a1.shared.proto.oauth.v1.GithubOAuthDetailsResponse\"\x00\x12|\n" +
+	"\x13ExchangeGithubToken\x121.shared.proto.oauth.v1.ExchangeGithubTokenRequest\x1a2.shared.proto.oauth.v1.ExchangeGithubTokenResponseB;Z9github.com/nikumar1206/loco/shared/proto/oauth/v1;oauthv1b\x06proto3"
 
 var (
 	file_shared_proto_oauth_v1_oauth_proto_rawDescOnce sync.Once
@@ -133,16 +282,20 @@ func file_shared_proto_oauth_v1_oauth_proto_rawDescGZIP() []byte {
 	return file_shared_proto_oauth_v1_oauth_proto_rawDescData
 }
 
-var file_shared_proto_oauth_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_shared_proto_oauth_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_shared_proto_oauth_v1_oauth_proto_goTypes = []any{
-	(*GithubOAuthDetailsRequest)(nil),  // 0: shared.proto.oauth.v1.GithubOAuthDetailsRequest
-	(*GithubOAuthDetailsResponse)(nil), // 1: shared.proto.oauth.v1.GithubOAuthDetailsResponse
+	(*GithubOAuthDetailsRequest)(nil),   // 0: shared.proto.oauth.v1.GithubOAuthDetailsRequest
+	(*GithubOAuthDetailsResponse)(nil),  // 1: shared.proto.oauth.v1.GithubOAuthDetailsResponse
+	(*ExchangeGithubTokenRequest)(nil),  // 2: shared.proto.oauth.v1.ExchangeGithubTokenRequest
+	(*ExchangeGithubTokenResponse)(nil), // 3: shared.proto.oauth.v1.ExchangeGithubTokenResponse
 }
 var file_shared_proto_oauth_v1_oauth_proto_depIdxs = []int32{
 	0, // 0: shared.proto.oauth.v1.OAuthService.GithubOAuthDetails:input_type -> shared.proto.oauth.v1.GithubOAuthDetailsRequest
-	1, // 1: shared.proto.oauth.v1.OAuthService.GithubOAuthDetails:output_type -> shared.proto.oauth.v1.GithubOAuthDetailsResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: shared.proto.oauth.v1.OAuthService.ExchangeGithubToken:input_type -> shared.proto.oauth.v1.ExchangeGithubTokenRequest
+	1, // 2: shared.proto.oauth.v1.OAuthService.GithubOAuthDetails:output_type -> shared.proto.oauth.v1.GithubOAuthDetailsResponse
+	3, // 3: shared.proto.oauth.v1.OAuthService.ExchangeGithubToken:output_type -> shared.proto.oauth.v1.ExchangeGithubTokenResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -159,7 +312,7 @@ func file_shared_proto_oauth_v1_oauth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_oauth_v1_oauth_proto_rawDesc), len(file_shared_proto_oauth_v1_oauth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,24 +1,33 @@
 package loco
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
 
+	"connectrpc.com/connect"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/client"
-	"github.com/nikumar1206/loco/shared/config"
+	"github.com/nikumar1206/loco/internal/ui"
+	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
+	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"
 )
 
 var scaleCmd = &cobra.Command{
 	Use:   "scale",
-	Short: "Scale an application's resources.",
-	Long:  `Scale an application's resources, such as replicas, CPU, or memory.`,
+	Short: "Scale an application's resources",
+	Long:  "Scale an application's resources, such as replicas, CPU, or memory.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return scaleCmdFunc(cmd)
 	},
 }
 
 func init() {
-	scaleCmd.Flags().StringP("config", "c", "", "path to loco.toml config file")
+	scaleCmd.Flags().StringP("app", "a", "", "Application name to scale")
+	scaleCmd.Flags().String("org", "", "organization ID")
+	scaleCmd.Flags().String("workspace", "", "workspace ID")
 	scaleCmd.Flags().Int32P("replicas", "r", -1, "The number of replicas to scale to")
 	scaleCmd.Flags().String("cpu", "", "The CPU to scale to (e.g. 100m, 0.5)")
 	scaleCmd.Flags().String("memory", "", "The memory to scale to (e.g. 128Mi, 1Gi)")
@@ -26,50 +35,83 @@ func init() {
 }
 
 func scaleCmdFunc(cmd *cobra.Command) error {
-	configPath, err := parseLocoTomlPath(cmd)
-	if err != nil {
-		return err
-	}
-
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	appName := cfg.LocoConfig.Metadata.Name
-
-	replicas, err := cmd.Flags().GetInt32("replicas")
-	if err != nil {
-		return err
-	}
-
-	cpu, err := cmd.Flags().GetString("cpu")
-	if err != nil {
-		return err
-	}
-
-	memory, err := cmd.Flags().GetString("memory")
-	if err != nil {
-		return err
-	}
-
-	if replicas == -1 && cpu == "" && memory == "" {
-		return fmt.Errorf("at least one of --replicas, --cpu, or --memory must be provided")
-	}
-
-	if replicas != -1 && replicas < 0 {
-		return fmt.Errorf("replicas must be a non-negative integer")
-	}
+	ctx := context.Background()
 
 	host, err := getHost(cmd)
 	if err != nil {
 		return err
 	}
 
-	locoToken, err := getLocoToken()
+	workspaceID, err := getWorkspaceId(cmd)
 	if err != nil {
 		return err
 	}
+
+	appName, err := cmd.Flags().GetString("app")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+	if appName == "" {
+		return fmt.Errorf("app name is required. Use --app flag")
+	}
+
+	replicas, err := cmd.Flags().GetInt32("replicas")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	cpu, err := cmd.Flags().GetString("cpu")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	memory, err := cmd.Flags().GetString("memory")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrFlagParsing, err)
+	}
+
+	if replicas == -1 && cpu == "" && memory == "" {
+		return fmt.Errorf("at least one of --replicas, --cpu, or --memory must be provided")
+	}
+
+	if replicas != -1 && replicas < 1 {
+		return fmt.Errorf("replicas must be >= 1")
+	}
+
+	locoToken, err := getLocoToken()
+	if err != nil {
+		return ErrLoginRequired
+	}
+
+	appClient := appv1connect.NewAppServiceClient(http.DefaultClient, host)
+
+	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+
+	listAppsReq := connect.NewRequest(&appv1.ListAppsRequest{
+		WorkspaceId: workspaceID,
+	})
+	listAppsReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+
+	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
+	if err != nil {
+		slog.Debug("failed to list apps", "error", err)
+		return fmt.Errorf("failed to list apps: %w", err)
+	}
+
+	var appID int64
+	for _, app := range listAppsResp.Msg.Apps {
+		if app.Name == appName {
+			appID = app.Id
+			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
+			break
+		}
+	}
+
+	if appID == 0 {
+		return fmt.Errorf("app '%s' not found in workspace", appName)
+	}
+
+	apiClient := client.NewClient(host, locoToken.Token)
 
 	var replicasPtr *int32
 	if replicas != -1 {
@@ -86,20 +128,30 @@ func scaleCmdFunc(cmd *cobra.Command) error {
 		memoryPtr = &memory
 	}
 
-	if err := client.ScaleApp(host, appName, replicasPtr, cpuPtr, memoryPtr, locoToken.Token); err != nil {
-		return err
+	slog.Debug("scaling app", "app_id", appID, "app_name", appName)
+
+	_, err = apiClient.ScaleDeployment(ctx, appID, replicasPtr, cpuPtr, memoryPtr)
+	if err != nil {
+		slog.Error("failed to scale app", "error", err)
+		return fmt.Errorf("failed to scale app '%s': %w", appName, err)
 	}
 
-	fmt.Printf("Scaling application %s:\n", appName)
+	s := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(ui.LocoLightGreen).
+		Render(fmt.Sprintf("\n🎉 Scaled application %s:", appName))
+	fmt.Print(s)
+
 	if replicas != -1 {
-		fmt.Printf("  Replicas: %d\n", replicas)
+		fmt.Printf("\n  Replicas: %d", replicas)
 	}
 	if cpu != "" {
-		fmt.Printf("  CPU: %s\n", cpu)
+		fmt.Printf("\n  CPU: %s", cpu)
 	}
 	if memory != "" {
-		fmt.Printf("  Memory: %s\n", memory)
+		fmt.Printf("\n  Memory: %s", memory)
 	}
+	fmt.Println()
 
 	return nil
 }

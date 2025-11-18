@@ -3,10 +3,8 @@ module github.com/nikumar1206/loco/api
 go 1.25.0
 
 require (
-	github.com/cert-manager/cert-manager v1.18.2
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	golang.org/x/oauth2 v0.30.0
 	k8s.io/api v0.33.2
 	// cannot upgrade: https://github.com/kubernetes-sigs/gateway-api/issues/4055
@@ -47,7 +45,6 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.32.3 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
@@ -59,6 +56,8 @@ require (
 
 require (
 	github.com/charmbracelet/log v0.4.2
+	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/jackc/pgx/v5 v5.7.6
 	github.com/nikumar1206/loco/shared v0.0.0-20251101183736-4996ec230da5
 )
 
@@ -73,6 +72,9 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
@@ -80,7 +82,9 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
+	golang.org/x/sync v0.17.0 // indirect
 )
 
 replace github.com/nikumar1206/loco/shared => ../shared

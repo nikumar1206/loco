@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,40 +12,66 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	charmLog "github.com/charmbracelet/log"
-	"github.com/nikumar1206/loco/api/client"
+	"github.com/nikumar1206/loco/api/db"
+	genDb "github.com/nikumar1206/loco/api/gen/db"
+	"github.com/nikumar1206/loco/api/jwtutil"
 	"github.com/nikumar1206/loco/api/middleware"
-	"github.com/nikumar1206/loco/api/models"
 	"github.com/nikumar1206/loco/api/service"
 	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
+	"github.com/nikumar1206/loco/shared/proto/deployment/v1/deploymentv1connect"
 	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
+	"github.com/nikumar1206/loco/shared/proto/org/v1/orgv1connect"
 	"github.com/nikumar1206/loco/shared/proto/registry/v1/registryv1connect"
+	"github.com/nikumar1206/loco/shared/proto/user/v1/userv1connect"
+	"github.com/nikumar1206/loco/shared/proto/workspace/v1/workspacev1connect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
-func newAppConfig() *models.AppConfig {
+type AppConfig struct {
+	Env             string `json:"env"`             // Environment (e.g., dev, prod)
+	ProjectID       string `json:"projectId"`       // GitLab project ID
+	GitlabURL       string `json:"gitlabUrl"`       // Container registry URL
+	RegistryURL     string `json:"registryUrl"`     // Container registry URL
+	DeployTokenName string `json:"deployTokenName"` // Deploy token name
+	GitlabPAT       string `json:"gitlabPAT"`       // GitLab Personal Access Token
+	DatabaseURL     string `json:"databaseUrl"`     // PostgreSQL connection string
+	LogLevel        slog.Level
+	Port            string
+
+	JwtSecret   string `json:"jwt_secret"`
+	RegistryTag string `json:"registry_tag"`
+}
+
+func newAppConfig() *AppConfig {
 	logLevelStr := os.Getenv("LOG_LEVEL")
-	logLevel := slog.LevelInfo // default
+	logLevel := slog.LevelInfo
 	if logLevelStr != "" {
 		if parsed, err := strconv.Atoi(logLevelStr); err == nil {
 			logLevel = slog.Level(parsed)
 		}
 	}
 
-	return &models.AppConfig{
+	return &AppConfig{
 		Env:             os.Getenv("APP_ENV"),
 		ProjectID:       os.Getenv("GITLAB_PROJECT_ID"),
 		GitlabURL:       os.Getenv("GITLAB_URL"),
 		RegistryURL:     os.Getenv("GITLAB_REGISTRY_URL"),
 		DeployTokenName: os.Getenv("GITLAB_DEPLOY_TOKEN_NAME"),
 		GitlabPAT:       os.Getenv("GITLAB_PAT"),
-		PORT:            os.Getenv("PORT"),
+		DatabaseURL:     os.Getenv("DATABASE_URL"),
+		Port:            os.Getenv("PORT"),
 		LogLevel:        logLevel,
+		JwtSecret:       os.Getenv("JWT_SECRET"),
+		RegistryTag:     os.Getenv("REGISTRY_TAG"),
 	}
 }
 
 func main() {
 	ac := newAppConfig()
+
+	// todo: gotta be a better way to do this?
+	jwtutil.SetJWTSecret(ac.JwtSecret)
 
 	logger := slog.New(CustomHandler{Handler: getLoggerHandler(ac)})
 	slog.SetDefault(logger)
@@ -62,25 +89,86 @@ func main() {
 		fmt.Fprintln(w, "Server is healthy.")
 	})
 
-	kubernetesClient := client.NewKubernetesClient(ac.Env)
+	dbConn, err := db.NewDB(context.Background(), ac.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dbConn.Close()
 
-	oAuthServiceHandler := &service.OAuthServer{}
-	registryServiceHandler := &service.RegistryServer{AppConfig: *ac}
-	appServiceHandler := &service.AppServer{AppConfig: *ac, Kc: *kubernetesClient}
+	pool := dbConn.Pool()
+	queries := genDb.New(pool)
+
+	oAuthServiceHandler := service.NewOAuthServer(pool, queries)
+	userServiceHandler := service.NewUserServer(pool, queries)
+	orgServiceHandler := service.NewOrgServer(pool, queries)
+	workspaceServiceHandler := service.NewWorkspaceServer(pool, queries)
+	appServiceHandler := service.NewAppServer(pool, queries)
+	deploymentServiceHandler := service.NewDeploymentServer(pool, queries)
+	registryServiceHandler := service.NewRegistryServer(
+		pool,
+		queries,
+		ac.GitlabURL,
+		ac.GitlabPAT,
+		ac.ProjectID,
+		ac.DeployTokenName,
+		ac.RegistryTag,
+	)
 
 	oauthPath, oauthHandler := oauthv1connect.NewOAuthServiceHandler(oAuthServiceHandler, interceptors)
-	registryPath, registryHandler := registryv1connect.NewRegistryServiceHandler(registryServiceHandler, interceptors)
+	userPath, userHandler := userv1connect.NewUserServiceHandler(userServiceHandler, interceptors)
+	orgPath, orgHandler := orgv1connect.NewOrgServiceHandler(orgServiceHandler, interceptors)
+	workspacePath, workspaceHandler := workspacev1connect.NewWorkspaceServiceHandler(workspaceServiceHandler, interceptors)
 	appPath, appHandler := appv1connect.NewAppServiceHandler(appServiceHandler, interceptors)
+	deploymentPath, deploymentHandler := deploymentv1connect.NewDeploymentServiceHandler(deploymentServiceHandler, interceptors)
+	registryPath, registryHandler := registryv1connect.NewRegistryServiceHandler(registryServiceHandler, interceptors)
 
 	reflector := grpcreflect.NewStaticReflector(
+		// user service
 		oauthv1connect.OAuthServiceGithubOAuthDetailsProcedure,
+		userv1connect.UserServiceCreateUserProcedure,
+		userv1connect.UserServiceGetUserProcedure,
+		userv1connect.UserServiceGetCurrentUserProcedure,
+		userv1connect.UserServiceUpdateUserProcedure,
+		userv1connect.UserServiceListUsersProcedure,
+		userv1connect.UserServiceDeleteUserProcedure,
+
+		// org service
+		orgv1connect.OrgServiceCreateOrgProcedure,
+		orgv1connect.OrgServiceGetOrgProcedure,
+		orgv1connect.OrgServiceGetCurrentUserOrgsProcedure,
+		orgv1connect.OrgServiceListOrgsProcedure,
+		orgv1connect.OrgServiceUpdateOrgProcedure,
+		orgv1connect.OrgServiceDeleteOrgProcedure,
+		orgv1connect.OrgServiceListWorkspacesProcedure,
+		orgv1connect.OrgServiceIsUniqueOrgNameProcedure,
+
+		// workspace service
+		workspacev1connect.WorkspaceServiceCreateWorkspaceProcedure,
+		workspacev1connect.WorkspaceServiceGetWorkspaceProcedure,
+		workspacev1connect.WorkspaceServiceGetUserWorkspacesProcedure,
+		workspacev1connect.WorkspaceServiceListWorkspacesProcedure,
+		workspacev1connect.WorkspaceServiceUpdateWorkspaceProcedure,
+		workspacev1connect.WorkspaceServiceDeleteWorkspaceProcedure,
+		workspacev1connect.WorkspaceServiceAddMemberProcedure,
+		workspacev1connect.WorkspaceServiceRemoveMemberProcedure,
+		workspacev1connect.WorkspaceServiceListMembersProcedure,
+
+		// app service
+		appv1connect.AppServiceCreateAppProcedure,
+		appv1connect.AppServiceGetAppProcedure,
+		appv1connect.AppServiceListAppsProcedure,
+		appv1connect.AppServiceUpdateAppProcedure,
+		appv1connect.AppServiceDeleteAppProcedure,
+		appv1connect.AppServiceCheckSubdomainAvailabilityProcedure,
+
+		// deployment service
+		deploymentv1connect.DeploymentServiceCreateDeploymentProcedure,
+		deploymentv1connect.DeploymentServiceGetDeploymentProcedure,
+		deploymentv1connect.DeploymentServiceListDeploymentsProcedure,
+		deploymentv1connect.DeploymentServiceStreamDeploymentProcedure,
+
+		// registry service
 		registryv1connect.RegistryServiceGitlabTokenProcedure,
-		appv1connect.AppServiceDeployAppProcedure,
-		appv1connect.AppServiceLogsProcedure,
-		appv1connect.AppServiceStatusProcedure,
-		appv1connect.AppServiceDestroyAppProcedure,
-		appv1connect.AppServiceScaleAppProcedure,
-		appv1connect.AppServiceUpdateEnvVarsProcedure,
 	)
 
 	// mount both old and new reflectors for backwards compatibility
@@ -88,8 +176,12 @@ func main() {
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 
 	mux.Handle(oauthPath, oauthHandler)
-	mux.Handle(registryPath, registryHandler)
+	mux.Handle(userPath, userHandler)
+	mux.Handle(orgPath, orgHandler)
+	mux.Handle(workspacePath, workspaceHandler)
 	mux.Handle(appPath, appHandler)
+	mux.Handle(deploymentPath, deploymentHandler)
+	mux.Handle(registryPath, registryHandler)
 
 	muxWTiming := middleware.Timing(mux)
 	muxWContext := middleware.SetContext(muxWTiming)
@@ -100,12 +192,12 @@ func main() {
 	))
 }
 
-func getLoggerHandler(ac *models.AppConfig) slog.Handler {
+func getLoggerHandler(ac *AppConfig) slog.Handler {
 	if ac.Env == "PRODUCTION" {
 		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     ac.LogLevel,
 			AddSource: true,
 		})
 	}
-	return charmLog.New(os.Stderr)
+	return charmLog.NewWithOptions(os.Stderr, charmLog.Options{ReportCaller: true, ReportTimestamp: true})
 }

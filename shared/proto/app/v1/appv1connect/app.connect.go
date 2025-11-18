@@ -22,7 +22,7 @@ const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// AppServiceName is the fully-qualified name of the AppService service.
-	AppServiceName = "shared.proto.app.v1.AppService"
+	AppServiceName = "loco.app.v1.AppService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,35 +33,47 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AppServiceDeployAppProcedure is the fully-qualified name of the AppService's DeployApp RPC.
-	AppServiceDeployAppProcedure = "/shared.proto.app.v1.AppService/DeployApp"
-	// AppServiceLogsProcedure is the fully-qualified name of the AppService's Logs RPC.
-	AppServiceLogsProcedure = "/shared.proto.app.v1.AppService/Logs"
-	// AppServiceStatusProcedure is the fully-qualified name of the AppService's Status RPC.
-	AppServiceStatusProcedure = "/shared.proto.app.v1.AppService/Status"
-	// AppServiceDestroyAppProcedure is the fully-qualified name of the AppService's DestroyApp RPC.
-	AppServiceDestroyAppProcedure = "/shared.proto.app.v1.AppService/DestroyApp"
-	// AppServiceScaleAppProcedure is the fully-qualified name of the AppService's ScaleApp RPC.
-	AppServiceScaleAppProcedure = "/shared.proto.app.v1.AppService/ScaleApp"
-	// AppServiceUpdateEnvVarsProcedure is the fully-qualified name of the AppService's UpdateEnvVars
-	// RPC.
-	AppServiceUpdateEnvVarsProcedure = "/shared.proto.app.v1.AppService/UpdateEnvVars"
+	// AppServiceCreateAppProcedure is the fully-qualified name of the AppService's CreateApp RPC.
+	AppServiceCreateAppProcedure = "/loco.app.v1.AppService/CreateApp"
+	// AppServiceGetAppProcedure is the fully-qualified name of the AppService's GetApp RPC.
+	AppServiceGetAppProcedure = "/loco.app.v1.AppService/GetApp"
+	// AppServiceListAppsProcedure is the fully-qualified name of the AppService's ListApps RPC.
+	AppServiceListAppsProcedure = "/loco.app.v1.AppService/ListApps"
+	// AppServiceUpdateAppProcedure is the fully-qualified name of the AppService's UpdateApp RPC.
+	AppServiceUpdateAppProcedure = "/loco.app.v1.AppService/UpdateApp"
+	// AppServiceDeleteAppProcedure is the fully-qualified name of the AppService's DeleteApp RPC.
+	AppServiceDeleteAppProcedure = "/loco.app.v1.AppService/DeleteApp"
+	// AppServiceGetAppStatusProcedure is the fully-qualified name of the AppService's GetAppStatus RPC.
+	AppServiceGetAppStatusProcedure = "/loco.app.v1.AppService/GetAppStatus"
+	// AppServiceCheckSubdomainAvailabilityProcedure is the fully-qualified name of the AppService's
+	// CheckSubdomainAvailability RPC.
+	AppServiceCheckSubdomainAvailabilityProcedure = "/loco.app.v1.AppService/CheckSubdomainAvailability"
+	// AppServiceStreamLogsProcedure is the fully-qualified name of the AppService's StreamLogs RPC.
+	AppServiceStreamLogsProcedure = "/loco.app.v1.AppService/StreamLogs"
+	// AppServiceGetEventsProcedure is the fully-qualified name of the AppService's GetEvents RPC.
+	AppServiceGetEventsProcedure = "/loco.app.v1.AppService/GetEvents"
 )
 
-// AppServiceClient is a client for the shared.proto.app.v1.AppService service.
+// AppServiceClient is a client for the loco.app.v1.AppService service.
 type AppServiceClient interface {
-	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest]) (*connect.ServerStreamForClient[v1.DeployAppResponse], error)
-	Logs(context.Context, *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error)
-	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
-	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
-	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
-	UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error)
+	// App CRUD
+	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
+	GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error)
+	ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error)
+	UpdateApp(context.Context, *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error)
+	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
+	GetAppStatus(context.Context, *connect.Request[v1.GetAppStatusRequest]) (*connect.Response[v1.GetAppStatusResponse], error)
+	CheckSubdomainAvailability(context.Context, *connect.Request[v1.CheckSubdomainAvailabilityRequest]) (*connect.Response[v1.CheckSubdomainAvailabilityResponse], error)
+	// Logs
+	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.LogEntry], error)
+	// Events
+	GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error)
 }
 
-// NewAppServiceClient constructs a client for the shared.proto.app.v1.AppService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewAppServiceClient constructs a client for the loco.app.v1.AppService service. By default, it
+// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
@@ -69,40 +81,58 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 	baseURL = strings.TrimRight(baseURL, "/")
 	appServiceMethods := v1.File_shared_proto_app_v1_app_proto.Services().ByName("AppService").Methods()
 	return &appServiceClient{
-		deployApp: connect.NewClient[v1.DeployAppRequest, v1.DeployAppResponse](
+		createApp: connect.NewClient[v1.CreateAppRequest, v1.CreateAppResponse](
 			httpClient,
-			baseURL+AppServiceDeployAppProcedure,
-			connect.WithSchema(appServiceMethods.ByName("DeployApp")),
+			baseURL+AppServiceCreateAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("CreateApp")),
 			connect.WithClientOptions(opts...),
 		),
-		logs: connect.NewClient[v1.LogsRequest, v1.LogsResponse](
+		getApp: connect.NewClient[v1.GetAppRequest, v1.GetAppResponse](
 			httpClient,
-			baseURL+AppServiceLogsProcedure,
-			connect.WithSchema(appServiceMethods.ByName("Logs")),
+			baseURL+AppServiceGetAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("GetApp")),
 			connect.WithClientOptions(opts...),
 		),
-		status: connect.NewClient[v1.StatusRequest, v1.StatusResponse](
+		listApps: connect.NewClient[v1.ListAppsRequest, v1.ListAppsResponse](
 			httpClient,
-			baseURL+AppServiceStatusProcedure,
-			connect.WithSchema(appServiceMethods.ByName("Status")),
+			baseURL+AppServiceListAppsProcedure,
+			connect.WithSchema(appServiceMethods.ByName("ListApps")),
 			connect.WithClientOptions(opts...),
 		),
-		destroyApp: connect.NewClient[v1.DestroyAppRequest, v1.DestroyAppResponse](
+		updateApp: connect.NewClient[v1.UpdateAppRequest, v1.UpdateAppResponse](
 			httpClient,
-			baseURL+AppServiceDestroyAppProcedure,
-			connect.WithSchema(appServiceMethods.ByName("DestroyApp")),
+			baseURL+AppServiceUpdateAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("UpdateApp")),
 			connect.WithClientOptions(opts...),
 		),
-		scaleApp: connect.NewClient[v1.ScaleAppRequest, v1.ScaleAppResponse](
+		deleteApp: connect.NewClient[v1.DeleteAppRequest, v1.DeleteAppResponse](
 			httpClient,
-			baseURL+AppServiceScaleAppProcedure,
-			connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
+			baseURL+AppServiceDeleteAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("DeleteApp")),
 			connect.WithClientOptions(opts...),
 		),
-		updateEnvVars: connect.NewClient[v1.UpdateEnvVarsRequest, v1.UpdateEnvVarsResponse](
+		getAppStatus: connect.NewClient[v1.GetAppStatusRequest, v1.GetAppStatusResponse](
 			httpClient,
-			baseURL+AppServiceUpdateEnvVarsProcedure,
-			connect.WithSchema(appServiceMethods.ByName("UpdateEnvVars")),
+			baseURL+AppServiceGetAppStatusProcedure,
+			connect.WithSchema(appServiceMethods.ByName("GetAppStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		checkSubdomainAvailability: connect.NewClient[v1.CheckSubdomainAvailabilityRequest, v1.CheckSubdomainAvailabilityResponse](
+			httpClient,
+			baseURL+AppServiceCheckSubdomainAvailabilityProcedure,
+			connect.WithSchema(appServiceMethods.ByName("CheckSubdomainAvailability")),
+			connect.WithClientOptions(opts...),
+		),
+		streamLogs: connect.NewClient[v1.StreamLogsRequest, v1.LogEntry](
+			httpClient,
+			baseURL+AppServiceStreamLogsProcedure,
+			connect.WithSchema(appServiceMethods.ByName("StreamLogs")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvents: connect.NewClient[v1.GetEventsRequest, v1.GetEventsResponse](
+			httpClient,
+			baseURL+AppServiceGetEventsProcedure,
+			connect.WithSchema(appServiceMethods.ByName("GetEvents")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -110,52 +140,76 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // appServiceClient implements AppServiceClient.
 type appServiceClient struct {
-	deployApp     *connect.Client[v1.DeployAppRequest, v1.DeployAppResponse]
-	logs          *connect.Client[v1.LogsRequest, v1.LogsResponse]
-	status        *connect.Client[v1.StatusRequest, v1.StatusResponse]
-	destroyApp    *connect.Client[v1.DestroyAppRequest, v1.DestroyAppResponse]
-	scaleApp      *connect.Client[v1.ScaleAppRequest, v1.ScaleAppResponse]
-	updateEnvVars *connect.Client[v1.UpdateEnvVarsRequest, v1.UpdateEnvVarsResponse]
+	createApp                  *connect.Client[v1.CreateAppRequest, v1.CreateAppResponse]
+	getApp                     *connect.Client[v1.GetAppRequest, v1.GetAppResponse]
+	listApps                   *connect.Client[v1.ListAppsRequest, v1.ListAppsResponse]
+	updateApp                  *connect.Client[v1.UpdateAppRequest, v1.UpdateAppResponse]
+	deleteApp                  *connect.Client[v1.DeleteAppRequest, v1.DeleteAppResponse]
+	getAppStatus               *connect.Client[v1.GetAppStatusRequest, v1.GetAppStatusResponse]
+	checkSubdomainAvailability *connect.Client[v1.CheckSubdomainAvailabilityRequest, v1.CheckSubdomainAvailabilityResponse]
+	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.LogEntry]
+	getEvents                  *connect.Client[v1.GetEventsRequest, v1.GetEventsResponse]
 }
 
-// DeployApp calls shared.proto.app.v1.AppService.DeployApp.
-func (c *appServiceClient) DeployApp(ctx context.Context, req *connect.Request[v1.DeployAppRequest]) (*connect.ServerStreamForClient[v1.DeployAppResponse], error) {
-	return c.deployApp.CallServerStream(ctx, req)
+// CreateApp calls loco.app.v1.AppService.CreateApp.
+func (c *appServiceClient) CreateApp(ctx context.Context, req *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error) {
+	return c.createApp.CallUnary(ctx, req)
 }
 
-// Logs calls shared.proto.app.v1.AppService.Logs.
-func (c *appServiceClient) Logs(ctx context.Context, req *connect.Request[v1.LogsRequest]) (*connect.ServerStreamForClient[v1.LogsResponse], error) {
-	return c.logs.CallServerStream(ctx, req)
+// GetApp calls loco.app.v1.AppService.GetApp.
+func (c *appServiceClient) GetApp(ctx context.Context, req *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error) {
+	return c.getApp.CallUnary(ctx, req)
 }
 
-// Status calls shared.proto.app.v1.AppService.Status.
-func (c *appServiceClient) Status(ctx context.Context, req *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {
-	return c.status.CallUnary(ctx, req)
+// ListApps calls loco.app.v1.AppService.ListApps.
+func (c *appServiceClient) ListApps(ctx context.Context, req *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error) {
+	return c.listApps.CallUnary(ctx, req)
 }
 
-// DestroyApp calls shared.proto.app.v1.AppService.DestroyApp.
-func (c *appServiceClient) DestroyApp(ctx context.Context, req *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error) {
-	return c.destroyApp.CallUnary(ctx, req)
+// UpdateApp calls loco.app.v1.AppService.UpdateApp.
+func (c *appServiceClient) UpdateApp(ctx context.Context, req *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error) {
+	return c.updateApp.CallUnary(ctx, req)
 }
 
-// ScaleApp calls shared.proto.app.v1.AppService.ScaleApp.
-func (c *appServiceClient) ScaleApp(ctx context.Context, req *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error) {
-	return c.scaleApp.CallUnary(ctx, req)
+// DeleteApp calls loco.app.v1.AppService.DeleteApp.
+func (c *appServiceClient) DeleteApp(ctx context.Context, req *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error) {
+	return c.deleteApp.CallUnary(ctx, req)
 }
 
-// UpdateEnvVars calls shared.proto.app.v1.AppService.UpdateEnvVars.
-func (c *appServiceClient) UpdateEnvVars(ctx context.Context, req *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error) {
-	return c.updateEnvVars.CallUnary(ctx, req)
+// GetAppStatus calls loco.app.v1.AppService.GetAppStatus.
+func (c *appServiceClient) GetAppStatus(ctx context.Context, req *connect.Request[v1.GetAppStatusRequest]) (*connect.Response[v1.GetAppStatusResponse], error) {
+	return c.getAppStatus.CallUnary(ctx, req)
 }
 
-// AppServiceHandler is an implementation of the shared.proto.app.v1.AppService service.
+// CheckSubdomainAvailability calls loco.app.v1.AppService.CheckSubdomainAvailability.
+func (c *appServiceClient) CheckSubdomainAvailability(ctx context.Context, req *connect.Request[v1.CheckSubdomainAvailabilityRequest]) (*connect.Response[v1.CheckSubdomainAvailabilityResponse], error) {
+	return c.checkSubdomainAvailability.CallUnary(ctx, req)
+}
+
+// StreamLogs calls loco.app.v1.AppService.StreamLogs.
+func (c *appServiceClient) StreamLogs(ctx context.Context, req *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.LogEntry], error) {
+	return c.streamLogs.CallServerStream(ctx, req)
+}
+
+// GetEvents calls loco.app.v1.AppService.GetEvents.
+func (c *appServiceClient) GetEvents(ctx context.Context, req *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error) {
+	return c.getEvents.CallUnary(ctx, req)
+}
+
+// AppServiceHandler is an implementation of the loco.app.v1.AppService service.
 type AppServiceHandler interface {
-	DeployApp(context.Context, *connect.Request[v1.DeployAppRequest], *connect.ServerStream[v1.DeployAppResponse]) error
-	Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error
-	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
-	DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error)
-	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
-	UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error)
+	// App CRUD
+	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
+	GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error)
+	ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error)
+	UpdateApp(context.Context, *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error)
+	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
+	GetAppStatus(context.Context, *connect.Request[v1.GetAppStatusRequest]) (*connect.Response[v1.GetAppStatusResponse], error)
+	CheckSubdomainAvailability(context.Context, *connect.Request[v1.CheckSubdomainAvailabilityRequest]) (*connect.Response[v1.CheckSubdomainAvailabilityResponse], error)
+	// Logs
+	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.LogEntry]) error
+	// Events
+	GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error)
 }
 
 // NewAppServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -165,56 +219,80 @@ type AppServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	appServiceMethods := v1.File_shared_proto_app_v1_app_proto.Services().ByName("AppService").Methods()
-	appServiceDeployAppHandler := connect.NewServerStreamHandler(
-		AppServiceDeployAppProcedure,
-		svc.DeployApp,
-		connect.WithSchema(appServiceMethods.ByName("DeployApp")),
+	appServiceCreateAppHandler := connect.NewUnaryHandler(
+		AppServiceCreateAppProcedure,
+		svc.CreateApp,
+		connect.WithSchema(appServiceMethods.ByName("CreateApp")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceLogsHandler := connect.NewServerStreamHandler(
-		AppServiceLogsProcedure,
-		svc.Logs,
-		connect.WithSchema(appServiceMethods.ByName("Logs")),
+	appServiceGetAppHandler := connect.NewUnaryHandler(
+		AppServiceGetAppProcedure,
+		svc.GetApp,
+		connect.WithSchema(appServiceMethods.ByName("GetApp")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceStatusHandler := connect.NewUnaryHandler(
-		AppServiceStatusProcedure,
-		svc.Status,
-		connect.WithSchema(appServiceMethods.ByName("Status")),
+	appServiceListAppsHandler := connect.NewUnaryHandler(
+		AppServiceListAppsProcedure,
+		svc.ListApps,
+		connect.WithSchema(appServiceMethods.ByName("ListApps")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceDestroyAppHandler := connect.NewUnaryHandler(
-		AppServiceDestroyAppProcedure,
-		svc.DestroyApp,
-		connect.WithSchema(appServiceMethods.ByName("DestroyApp")),
+	appServiceUpdateAppHandler := connect.NewUnaryHandler(
+		AppServiceUpdateAppProcedure,
+		svc.UpdateApp,
+		connect.WithSchema(appServiceMethods.ByName("UpdateApp")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceScaleAppHandler := connect.NewUnaryHandler(
-		AppServiceScaleAppProcedure,
-		svc.ScaleApp,
-		connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
+	appServiceDeleteAppHandler := connect.NewUnaryHandler(
+		AppServiceDeleteAppProcedure,
+		svc.DeleteApp,
+		connect.WithSchema(appServiceMethods.ByName("DeleteApp")),
 		connect.WithHandlerOptions(opts...),
 	)
-	appServiceUpdateEnvVarsHandler := connect.NewUnaryHandler(
-		AppServiceUpdateEnvVarsProcedure,
-		svc.UpdateEnvVars,
-		connect.WithSchema(appServiceMethods.ByName("UpdateEnvVars")),
+	appServiceGetAppStatusHandler := connect.NewUnaryHandler(
+		AppServiceGetAppStatusProcedure,
+		svc.GetAppStatus,
+		connect.WithSchema(appServiceMethods.ByName("GetAppStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/shared.proto.app.v1.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	appServiceCheckSubdomainAvailabilityHandler := connect.NewUnaryHandler(
+		AppServiceCheckSubdomainAvailabilityProcedure,
+		svc.CheckSubdomainAvailability,
+		connect.WithSchema(appServiceMethods.ByName("CheckSubdomainAvailability")),
+		connect.WithHandlerOptions(opts...),
+	)
+	appServiceStreamLogsHandler := connect.NewServerStreamHandler(
+		AppServiceStreamLogsProcedure,
+		svc.StreamLogs,
+		connect.WithSchema(appServiceMethods.ByName("StreamLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	appServiceGetEventsHandler := connect.NewUnaryHandler(
+		AppServiceGetEventsProcedure,
+		svc.GetEvents,
+		connect.WithSchema(appServiceMethods.ByName("GetEvents")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/loco.app.v1.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AppServiceDeployAppProcedure:
-			appServiceDeployAppHandler.ServeHTTP(w, r)
-		case AppServiceLogsProcedure:
-			appServiceLogsHandler.ServeHTTP(w, r)
-		case AppServiceStatusProcedure:
-			appServiceStatusHandler.ServeHTTP(w, r)
-		case AppServiceDestroyAppProcedure:
-			appServiceDestroyAppHandler.ServeHTTP(w, r)
-		case AppServiceScaleAppProcedure:
-			appServiceScaleAppHandler.ServeHTTP(w, r)
-		case AppServiceUpdateEnvVarsProcedure:
-			appServiceUpdateEnvVarsHandler.ServeHTTP(w, r)
+		case AppServiceCreateAppProcedure:
+			appServiceCreateAppHandler.ServeHTTP(w, r)
+		case AppServiceGetAppProcedure:
+			appServiceGetAppHandler.ServeHTTP(w, r)
+		case AppServiceListAppsProcedure:
+			appServiceListAppsHandler.ServeHTTP(w, r)
+		case AppServiceUpdateAppProcedure:
+			appServiceUpdateAppHandler.ServeHTTP(w, r)
+		case AppServiceDeleteAppProcedure:
+			appServiceDeleteAppHandler.ServeHTTP(w, r)
+		case AppServiceGetAppStatusProcedure:
+			appServiceGetAppStatusHandler.ServeHTTP(w, r)
+		case AppServiceCheckSubdomainAvailabilityProcedure:
+			appServiceCheckSubdomainAvailabilityHandler.ServeHTTP(w, r)
+		case AppServiceStreamLogsProcedure:
+			appServiceStreamLogsHandler.ServeHTTP(w, r)
+		case AppServiceGetEventsProcedure:
+			appServiceGetEventsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -224,26 +302,38 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 // UnimplementedAppServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAppServiceHandler struct{}
 
-func (UnimplementedAppServiceHandler) DeployApp(context.Context, *connect.Request[v1.DeployAppRequest], *connect.ServerStream[v1.DeployAppResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.DeployApp is not implemented"))
+func (UnimplementedAppServiceHandler) CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.CreateApp is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) Logs(context.Context, *connect.Request[v1.LogsRequest], *connect.ServerStream[v1.LogsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.Logs is not implemented"))
+func (UnimplementedAppServiceHandler) GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetApp is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.Status is not implemented"))
+func (UnimplementedAppServiceHandler) ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.ListApps is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) DestroyApp(context.Context, *connect.Request[v1.DestroyAppRequest]) (*connect.Response[v1.DestroyAppResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.DestroyApp is not implemented"))
+func (UnimplementedAppServiceHandler) UpdateApp(context.Context, *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.UpdateApp is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.ScaleApp is not implemented"))
+func (UnimplementedAppServiceHandler) DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.DeleteApp is not implemented"))
 }
 
-func (UnimplementedAppServiceHandler) UpdateEnvVars(context.Context, *connect.Request[v1.UpdateEnvVarsRequest]) (*connect.Response[v1.UpdateEnvVarsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shared.proto.app.v1.AppService.UpdateEnvVars is not implemented"))
+func (UnimplementedAppServiceHandler) GetAppStatus(context.Context, *connect.Request[v1.GetAppStatusRequest]) (*connect.Response[v1.GetAppStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetAppStatus is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) CheckSubdomainAvailability(context.Context, *connect.Request[v1.CheckSubdomainAvailabilityRequest]) (*connect.Response[v1.CheckSubdomainAvailabilityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.CheckSubdomainAvailability is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.LogEntry]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.StreamLogs is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetEvents is not implemented"))
 }

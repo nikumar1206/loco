@@ -30,12 +30,12 @@ var MINIMUM_DOCKER_ENGINE_VERSION = "28.0.0"
 
 type DockerClient struct {
 	dockerClient *client.Client
-	cfg          config.Config
+	cfg          *config.LoadedConfig
 	registryUrl  string
 	ImageName    string
 }
 
-func NewDockerClient(cfg config.Config) (*DockerClient, error) {
+func NewDockerClient(cfg *config.LoadedConfig) (*DockerClient, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
@@ -120,12 +120,12 @@ func (c *DockerClient) BuildImage(ctx context.Context, logf func(string)) error 
 	defer buildContext.Close()
 
 	slog.Debug("built docker context", slog.String("project", c.cfg.ProjectPath))
-	relDockerfilePath, err := filepath.Rel(c.cfg.ProjectPath, c.cfg.LocoConfig.Build.DockerfilePath)
+	relDockerfilePath, err := filepath.Rel(c.cfg.ProjectPath, c.cfg.Config.Build.DockerfilePath)
 	if err != nil {
 		return err
 	}
 
-	slog.Debug("dockerfile path", slog.String("path", relDockerfilePath))
+	slog.Debug("dockerfile path", slog.String("path", relDockerfilePath), slog.String("imageName", c.ImageName))
 	options := build.ImageBuildOptions{
 		Tags:       []string{c.ImageName},
 		Dockerfile: relDockerfilePath,
@@ -195,7 +195,7 @@ func (c *DockerClient) GenerateImageTag(imageBase string, imageid string) string
 
 	imageNameBase := imageBase
 
-	tag := fmt.Sprintf("%s-%s", c.cfg.LocoConfig.Metadata.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
+	tag := fmt.Sprintf("%s-%s", c.cfg.Config.Metadata.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
 
 	if !strings.Contains(imageNameBase, ":") {
 		imageNameBase += ":" + tag
