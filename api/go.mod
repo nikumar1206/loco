@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.33.0
 	k8s.io/api v0.33.2
 	// cannot upgrade: https://github.com/kubernetes-sigs/gateway-api/issues/4055
 	k8s.io/apimachinery v0.33.2
