@@ -1266,6 +1266,214 @@ func (x *GetEventsResponse) GetEvents() []*Event {
 	return nil
 }
 
+type ScaleAppRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Replicas      *int32                 `protobuf:"varint,2,opt,name=replicas,proto3,oneof" json:"replicas,omitempty"`
+	Cpu           *string                `protobuf:"bytes,3,opt,name=cpu,proto3,oneof" json:"cpu,omitempty"`
+	Memory        *string                `protobuf:"bytes,4,opt,name=memory,proto3,oneof" json:"memory,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScaleAppRequest) Reset() {
+	*x = ScaleAppRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScaleAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScaleAppRequest) ProtoMessage() {}
+
+func (x *ScaleAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScaleAppRequest.ProtoReflect.Descriptor instead.
+func (*ScaleAppRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ScaleAppRequest) GetAppId() int64 {
+	if x != nil {
+		return x.AppId
+	}
+	return 0
+}
+
+func (x *ScaleAppRequest) GetReplicas() int32 {
+	if x != nil && x.Replicas != nil {
+		return *x.Replicas
+	}
+	return 0
+}
+
+func (x *ScaleAppRequest) GetCpu() string {
+	if x != nil && x.Cpu != nil {
+		return *x.Cpu
+	}
+	return ""
+}
+
+func (x *ScaleAppRequest) GetMemory() string {
+	if x != nil && x.Memory != nil {
+		return *x.Memory
+	}
+	return ""
+}
+
+type ScaleAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Deployment    *DeploymentStatus      `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScaleAppResponse) Reset() {
+	*x = ScaleAppResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScaleAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScaleAppResponse) ProtoMessage() {}
+
+func (x *ScaleAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScaleAppResponse.ProtoReflect.Descriptor instead.
+func (*ScaleAppResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ScaleAppResponse) GetDeployment() *DeploymentStatus {
+	if x != nil {
+		return x.Deployment
+	}
+	return nil
+}
+
+type UpdateAppEnvRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Env           map[string]string      `protobuf:"bytes,2,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAppEnvRequest) Reset() {
+	*x = UpdateAppEnvRequest{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAppEnvRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAppEnvRequest) ProtoMessage() {}
+
+func (x *UpdateAppEnvRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAppEnvRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAppEnvRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateAppEnvRequest) GetAppId() int64 {
+	if x != nil {
+		return x.AppId
+	}
+	return 0
+}
+
+func (x *UpdateAppEnvRequest) GetEnv() map[string]string {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+type UpdateAppEnvResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Deployment    *DeploymentStatus      `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAppEnvResponse) Reset() {
+	*x = UpdateAppEnvResponse{}
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAppEnvResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAppEnvResponse) ProtoMessage() {}
+
+func (x *UpdateAppEnvResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_app_v1_app_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAppEnvResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAppEnvResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_app_v1_app_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UpdateAppEnvResponse) GetDeployment() *DeploymentStatus {
+	if x != nil {
+		return x.Deployment
+	}
+	return nil
+}
+
 var File_shared_proto_app_v1_app_proto protoreflect.FileDescriptor
 
 const file_shared_proto_app_v1_app_proto_rawDesc = "" +
@@ -1360,10 +1568,32 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x05H\x00R\x05limit\x88\x01\x01B\b\n" +
 	"\x06_limit\"?\n" +
 	"\x11GetEventsResponse\x12*\n" +
-	"\x06events\x18\x01 \x03(\v2\x12.loco.app.v1.EventR\x06events*$\n" +
+	"\x06events\x18\x01 \x03(\v2\x12.loco.app.v1.EventR\x06events\"\x9d\x01\n" +
+	"\x0fScaleAppRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12\x1f\n" +
+	"\breplicas\x18\x02 \x01(\x05H\x00R\breplicas\x88\x01\x01\x12\x15\n" +
+	"\x03cpu\x18\x03 \x01(\tH\x01R\x03cpu\x88\x01\x01\x12\x1b\n" +
+	"\x06memory\x18\x04 \x01(\tH\x02R\x06memory\x88\x01\x01B\v\n" +
+	"\t_replicasB\x06\n" +
+	"\x04_cpuB\t\n" +
+	"\a_memory\"Q\n" +
+	"\x10ScaleAppResponse\x12=\n" +
+	"\n" +
+	"deployment\x18\x01 \x01(\v2\x1d.loco.app.v1.DeploymentStatusR\n" +
+	"deployment\"\xa1\x01\n" +
+	"\x13UpdateAppEnvRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12;\n" +
+	"\x03env\x18\x02 \x03(\v2).loco.app.v1.UpdateAppEnvRequest.EnvEntryR\x03env\x1a6\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"U\n" +
+	"\x14UpdateAppEnvResponse\x12=\n" +
+	"\n" +
+	"deployment\x18\x01 \x01(\v2\x1d.loco.app.v1.DeploymentStatusR\n" +
+	"deployment*$\n" +
 	"\aAppType\x12\v\n" +
 	"\aSERVICE\x10\x00\x12\f\n" +
-	"\bDATABASE\x10\x012\xe3\x05\n" +
+	"\bDATABASE\x10\x012\x81\a\n" +
 	"\n" +
 	"AppService\x12J\n" +
 	"\tCreateApp\x12\x1d.loco.app.v1.CreateAppRequest\x1a\x1e.loco.app.v1.CreateAppResponse\x12A\n" +
@@ -1375,7 +1605,9 @@ const file_shared_proto_app_v1_app_proto_rawDesc = "" +
 	"\x1aCheckSubdomainAvailability\x12..loco.app.v1.CheckSubdomainAvailabilityRequest\x1a/.loco.app.v1.CheckSubdomainAvailabilityResponse\x12E\n" +
 	"\n" +
 	"StreamLogs\x12\x1e.loco.app.v1.StreamLogsRequest\x1a\x15.loco.app.v1.LogEntry0\x01\x12J\n" +
-	"\tGetEvents\x12\x1d.loco.app.v1.GetEventsRequest\x1a\x1e.loco.app.v1.GetEventsResponseB7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
+	"\tGetEvents\x12\x1d.loco.app.v1.GetEventsRequest\x1a\x1e.loco.app.v1.GetEventsResponse\x12G\n" +
+	"\bScaleApp\x12\x1c.loco.app.v1.ScaleAppRequest\x1a\x1d.loco.app.v1.ScaleAppResponse\x12S\n" +
+	"\fUpdateAppEnv\x12 .loco.app.v1.UpdateAppEnvRequest\x1a!.loco.app.v1.UpdateAppEnvResponseB7Z5github.com/nikumar1206/loco/shared/proto/app/v1;appv1b\x06proto3"
 
 var (
 	file_shared_proto_app_v1_app_proto_rawDescOnce sync.Once
@@ -1390,7 +1622,7 @@ func file_shared_proto_app_v1_app_proto_rawDescGZIP() []byte {
 }
 
 var file_shared_proto_app_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_shared_proto_app_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_shared_proto_app_v1_app_proto_goTypes = []any{
 	(AppType)(0),                               // 0: loco.app.v1.AppType
 	(*App)(nil),                                // 1: loco.app.v1.App
@@ -1414,12 +1646,17 @@ var file_shared_proto_app_v1_app_proto_goTypes = []any{
 	(*Event)(nil),                              // 19: loco.app.v1.Event
 	(*GetEventsRequest)(nil),                   // 20: loco.app.v1.GetEventsRequest
 	(*GetEventsResponse)(nil),                  // 21: loco.app.v1.GetEventsResponse
-	(*timestamppb.Timestamp)(nil),              // 22: google.protobuf.Timestamp
+	(*ScaleAppRequest)(nil),                    // 22: loco.app.v1.ScaleAppRequest
+	(*ScaleAppResponse)(nil),                   // 23: loco.app.v1.ScaleAppResponse
+	(*UpdateAppEnvRequest)(nil),                // 24: loco.app.v1.UpdateAppEnvRequest
+	(*UpdateAppEnvResponse)(nil),               // 25: loco.app.v1.UpdateAppEnvResponse
+	nil,                                        // 26: loco.app.v1.UpdateAppEnvRequest.EnvEntry
+	(*timestamppb.Timestamp)(nil),              // 27: google.protobuf.Timestamp
 }
 var file_shared_proto_app_v1_app_proto_depIdxs = []int32{
 	0,  // 0: loco.app.v1.App.type:type_name -> loco.app.v1.AppType
-	22, // 1: loco.app.v1.App.created_at:type_name -> google.protobuf.Timestamp
-	22, // 2: loco.app.v1.App.updated_at:type_name -> google.protobuf.Timestamp
+	27, // 1: loco.app.v1.App.created_at:type_name -> google.protobuf.Timestamp
+	27, // 2: loco.app.v1.App.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: loco.app.v1.CreateAppRequest.type:type_name -> loco.app.v1.AppType
 	1,  // 4: loco.app.v1.CreateAppResponse.app:type_name -> loco.app.v1.App
 	1,  // 5: loco.app.v1.GetAppResponse.app:type_name -> loco.app.v1.App
@@ -1427,32 +1664,39 @@ var file_shared_proto_app_v1_app_proto_depIdxs = []int32{
 	1,  // 7: loco.app.v1.UpdateAppResponse.app:type_name -> loco.app.v1.App
 	1,  // 8: loco.app.v1.GetAppStatusResponse.app:type_name -> loco.app.v1.App
 	15, // 9: loco.app.v1.GetAppStatusResponse.current_deployment:type_name -> loco.app.v1.DeploymentStatus
-	22, // 10: loco.app.v1.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
-	22, // 11: loco.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	27, // 10: loco.app.v1.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
+	27, // 11: loco.app.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
 	19, // 12: loco.app.v1.GetEventsResponse.events:type_name -> loco.app.v1.Event
-	2,  // 13: loco.app.v1.AppService.CreateApp:input_type -> loco.app.v1.CreateAppRequest
-	4,  // 14: loco.app.v1.AppService.GetApp:input_type -> loco.app.v1.GetAppRequest
-	6,  // 15: loco.app.v1.AppService.ListApps:input_type -> loco.app.v1.ListAppsRequest
-	8,  // 16: loco.app.v1.AppService.UpdateApp:input_type -> loco.app.v1.UpdateAppRequest
-	10, // 17: loco.app.v1.AppService.DeleteApp:input_type -> loco.app.v1.DeleteAppRequest
-	14, // 18: loco.app.v1.AppService.GetAppStatus:input_type -> loco.app.v1.GetAppStatusRequest
-	12, // 19: loco.app.v1.AppService.CheckSubdomainAvailability:input_type -> loco.app.v1.CheckSubdomainAvailabilityRequest
-	17, // 20: loco.app.v1.AppService.StreamLogs:input_type -> loco.app.v1.StreamLogsRequest
-	20, // 21: loco.app.v1.AppService.GetEvents:input_type -> loco.app.v1.GetEventsRequest
-	3,  // 22: loco.app.v1.AppService.CreateApp:output_type -> loco.app.v1.CreateAppResponse
-	5,  // 23: loco.app.v1.AppService.GetApp:output_type -> loco.app.v1.GetAppResponse
-	7,  // 24: loco.app.v1.AppService.ListApps:output_type -> loco.app.v1.ListAppsResponse
-	9,  // 25: loco.app.v1.AppService.UpdateApp:output_type -> loco.app.v1.UpdateAppResponse
-	11, // 26: loco.app.v1.AppService.DeleteApp:output_type -> loco.app.v1.DeleteAppResponse
-	16, // 27: loco.app.v1.AppService.GetAppStatus:output_type -> loco.app.v1.GetAppStatusResponse
-	13, // 28: loco.app.v1.AppService.CheckSubdomainAvailability:output_type -> loco.app.v1.CheckSubdomainAvailabilityResponse
-	18, // 29: loco.app.v1.AppService.StreamLogs:output_type -> loco.app.v1.LogEntry
-	21, // 30: loco.app.v1.AppService.GetEvents:output_type -> loco.app.v1.GetEventsResponse
-	22, // [22:31] is the sub-list for method output_type
-	13, // [13:22] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	15, // 13: loco.app.v1.ScaleAppResponse.deployment:type_name -> loco.app.v1.DeploymentStatus
+	26, // 14: loco.app.v1.UpdateAppEnvRequest.env:type_name -> loco.app.v1.UpdateAppEnvRequest.EnvEntry
+	15, // 15: loco.app.v1.UpdateAppEnvResponse.deployment:type_name -> loco.app.v1.DeploymentStatus
+	2,  // 16: loco.app.v1.AppService.CreateApp:input_type -> loco.app.v1.CreateAppRequest
+	4,  // 17: loco.app.v1.AppService.GetApp:input_type -> loco.app.v1.GetAppRequest
+	6,  // 18: loco.app.v1.AppService.ListApps:input_type -> loco.app.v1.ListAppsRequest
+	8,  // 19: loco.app.v1.AppService.UpdateApp:input_type -> loco.app.v1.UpdateAppRequest
+	10, // 20: loco.app.v1.AppService.DeleteApp:input_type -> loco.app.v1.DeleteAppRequest
+	14, // 21: loco.app.v1.AppService.GetAppStatus:input_type -> loco.app.v1.GetAppStatusRequest
+	12, // 22: loco.app.v1.AppService.CheckSubdomainAvailability:input_type -> loco.app.v1.CheckSubdomainAvailabilityRequest
+	17, // 23: loco.app.v1.AppService.StreamLogs:input_type -> loco.app.v1.StreamLogsRequest
+	20, // 24: loco.app.v1.AppService.GetEvents:input_type -> loco.app.v1.GetEventsRequest
+	22, // 25: loco.app.v1.AppService.ScaleApp:input_type -> loco.app.v1.ScaleAppRequest
+	24, // 26: loco.app.v1.AppService.UpdateAppEnv:input_type -> loco.app.v1.UpdateAppEnvRequest
+	3,  // 27: loco.app.v1.AppService.CreateApp:output_type -> loco.app.v1.CreateAppResponse
+	5,  // 28: loco.app.v1.AppService.GetApp:output_type -> loco.app.v1.GetAppResponse
+	7,  // 29: loco.app.v1.AppService.ListApps:output_type -> loco.app.v1.ListAppsResponse
+	9,  // 30: loco.app.v1.AppService.UpdateApp:output_type -> loco.app.v1.UpdateAppResponse
+	11, // 31: loco.app.v1.AppService.DeleteApp:output_type -> loco.app.v1.DeleteAppResponse
+	16, // 32: loco.app.v1.AppService.GetAppStatus:output_type -> loco.app.v1.GetAppStatusResponse
+	13, // 33: loco.app.v1.AppService.CheckSubdomainAvailability:output_type -> loco.app.v1.CheckSubdomainAvailabilityResponse
+	18, // 34: loco.app.v1.AppService.StreamLogs:output_type -> loco.app.v1.LogEntry
+	21, // 35: loco.app.v1.AppService.GetEvents:output_type -> loco.app.v1.GetEventsResponse
+	23, // 36: loco.app.v1.AppService.ScaleApp:output_type -> loco.app.v1.ScaleAppResponse
+	25, // 37: loco.app.v1.AppService.UpdateAppEnv:output_type -> loco.app.v1.UpdateAppEnvResponse
+	27, // [27:38] is the sub-list for method output_type
+	16, // [16:27] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_shared_proto_app_v1_app_proto_init() }
@@ -1465,13 +1709,14 @@ func file_shared_proto_app_v1_app_proto_init() {
 	file_shared_proto_app_v1_app_proto_msgTypes[14].OneofWrappers = []any{}
 	file_shared_proto_app_v1_app_proto_msgTypes[16].OneofWrappers = []any{}
 	file_shared_proto_app_v1_app_proto_msgTypes[19].OneofWrappers = []any{}
+	file_shared_proto_app_v1_app_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_app_v1_app_proto_rawDesc), len(file_shared_proto_app_v1_app_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   21,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

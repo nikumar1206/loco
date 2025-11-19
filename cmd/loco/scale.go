@@ -130,7 +130,7 @@ func scaleCmdFunc(cmd *cobra.Command) error {
 
 	slog.Debug("scaling app", "app_id", appID, "app_name", appName)
 
-	_, err = apiClient.ScaleDeployment(ctx, appID, replicasPtr, cpuPtr, memoryPtr)
+	_, err = apiClient.ScaleApp(ctx, appID, replicasPtr, cpuPtr, memoryPtr)
 	if err != nil {
 		slog.Error("failed to scale app", "error", err)
 		return fmt.Errorf("failed to scale app '%s': %w", appName, err)

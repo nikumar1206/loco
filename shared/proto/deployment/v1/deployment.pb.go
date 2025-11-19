@@ -730,214 +730,6 @@ func (x *DeploymentEvent) GetErrorMessage() string {
 	return ""
 }
 
-type ScaleDeploymentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	Replicas      *int32                 `protobuf:"varint,2,opt,name=replicas,proto3,oneof" json:"replicas,omitempty"`
-	Cpu           *string                `protobuf:"bytes,3,opt,name=cpu,proto3,oneof" json:"cpu,omitempty"`
-	Memory        *string                `protobuf:"bytes,4,opt,name=memory,proto3,oneof" json:"memory,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ScaleDeploymentRequest) Reset() {
-	*x = ScaleDeploymentRequest{}
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ScaleDeploymentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ScaleDeploymentRequest) ProtoMessage() {}
-
-func (x *ScaleDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ScaleDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*ScaleDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_deployment_v1_deployment_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ScaleDeploymentRequest) GetAppId() int64 {
-	if x != nil {
-		return x.AppId
-	}
-	return 0
-}
-
-func (x *ScaleDeploymentRequest) GetReplicas() int32 {
-	if x != nil && x.Replicas != nil {
-		return *x.Replicas
-	}
-	return 0
-}
-
-func (x *ScaleDeploymentRequest) GetCpu() string {
-	if x != nil && x.Cpu != nil {
-		return *x.Cpu
-	}
-	return ""
-}
-
-func (x *ScaleDeploymentRequest) GetMemory() string {
-	if x != nil && x.Memory != nil {
-		return *x.Memory
-	}
-	return ""
-}
-
-type ScaleDeploymentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Deployment    *Deployment            `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ScaleDeploymentResponse) Reset() {
-	*x = ScaleDeploymentResponse{}
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ScaleDeploymentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ScaleDeploymentResponse) ProtoMessage() {}
-
-func (x *ScaleDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ScaleDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*ScaleDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_deployment_v1_deployment_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *ScaleDeploymentResponse) GetDeployment() *Deployment {
-	if x != nil {
-		return x.Deployment
-	}
-	return nil
-}
-
-type UpdateDeploymentEnvRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         int64                  `protobuf:"varint,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	Env           map[string]string      `protobuf:"bytes,2,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateDeploymentEnvRequest) Reset() {
-	*x = UpdateDeploymentEnvRequest{}
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateDeploymentEnvRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateDeploymentEnvRequest) ProtoMessage() {}
-
-func (x *UpdateDeploymentEnvRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateDeploymentEnvRequest.ProtoReflect.Descriptor instead.
-func (*UpdateDeploymentEnvRequest) Descriptor() ([]byte, []int) {
-	return file_shared_proto_deployment_v1_deployment_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *UpdateDeploymentEnvRequest) GetAppId() int64 {
-	if x != nil {
-		return x.AppId
-	}
-	return 0
-}
-
-func (x *UpdateDeploymentEnvRequest) GetEnv() map[string]string {
-	if x != nil {
-		return x.Env
-	}
-	return nil
-}
-
-type UpdateDeploymentEnvResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Deployment    *Deployment            `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateDeploymentEnvResponse) Reset() {
-	*x = UpdateDeploymentEnvResponse{}
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateDeploymentEnvResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateDeploymentEnvResponse) ProtoMessage() {}
-
-func (x *UpdateDeploymentEnvResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shared_proto_deployment_v1_deployment_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateDeploymentEnvResponse.ProtoReflect.Descriptor instead.
-func (*UpdateDeploymentEnvResponse) Descriptor() ([]byte, []int) {
-	return file_shared_proto_deployment_v1_deployment_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *UpdateDeploymentEnvResponse) GetDeployment() *Deployment {
-	if x != nil {
-		return x.Deployment
-	}
-	return nil
-}
-
 var File_shared_proto_deployment_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_shared_proto_deployment_v1_deployment_proto_rawDesc = "" +
@@ -1020,36 +812,12 @@ const file_shared_proto_deployment_v1_deployment_proto_rawDesc = "" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x128\n" +
 	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12(\n" +
 	"\rerror_message\x18\x05 \x01(\tH\x00R\ferrorMessage\x88\x01\x01B\x10\n" +
-	"\x0e_error_message\"\xa4\x01\n" +
-	"\x16ScaleDeploymentRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12\x1f\n" +
-	"\breplicas\x18\x02 \x01(\x05H\x00R\breplicas\x88\x01\x01\x12\x15\n" +
-	"\x03cpu\x18\x03 \x01(\tH\x01R\x03cpu\x88\x01\x01\x12\x1b\n" +
-	"\x06memory\x18\x04 \x01(\tH\x02R\x06memory\x88\x01\x01B\v\n" +
-	"\t_replicasB\x06\n" +
-	"\x04_cpuB\t\n" +
-	"\a_memory\"Y\n" +
-	"\x17ScaleDeploymentResponse\x12>\n" +
-	"\n" +
-	"deployment\x18\x01 \x01(\v2\x1e.loco.deployment.v1.DeploymentR\n" +
-	"deployment\"\xb6\x01\n" +
-	"\x1aUpdateDeploymentEnvRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\x03R\x05appId\x12I\n" +
-	"\x03env\x18\x02 \x03(\v27.loco.deployment.v1.UpdateDeploymentEnvRequest.EnvEntryR\x03env\x1a6\n" +
-	"\bEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
-	"\x1bUpdateDeploymentEnvResponse\x12>\n" +
-	"\n" +
-	"deployment\x18\x01 \x01(\v2\x1e.loco.deployment.v1.DeploymentR\n" +
-	"deployment2\xa0\x05\n" +
+	"\x0e_error_message2\xbc\x03\n" +
 	"\x11DeploymentService\x12m\n" +
 	"\x10CreateDeployment\x12+.loco.deployment.v1.CreateDeploymentRequest\x1a,.loco.deployment.v1.CreateDeploymentResponse\x12d\n" +
 	"\rGetDeployment\x12(.loco.deployment.v1.GetDeploymentRequest\x1a).loco.deployment.v1.GetDeploymentResponse\x12j\n" +
 	"\x0fListDeployments\x12*.loco.deployment.v1.ListDeploymentsRequest\x1a+.loco.deployment.v1.ListDeploymentsResponse\x12f\n" +
-	"\x10StreamDeployment\x12+.loco.deployment.v1.StreamDeploymentRequest\x1a#.loco.deployment.v1.DeploymentEvent0\x01\x12j\n" +
-	"\x0fScaleDeployment\x12*.loco.deployment.v1.ScaleDeploymentRequest\x1a+.loco.deployment.v1.ScaleDeploymentResponse\x12v\n" +
-	"\x13UpdateDeploymentEnv\x12..loco.deployment.v1.UpdateDeploymentEnvRequest\x1a/.loco.deployment.v1.UpdateDeploymentEnvResponseBEZCgithub.com/nikumar1206/loco/shared/proto/deployment/v1;deploymentv1b\x06proto3"
+	"\x10StreamDeployment\x12+.loco.deployment.v1.StreamDeploymentRequest\x1a#.loco.deployment.v1.DeploymentEvent0\x01BEZCgithub.com/nikumar1206/loco/shared/proto/deployment/v1;deploymentv1b\x06proto3"
 
 var (
 	file_shared_proto_deployment_v1_deployment_proto_rawDescOnce sync.Once
@@ -1063,59 +831,47 @@ func file_shared_proto_deployment_v1_deployment_proto_rawDescGZIP() []byte {
 	return file_shared_proto_deployment_v1_deployment_proto_rawDescData
 }
 
-var file_shared_proto_deployment_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_shared_proto_deployment_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_shared_proto_deployment_v1_deployment_proto_goTypes = []any{
-	(*Port)(nil),                        // 0: loco.deployment.v1.Port
-	(*ResourceSpec)(nil),                // 1: loco.deployment.v1.ResourceSpec
-	(*Deployment)(nil),                  // 2: loco.deployment.v1.Deployment
-	(*CreateDeploymentRequest)(nil),     // 3: loco.deployment.v1.CreateDeploymentRequest
-	(*CreateDeploymentResponse)(nil),    // 4: loco.deployment.v1.CreateDeploymentResponse
-	(*GetDeploymentRequest)(nil),        // 5: loco.deployment.v1.GetDeploymentRequest
-	(*GetDeploymentResponse)(nil),       // 6: loco.deployment.v1.GetDeploymentResponse
-	(*ListDeploymentsRequest)(nil),      // 7: loco.deployment.v1.ListDeploymentsRequest
-	(*ListDeploymentsResponse)(nil),     // 8: loco.deployment.v1.ListDeploymentsResponse
-	(*StreamDeploymentRequest)(nil),     // 9: loco.deployment.v1.StreamDeploymentRequest
-	(*DeploymentEvent)(nil),             // 10: loco.deployment.v1.DeploymentEvent
-	(*ScaleDeploymentRequest)(nil),      // 11: loco.deployment.v1.ScaleDeploymentRequest
-	(*ScaleDeploymentResponse)(nil),     // 12: loco.deployment.v1.ScaleDeploymentResponse
-	(*UpdateDeploymentEnvRequest)(nil),  // 13: loco.deployment.v1.UpdateDeploymentEnvRequest
-	(*UpdateDeploymentEnvResponse)(nil), // 14: loco.deployment.v1.UpdateDeploymentEnvResponse
-	nil,                                 // 15: loco.deployment.v1.CreateDeploymentRequest.EnvEntry
-	nil,                                 // 16: loco.deployment.v1.UpdateDeploymentEnvRequest.EnvEntry
-	(*timestamppb.Timestamp)(nil),       // 17: google.protobuf.Timestamp
+	(*Port)(nil),                     // 0: loco.deployment.v1.Port
+	(*ResourceSpec)(nil),             // 1: loco.deployment.v1.ResourceSpec
+	(*Deployment)(nil),               // 2: loco.deployment.v1.Deployment
+	(*CreateDeploymentRequest)(nil),  // 3: loco.deployment.v1.CreateDeploymentRequest
+	(*CreateDeploymentResponse)(nil), // 4: loco.deployment.v1.CreateDeploymentResponse
+	(*GetDeploymentRequest)(nil),     // 5: loco.deployment.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),    // 6: loco.deployment.v1.GetDeploymentResponse
+	(*ListDeploymentsRequest)(nil),   // 7: loco.deployment.v1.ListDeploymentsRequest
+	(*ListDeploymentsResponse)(nil),  // 8: loco.deployment.v1.ListDeploymentsResponse
+	(*StreamDeploymentRequest)(nil),  // 9: loco.deployment.v1.StreamDeploymentRequest
+	(*DeploymentEvent)(nil),          // 10: loco.deployment.v1.DeploymentEvent
+	nil,                              // 11: loco.deployment.v1.CreateDeploymentRequest.EnvEntry
+	(*timestamppb.Timestamp)(nil),    // 12: google.protobuf.Timestamp
 }
 var file_shared_proto_deployment_v1_deployment_proto_depIdxs = []int32{
-	17, // 0: loco.deployment.v1.Deployment.created_at:type_name -> google.protobuf.Timestamp
-	17, // 1: loco.deployment.v1.Deployment.started_at:type_name -> google.protobuf.Timestamp
-	17, // 2: loco.deployment.v1.Deployment.completed_at:type_name -> google.protobuf.Timestamp
-	17, // 3: loco.deployment.v1.Deployment.updated_at:type_name -> google.protobuf.Timestamp
-	15, // 4: loco.deployment.v1.CreateDeploymentRequest.env:type_name -> loco.deployment.v1.CreateDeploymentRequest.EnvEntry
+	12, // 0: loco.deployment.v1.Deployment.created_at:type_name -> google.protobuf.Timestamp
+	12, // 1: loco.deployment.v1.Deployment.started_at:type_name -> google.protobuf.Timestamp
+	12, // 2: loco.deployment.v1.Deployment.completed_at:type_name -> google.protobuf.Timestamp
+	12, // 3: loco.deployment.v1.Deployment.updated_at:type_name -> google.protobuf.Timestamp
+	11, // 4: loco.deployment.v1.CreateDeploymentRequest.env:type_name -> loco.deployment.v1.CreateDeploymentRequest.EnvEntry
 	0,  // 5: loco.deployment.v1.CreateDeploymentRequest.ports:type_name -> loco.deployment.v1.Port
 	1,  // 6: loco.deployment.v1.CreateDeploymentRequest.resources:type_name -> loco.deployment.v1.ResourceSpec
 	2,  // 7: loco.deployment.v1.CreateDeploymentResponse.deployment:type_name -> loco.deployment.v1.Deployment
 	2,  // 8: loco.deployment.v1.GetDeploymentResponse.deployment:type_name -> loco.deployment.v1.Deployment
 	2,  // 9: loco.deployment.v1.ListDeploymentsResponse.deployments:type_name -> loco.deployment.v1.Deployment
-	17, // 10: loco.deployment.v1.DeploymentEvent.timestamp:type_name -> google.protobuf.Timestamp
-	2,  // 11: loco.deployment.v1.ScaleDeploymentResponse.deployment:type_name -> loco.deployment.v1.Deployment
-	16, // 12: loco.deployment.v1.UpdateDeploymentEnvRequest.env:type_name -> loco.deployment.v1.UpdateDeploymentEnvRequest.EnvEntry
-	2,  // 13: loco.deployment.v1.UpdateDeploymentEnvResponse.deployment:type_name -> loco.deployment.v1.Deployment
-	3,  // 14: loco.deployment.v1.DeploymentService.CreateDeployment:input_type -> loco.deployment.v1.CreateDeploymentRequest
-	5,  // 15: loco.deployment.v1.DeploymentService.GetDeployment:input_type -> loco.deployment.v1.GetDeploymentRequest
-	7,  // 16: loco.deployment.v1.DeploymentService.ListDeployments:input_type -> loco.deployment.v1.ListDeploymentsRequest
-	9,  // 17: loco.deployment.v1.DeploymentService.StreamDeployment:input_type -> loco.deployment.v1.StreamDeploymentRequest
-	11, // 18: loco.deployment.v1.DeploymentService.ScaleDeployment:input_type -> loco.deployment.v1.ScaleDeploymentRequest
-	13, // 19: loco.deployment.v1.DeploymentService.UpdateDeploymentEnv:input_type -> loco.deployment.v1.UpdateDeploymentEnvRequest
-	4,  // 20: loco.deployment.v1.DeploymentService.CreateDeployment:output_type -> loco.deployment.v1.CreateDeploymentResponse
-	6,  // 21: loco.deployment.v1.DeploymentService.GetDeployment:output_type -> loco.deployment.v1.GetDeploymentResponse
-	8,  // 22: loco.deployment.v1.DeploymentService.ListDeployments:output_type -> loco.deployment.v1.ListDeploymentsResponse
-	10, // 23: loco.deployment.v1.DeploymentService.StreamDeployment:output_type -> loco.deployment.v1.DeploymentEvent
-	12, // 24: loco.deployment.v1.DeploymentService.ScaleDeployment:output_type -> loco.deployment.v1.ScaleDeploymentResponse
-	14, // 25: loco.deployment.v1.DeploymentService.UpdateDeploymentEnv:output_type -> loco.deployment.v1.UpdateDeploymentEnvResponse
-	20, // [20:26] is the sub-list for method output_type
-	14, // [14:20] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	12, // 10: loco.deployment.v1.DeploymentEvent.timestamp:type_name -> google.protobuf.Timestamp
+	3,  // 11: loco.deployment.v1.DeploymentService.CreateDeployment:input_type -> loco.deployment.v1.CreateDeploymentRequest
+	5,  // 12: loco.deployment.v1.DeploymentService.GetDeployment:input_type -> loco.deployment.v1.GetDeploymentRequest
+	7,  // 13: loco.deployment.v1.DeploymentService.ListDeployments:input_type -> loco.deployment.v1.ListDeploymentsRequest
+	9,  // 14: loco.deployment.v1.DeploymentService.StreamDeployment:input_type -> loco.deployment.v1.StreamDeploymentRequest
+	4,  // 15: loco.deployment.v1.DeploymentService.CreateDeployment:output_type -> loco.deployment.v1.CreateDeploymentResponse
+	6,  // 16: loco.deployment.v1.DeploymentService.GetDeployment:output_type -> loco.deployment.v1.GetDeploymentResponse
+	8,  // 17: loco.deployment.v1.DeploymentService.ListDeployments:output_type -> loco.deployment.v1.ListDeploymentsResponse
+	10, // 18: loco.deployment.v1.DeploymentService.StreamDeployment:output_type -> loco.deployment.v1.DeploymentEvent
+	15, // [15:19] is the sub-list for method output_type
+	11, // [11:15] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_shared_proto_deployment_v1_deployment_proto_init() }
@@ -1128,14 +884,13 @@ func file_shared_proto_deployment_v1_deployment_proto_init() {
 	file_shared_proto_deployment_v1_deployment_proto_msgTypes[3].OneofWrappers = []any{}
 	file_shared_proto_deployment_v1_deployment_proto_msgTypes[7].OneofWrappers = []any{}
 	file_shared_proto_deployment_v1_deployment_proto_msgTypes[10].OneofWrappers = []any{}
-	file_shared_proto_deployment_v1_deployment_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_deployment_v1_deployment_proto_rawDesc), len(file_shared_proto_deployment_v1_deployment_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -45,12 +45,6 @@ const (
 	// DeploymentServiceStreamDeploymentProcedure is the fully-qualified name of the DeploymentService's
 	// StreamDeployment RPC.
 	DeploymentServiceStreamDeploymentProcedure = "/loco.deployment.v1.DeploymentService/StreamDeployment"
-	// DeploymentServiceScaleDeploymentProcedure is the fully-qualified name of the DeploymentService's
-	// ScaleDeployment RPC.
-	DeploymentServiceScaleDeploymentProcedure = "/loco.deployment.v1.DeploymentService/ScaleDeployment"
-	// DeploymentServiceUpdateDeploymentEnvProcedure is the fully-qualified name of the
-	// DeploymentService's UpdateDeploymentEnv RPC.
-	DeploymentServiceUpdateDeploymentEnvProcedure = "/loco.deployment.v1.DeploymentService/UpdateDeploymentEnv"
 )
 
 // DeploymentServiceClient is a client for the loco.deployment.v1.DeploymentService service.
@@ -59,8 +53,6 @@ type DeploymentServiceClient interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	ListDeployments(context.Context, *connect.Request[v1.ListDeploymentsRequest]) (*connect.Response[v1.ListDeploymentsResponse], error)
 	StreamDeployment(context.Context, *connect.Request[v1.StreamDeploymentRequest]) (*connect.ServerStreamForClient[v1.DeploymentEvent], error)
-	ScaleDeployment(context.Context, *connect.Request[v1.ScaleDeploymentRequest]) (*connect.Response[v1.ScaleDeploymentResponse], error)
-	UpdateDeploymentEnv(context.Context, *connect.Request[v1.UpdateDeploymentEnvRequest]) (*connect.Response[v1.UpdateDeploymentEnvResponse], error)
 }
 
 // NewDeploymentServiceClient constructs a client for the loco.deployment.v1.DeploymentService
@@ -98,29 +90,15 @@ func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(deploymentServiceMethods.ByName("StreamDeployment")),
 			connect.WithClientOptions(opts...),
 		),
-		scaleDeployment: connect.NewClient[v1.ScaleDeploymentRequest, v1.ScaleDeploymentResponse](
-			httpClient,
-			baseURL+DeploymentServiceScaleDeploymentProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("ScaleDeployment")),
-			connect.WithClientOptions(opts...),
-		),
-		updateDeploymentEnv: connect.NewClient[v1.UpdateDeploymentEnvRequest, v1.UpdateDeploymentEnvResponse](
-			httpClient,
-			baseURL+DeploymentServiceUpdateDeploymentEnvProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("UpdateDeploymentEnv")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // deploymentServiceClient implements DeploymentServiceClient.
 type deploymentServiceClient struct {
-	createDeployment    *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
-	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	listDeployments     *connect.Client[v1.ListDeploymentsRequest, v1.ListDeploymentsResponse]
-	streamDeployment    *connect.Client[v1.StreamDeploymentRequest, v1.DeploymentEvent]
-	scaleDeployment     *connect.Client[v1.ScaleDeploymentRequest, v1.ScaleDeploymentResponse]
-	updateDeploymentEnv *connect.Client[v1.UpdateDeploymentEnvRequest, v1.UpdateDeploymentEnvResponse]
+	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
+	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	listDeployments  *connect.Client[v1.ListDeploymentsRequest, v1.ListDeploymentsResponse]
+	streamDeployment *connect.Client[v1.StreamDeploymentRequest, v1.DeploymentEvent]
 }
 
 // CreateDeployment calls loco.deployment.v1.DeploymentService.CreateDeployment.
@@ -143,16 +121,6 @@ func (c *deploymentServiceClient) StreamDeployment(ctx context.Context, req *con
 	return c.streamDeployment.CallServerStream(ctx, req)
 }
 
-// ScaleDeployment calls loco.deployment.v1.DeploymentService.ScaleDeployment.
-func (c *deploymentServiceClient) ScaleDeployment(ctx context.Context, req *connect.Request[v1.ScaleDeploymentRequest]) (*connect.Response[v1.ScaleDeploymentResponse], error) {
-	return c.scaleDeployment.CallUnary(ctx, req)
-}
-
-// UpdateDeploymentEnv calls loco.deployment.v1.DeploymentService.UpdateDeploymentEnv.
-func (c *deploymentServiceClient) UpdateDeploymentEnv(ctx context.Context, req *connect.Request[v1.UpdateDeploymentEnvRequest]) (*connect.Response[v1.UpdateDeploymentEnvResponse], error) {
-	return c.updateDeploymentEnv.CallUnary(ctx, req)
-}
-
 // DeploymentServiceHandler is an implementation of the loco.deployment.v1.DeploymentService
 // service.
 type DeploymentServiceHandler interface {
@@ -160,8 +128,6 @@ type DeploymentServiceHandler interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	ListDeployments(context.Context, *connect.Request[v1.ListDeploymentsRequest]) (*connect.Response[v1.ListDeploymentsResponse], error)
 	StreamDeployment(context.Context, *connect.Request[v1.StreamDeploymentRequest], *connect.ServerStream[v1.DeploymentEvent]) error
-	ScaleDeployment(context.Context, *connect.Request[v1.ScaleDeploymentRequest]) (*connect.Response[v1.ScaleDeploymentResponse], error)
-	UpdateDeploymentEnv(context.Context, *connect.Request[v1.UpdateDeploymentEnvRequest]) (*connect.Response[v1.UpdateDeploymentEnvResponse], error)
 }
 
 // NewDeploymentServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -195,18 +161,6 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 		connect.WithSchema(deploymentServiceMethods.ByName("StreamDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deploymentServiceScaleDeploymentHandler := connect.NewUnaryHandler(
-		DeploymentServiceScaleDeploymentProcedure,
-		svc.ScaleDeployment,
-		connect.WithSchema(deploymentServiceMethods.ByName("ScaleDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	deploymentServiceUpdateDeploymentEnvHandler := connect.NewUnaryHandler(
-		DeploymentServiceUpdateDeploymentEnvProcedure,
-		svc.UpdateDeploymentEnv,
-		connect.WithSchema(deploymentServiceMethods.ByName("UpdateDeploymentEnv")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/loco.deployment.v1.DeploymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeploymentServiceCreateDeploymentProcedure:
@@ -217,10 +171,6 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 			deploymentServiceListDeploymentsHandler.ServeHTTP(w, r)
 		case DeploymentServiceStreamDeploymentProcedure:
 			deploymentServiceStreamDeploymentHandler.ServeHTTP(w, r)
-		case DeploymentServiceScaleDeploymentProcedure:
-			deploymentServiceScaleDeploymentHandler.ServeHTTP(w, r)
-		case DeploymentServiceUpdateDeploymentEnvProcedure:
-			deploymentServiceUpdateDeploymentEnvHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -244,12 +194,4 @@ func (UnimplementedDeploymentServiceHandler) ListDeployments(context.Context, *c
 
 func (UnimplementedDeploymentServiceHandler) StreamDeployment(context.Context, *connect.Request[v1.StreamDeploymentRequest], *connect.ServerStream[v1.DeploymentEvent]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("loco.deployment.v1.DeploymentService.StreamDeployment is not implemented"))
-}
-
-func (UnimplementedDeploymentServiceHandler) ScaleDeployment(context.Context, *connect.Request[v1.ScaleDeploymentRequest]) (*connect.Response[v1.ScaleDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.deployment.v1.DeploymentService.ScaleDeployment is not implemented"))
-}
-
-func (UnimplementedDeploymentServiceHandler) UpdateDeploymentEnv(context.Context, *connect.Request[v1.UpdateDeploymentEnvRequest]) (*connect.Response[v1.UpdateDeploymentEnvResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.deployment.v1.DeploymentService.UpdateDeploymentEnv is not implemented"))
 }

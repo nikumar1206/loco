@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -556,6 +557,363 @@ func (s *AppServer) GetEvents(
 	return connect.NewResponse(&appv1.GetEventsResponse{
 		Events: protoEvents,
 	}), nil
+}
+
+// ScaleApp scales an application by creating a new deployment with updated resources
+func (s *AppServer) ScaleApp(
+	ctx context.Context,
+	req *connect.Request[appv1.ScaleAppRequest],
+) (*connect.Response[appv1.ScaleAppResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	if r.Replicas == nil && r.Cpu == nil && r.Memory == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one of replicas, cpu, or memory must be provided"))
+	}
+
+	if r.Replicas != nil && *r.Replicas < 1 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, ErrInvalidReplicas)
+	}
+
+	app, err := s.queries.GetAppByID(ctx, r.AppId)
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "app_id", r.AppId)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+	workspaceID := app.WorkspaceID
+
+	role, err := s.queries.GetWorkspaceMemberRole(ctx, genDb.GetWorkspaceMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", workspaceID, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	if role != genDb.WorkspaceRoleAdmin && role != genDb.WorkspaceRoleDeploy {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or have deploy role"))
+	}
+
+	deploymentList, err := s.queries.ListDeploymentsForApp(ctx, genDb.ListDeploymentsForAppParams{
+		AppID:  r.AppId,
+		Limit:  1,
+		Offset: 0,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list deployments", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	if len(deploymentList) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no existing deployment found for app"))
+	}
+
+	currentDeployment := deploymentList[0]
+
+	var config map[string]interface{}
+	if len(currentDeployment.Config) > 0 {
+		if err := json.Unmarshal(currentDeployment.Config, &config); err != nil {
+			slog.ErrorContext(ctx, "failed to parse deployment config", "error", err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
+		}
+	} else {
+		config = make(map[string]interface{})
+	}
+
+	var env map[string]string
+	if envData, ok := config["env"].(map[string]interface{}); ok {
+		env = make(map[string]string)
+		for k, v := range envData {
+			env[k] = v.(string)
+		}
+	} else {
+		env = make(map[string]string)
+	}
+
+	var cpu, memory *string
+	if resourceData, ok := config["resources"].(map[string]interface{}); ok {
+		if cpuVal, ok := resourceData["cpu"].(string); ok && cpuVal != "" {
+			cpu = &cpuVal
+		}
+		if memoryVal, ok := resourceData["memory"].(string); ok && memoryVal != "" {
+			memory = &memoryVal
+		}
+	}
+
+	var ports []interface{}
+	if portData, ok := config["ports"].([]interface{}); ok {
+		ports = portData
+	}
+
+	replicas := currentDeployment.Replicas
+	if r.Replicas != nil {
+		replicas = *r.Replicas
+	}
+
+	if r.Cpu != nil {
+		cpu = r.Cpu
+	}
+
+	if r.Memory != nil {
+		memory = r.Memory
+	}
+
+	resources := map[string]interface{}{}
+	if cpu != nil {
+		resources["cpu"] = *cpu
+	}
+	if memory != nil {
+		resources["memory"] = *memory
+	}
+
+	updatedConfig := map[string]interface{}{
+		"env":       env,
+		"ports":     ports,
+		"resources": resources,
+	}
+	configJSON, err := json.Marshal(updatedConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to marshal config", "error", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
+	}
+
+	err = s.queries.MarkPreviousDeploymentsNotCurrent(ctx, r.AppId)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to mark previous deployments not current", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	deployment, err := s.queries.CreateDeployment(ctx, genDb.CreateDeploymentParams{
+		AppID:         r.AppId,
+		ClusterID:     1,
+		Image:         currentDeployment.Image,
+		Replicas:      replicas,
+		Status:        genDb.DeploymentStatusPending,
+		IsCurrent:     true,
+		CreatedBy:     userID,
+		Config:        configJSON,
+		SchemaVersion: pgtype.Int4{Int32: 1, Valid: true},
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create deployment", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	go s.allocateDeployment(context.Background(), &app, &deployment, env)
+
+	deploymentStatus := &appv1.DeploymentStatus{
+		Id:       deployment.ID,
+		Status:   string(deployment.Status),
+		Replicas: deployment.Replicas,
+	}
+
+	if deployment.Message.Valid {
+		deploymentStatus.Message = &deployment.Message.String
+	}
+
+	if deployment.ErrorMessage.Valid {
+		deploymentStatus.ErrorMessage = &deployment.ErrorMessage.String
+	}
+
+	return connect.NewResponse(&appv1.ScaleAppResponse{
+		Deployment: deploymentStatus,
+	}), nil
+}
+
+// UpdateAppEnv updates environment variables for an application
+func (s *AppServer) UpdateAppEnv(
+	ctx context.Context,
+	req *connect.Request[appv1.UpdateAppEnvRequest],
+) (*connect.Response[appv1.UpdateAppEnvResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("user_id").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "user_id not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	if len(r.Env) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one environment variable must be provided"))
+	}
+
+	app, err := s.queries.GetAppByID(ctx, r.AppId)
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "app_id", r.AppId)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+	workspaceID := app.WorkspaceID
+
+	role, err := s.queries.GetWorkspaceMemberRole(ctx, genDb.GetWorkspaceMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", workspaceID, "user_id", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	if role != genDb.WorkspaceRoleAdmin && role != genDb.WorkspaceRoleDeploy {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or have deploy role"))
+	}
+
+	deploymentList, err := s.queries.ListDeploymentsForApp(ctx, genDb.ListDeploymentsForAppParams{
+		AppID:  r.AppId,
+		Limit:  1,
+		Offset: 0,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list deployments", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	if len(deploymentList) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no existing deployment found for app"))
+	}
+
+	currentDeployment := deploymentList[0]
+
+	var config map[string]interface{}
+	if len(currentDeployment.Config) > 0 {
+		if err := json.Unmarshal(currentDeployment.Config, &config); err != nil {
+			slog.ErrorContext(ctx, "failed to parse deployment config", "error", err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
+		}
+	} else {
+		config = make(map[string]interface{})
+	}
+
+	var cpu, memory *string
+	if resourceData, ok := config["resources"].(map[string]interface{}); ok {
+		if cpuVal, ok := resourceData["cpu"].(string); ok && cpuVal != "" {
+			cpu = &cpuVal
+		}
+		if memoryVal, ok := resourceData["memory"].(string); ok && memoryVal != "" {
+			memory = &memoryVal
+		}
+	}
+
+	var ports []interface{}
+	if portData, ok := config["ports"].([]interface{}); ok {
+		ports = portData
+	}
+
+	resources := map[string]interface{}{}
+	if cpu != nil {
+		resources["cpu"] = *cpu
+	}
+	if memory != nil {
+		resources["memory"] = *memory
+	}
+
+	updatedConfig := map[string]interface{}{
+		"env":       r.Env,
+		"ports":     ports,
+		"resources": resources,
+	}
+	configJSON, err := json.Marshal(updatedConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to marshal config", "error", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
+	}
+
+	err = s.queries.MarkPreviousDeploymentsNotCurrent(ctx, r.AppId)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to mark previous deployments not current", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	deployment, err := s.queries.CreateDeployment(ctx, genDb.CreateDeploymentParams{
+		AppID:         r.AppId,
+		ClusterID:     1,
+		Image:         currentDeployment.Image,
+		Replicas:      currentDeployment.Replicas,
+		Status:        genDb.DeploymentStatusPending,
+		IsCurrent:     true,
+		CreatedBy:     userID,
+		Config:        configJSON,
+		SchemaVersion: pgtype.Int4{Int32: 1, Valid: true},
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create deployment", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database error: %w", err))
+	}
+
+	go s.allocateDeployment(context.Background(), &app, &deployment, r.Env)
+
+	deploymentStatus := &appv1.DeploymentStatus{
+		Id:       deployment.ID,
+		Status:   string(deployment.Status),
+		Replicas: deployment.Replicas,
+	}
+
+	if deployment.Message.Valid {
+		deploymentStatus.Message = &deployment.Message.String
+	}
+
+	if deployment.ErrorMessage.Valid {
+		deploymentStatus.ErrorMessage = &deployment.ErrorMessage.String
+	}
+
+	return connect.NewResponse(&appv1.UpdateAppEnvResponse{
+		Deployment: deploymentStatus,
+	}), nil
+}
+
+// allocateDeployment runs as a background goroutine that allocates Kubernetes resources
+func (s *AppServer) allocateDeployment(
+	ctx context.Context,
+	app *genDb.App,
+	deployment *genDb.Deployment,
+	envVars map[string]string,
+) {
+	slog.InfoContext(ctx, "Starting deployment allocation", "deployment_id", deployment.ID, "app_id", app.ID)
+
+	var config map[string]interface{}
+	if len(deployment.Config) > 0 {
+		if err := json.Unmarshal(deployment.Config, &config); err != nil {
+			slog.ErrorContext(ctx, "Failed to parse deployment config", "deployment_id", deployment.ID, "error", err)
+			s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusFailed, fmt.Sprintf("Failed to parse config: %v", err))
+			return
+		}
+	}
+
+	ldc, err := kube.NewLocoDeploymentContext(app, deployment)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to create deployment context", "deployment_id", deployment.ID, "error", err)
+		s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusFailed, fmt.Sprintf("Failed to create deployment context: %v", err))
+		return
+	}
+
+	s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusInProgress, "Allocating Kubernetes resources...")
+
+	if err := s.kubeClient.AllocateResources(ctx, ldc, envVars, nil); err != nil {
+		slog.ErrorContext(ctx, "Failed to allocate Kubernetes resources", "deployment_id", deployment.ID, "error", err)
+		s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusFailed, fmt.Sprintf("Failed to allocate resources: %v", err))
+		return
+	}
+
+	s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusSucceeded, "Deployment successful")
+	slog.InfoContext(ctx, "Deployment allocation completed", "deployment_id", deployment.ID)
+}
+
+// updateDeploymentStatus updates the deployment status in the database
+func (s *AppServer) updateDeploymentStatus(ctx context.Context, deploymentID int64, status genDb.DeploymentStatus, message string) {
+	messageParam := pgtype.Text{String: message, Valid: message != ""}
+	err := s.queries.UpdateDeploymentStatusWithMessage(ctx, genDb.UpdateDeploymentStatusWithMessageParams{
+		ID:      deploymentID,
+		Status:  status,
+		Message: messageParam,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to update deployment status", "deployment_id", deploymentID, "error", err)
+	}
 }
 
 // dbAppToProto converts a database App to the proto App

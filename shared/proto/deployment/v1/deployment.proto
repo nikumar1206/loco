@@ -11,8 +11,6 @@ service DeploymentService {
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
   rpc ListDeployments(ListDeploymentsRequest) returns (ListDeploymentsResponse);
   rpc StreamDeployment(StreamDeploymentRequest) returns (stream DeploymentEvent);
-  rpc ScaleDeployment(ScaleDeploymentRequest) returns (ScaleDeploymentResponse);
-  rpc UpdateDeploymentEnv(UpdateDeploymentEnvRequest) returns (UpdateDeploymentEnvResponse);
 }
 
 message Port {
@@ -85,24 +83,4 @@ message DeploymentEvent {
   string message = 3;
   google.protobuf.Timestamp timestamp = 4;
   optional string error_message = 5;
-}
-
-message ScaleDeploymentRequest {
-  int64 app_id = 1;
-  optional int32 replicas = 2;
-  optional string cpu = 3;
-  optional string memory = 4;
-}
-
-message ScaleDeploymentResponse {
-  Deployment deployment = 1;
-}
-
-message UpdateDeploymentEnvRequest {
-  int64 app_id = 1;
-  map<string, string> env = 2;
-}
-
-message UpdateDeploymentEnvResponse {
-  Deployment deployment = 1;
 }

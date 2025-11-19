@@ -28,6 +28,10 @@ service AppService {
 
   // Events
   rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
+
+  // App Operations
+  rpc ScaleApp(ScaleAppRequest) returns (ScaleAppResponse);
+  rpc UpdateAppEnv(UpdateAppEnvRequest) returns (UpdateAppEnvResponse);
 }
 
 message App {
@@ -155,4 +159,26 @@ message GetEventsRequest {
 
 message GetEventsResponse {
   repeated Event events = 1;
+}
+
+// --- App Operations ---
+
+message ScaleAppRequest {
+  int64 app_id = 1;
+  optional int32 replicas = 2;
+  optional string cpu = 3;
+  optional string memory = 4;
+}
+
+message ScaleAppResponse {
+  DeploymentStatus deployment = 1;
+}
+
+message UpdateAppEnvRequest {
+  int64 app_id = 1;
+  map<string, string> env = 2;
+}
+
+message UpdateAppEnvResponse {
+  DeploymentStatus deployment = 1;
 }

@@ -133,7 +133,7 @@ func envCmdFunc(cmd *cobra.Command) error {
 
 	slog.Debug("updating environment variables", "app_id", appID, "app_name", appName)
 
-	_, err = apiClient.UpdateDeploymentEnv(ctx, appID, envVars)
+	_, err = apiClient.UpdateAppEnv(ctx, appID, envVars)
 	if err != nil {
 		slog.Error("failed to update environment variables", "error", err)
 		return fmt.Errorf("failed to update environment variables for app '%s': %w", appName, err)

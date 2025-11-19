@@ -242,8 +242,8 @@ func (c *Client) DeleteApp(ctx context.Context, appID string) error {
 	return err
 }
 
-func (c *Client) ScaleDeployment(ctx context.Context, appID int64, replicas *int32, cpu, memory *string) (*deploymentv1.Deployment, error) {
-	req := connect.NewRequest(&deploymentv1.ScaleDeploymentRequest{
+func (c *Client) ScaleApp(ctx context.Context, appID int64, replicas *int32, cpu, memory *string) (*appv1.DeploymentStatus, error) {
+	req := connect.NewRequest(&appv1.ScaleAppRequest{
 		AppId:    appID,
 		Replicas: replicas,
 		Cpu:      cpu,
@@ -251,7 +251,7 @@ func (c *Client) ScaleDeployment(ctx context.Context, appID int64, replicas *int
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 
-	resp, err := c.Deployment.ScaleDeployment(ctx, req)
+	resp, err := c.App.ScaleApp(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -259,14 +259,14 @@ func (c *Client) ScaleDeployment(ctx context.Context, appID int64, replicas *int
 	return resp.Msg.Deployment, nil
 }
 
-func (c *Client) UpdateDeploymentEnv(ctx context.Context, appID int64, env map[string]string) (*deploymentv1.Deployment, error) {
-	req := connect.NewRequest(&deploymentv1.UpdateDeploymentEnvRequest{
+func (c *Client) UpdateAppEnv(ctx context.Context, appID int64, env map[string]string) (*appv1.DeploymentStatus, error) {
+	req := connect.NewRequest(&appv1.UpdateAppEnvRequest{
 		AppId: appID,
 		Env:   env,
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 
-	resp, err := c.Deployment.UpdateDeploymentEnv(ctx, req)
+	resp, err := c.App.UpdateAppEnv(ctx, req)
 	if err != nil {
 		return nil, err
 	}

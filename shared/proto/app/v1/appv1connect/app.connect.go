@@ -52,6 +52,10 @@ const (
 	AppServiceStreamLogsProcedure = "/loco.app.v1.AppService/StreamLogs"
 	// AppServiceGetEventsProcedure is the fully-qualified name of the AppService's GetEvents RPC.
 	AppServiceGetEventsProcedure = "/loco.app.v1.AppService/GetEvents"
+	// AppServiceScaleAppProcedure is the fully-qualified name of the AppService's ScaleApp RPC.
+	AppServiceScaleAppProcedure = "/loco.app.v1.AppService/ScaleApp"
+	// AppServiceUpdateAppEnvProcedure is the fully-qualified name of the AppService's UpdateAppEnv RPC.
+	AppServiceUpdateAppEnvProcedure = "/loco.app.v1.AppService/UpdateAppEnv"
 )
 
 // AppServiceClient is a client for the loco.app.v1.AppService service.
@@ -68,6 +72,9 @@ type AppServiceClient interface {
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.LogEntry], error)
 	// Events
 	GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error)
+	// App Operations
+	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
+	UpdateAppEnv(context.Context, *connect.Request[v1.UpdateAppEnvRequest]) (*connect.Response[v1.UpdateAppEnvResponse], error)
 }
 
 // NewAppServiceClient constructs a client for the loco.app.v1.AppService service. By default, it
@@ -135,6 +142,18 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(appServiceMethods.ByName("GetEvents")),
 			connect.WithClientOptions(opts...),
 		),
+		scaleApp: connect.NewClient[v1.ScaleAppRequest, v1.ScaleAppResponse](
+			httpClient,
+			baseURL+AppServiceScaleAppProcedure,
+			connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
+			connect.WithClientOptions(opts...),
+		),
+		updateAppEnv: connect.NewClient[v1.UpdateAppEnvRequest, v1.UpdateAppEnvResponse](
+			httpClient,
+			baseURL+AppServiceUpdateAppEnvProcedure,
+			connect.WithSchema(appServiceMethods.ByName("UpdateAppEnv")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -149,6 +168,8 @@ type appServiceClient struct {
 	checkSubdomainAvailability *connect.Client[v1.CheckSubdomainAvailabilityRequest, v1.CheckSubdomainAvailabilityResponse]
 	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.LogEntry]
 	getEvents                  *connect.Client[v1.GetEventsRequest, v1.GetEventsResponse]
+	scaleApp                   *connect.Client[v1.ScaleAppRequest, v1.ScaleAppResponse]
+	updateAppEnv               *connect.Client[v1.UpdateAppEnvRequest, v1.UpdateAppEnvResponse]
 }
 
 // CreateApp calls loco.app.v1.AppService.CreateApp.
@@ -196,6 +217,16 @@ func (c *appServiceClient) GetEvents(ctx context.Context, req *connect.Request[v
 	return c.getEvents.CallUnary(ctx, req)
 }
 
+// ScaleApp calls loco.app.v1.AppService.ScaleApp.
+func (c *appServiceClient) ScaleApp(ctx context.Context, req *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error) {
+	return c.scaleApp.CallUnary(ctx, req)
+}
+
+// UpdateAppEnv calls loco.app.v1.AppService.UpdateAppEnv.
+func (c *appServiceClient) UpdateAppEnv(ctx context.Context, req *connect.Request[v1.UpdateAppEnvRequest]) (*connect.Response[v1.UpdateAppEnvResponse], error) {
+	return c.updateAppEnv.CallUnary(ctx, req)
+}
+
 // AppServiceHandler is an implementation of the loco.app.v1.AppService service.
 type AppServiceHandler interface {
 	// App CRUD
@@ -210,6 +241,9 @@ type AppServiceHandler interface {
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.LogEntry]) error
 	// Events
 	GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error)
+	// App Operations
+	ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error)
+	UpdateAppEnv(context.Context, *connect.Request[v1.UpdateAppEnvRequest]) (*connect.Response[v1.UpdateAppEnvResponse], error)
 }
 
 // NewAppServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -273,6 +307,18 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("GetEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
+	appServiceScaleAppHandler := connect.NewUnaryHandler(
+		AppServiceScaleAppProcedure,
+		svc.ScaleApp,
+		connect.WithSchema(appServiceMethods.ByName("ScaleApp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	appServiceUpdateAppEnvHandler := connect.NewUnaryHandler(
+		AppServiceUpdateAppEnvProcedure,
+		svc.UpdateAppEnv,
+		connect.WithSchema(appServiceMethods.ByName("UpdateAppEnv")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/loco.app.v1.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AppServiceCreateAppProcedure:
@@ -293,6 +339,10 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 			appServiceStreamLogsHandler.ServeHTTP(w, r)
 		case AppServiceGetEventsProcedure:
 			appServiceGetEventsHandler.ServeHTTP(w, r)
+		case AppServiceScaleAppProcedure:
+			appServiceScaleAppHandler.ServeHTTP(w, r)
+		case AppServiceUpdateAppEnvProcedure:
+			appServiceUpdateAppEnvHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -336,4 +386,12 @@ func (UnimplementedAppServiceHandler) StreamLogs(context.Context, *connect.Reque
 
 func (UnimplementedAppServiceHandler) GetEvents(context.Context, *connect.Request[v1.GetEventsRequest]) (*connect.Response[v1.GetEventsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetEvents is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) ScaleApp(context.Context, *connect.Request[v1.ScaleAppRequest]) (*connect.Response[v1.ScaleAppResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.ScaleApp is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) UpdateAppEnv(context.Context, *connect.Request[v1.UpdateAppEnvRequest]) (*connect.Response[v1.UpdateAppEnvResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.UpdateAppEnv is not implemented"))
 }
