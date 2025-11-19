@@ -42,9 +42,8 @@ helm repo update
 echo "Installing Cilium..."
 helm upgrade --install cilium cilium/cilium --namespace kube-system -f kube/values/cilium.yml
 
-# Install Envoy Gateway, todo: bump to 1.4 once supported
 echo "Installing Envoy Gateway + Gateway Crds..."
-kubectl apply --server-side=true -f https://github.com/envoyproxy/gateway/releases/download/v1.5.2/envoy-gateway-crds.yaml
+kubectl apply --server-side=true -f https://github.com/envoyproxy/gateway/releases/download/v1.6.0/envoy-gateway-crds.yaml
 helm upgrade eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system --create-namespace -i --values kube/values/gateway.yml
 
 # Install cert-manager
