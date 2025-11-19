@@ -21,8 +21,9 @@ import (
 )
 
 type OAuthServer struct {
-	db      *pgxpool.Pool
-	queries *genDb.Queries
+	db         *pgxpool.Pool
+	queries    *genDb.Queries
+	httpClient *http.Client
 }
 
 // GithubUser is the response structure from GitHub's user endpoint
@@ -44,8 +45,8 @@ var OAuthConf = &oauth2.Config{
 
 var OAuthTokenTTL = time.Duration(8 * time.Hour)
 
-func NewOAuthServer(db *pgxpool.Pool, queries *genDb.Queries) *OAuthServer {
-	return &OAuthServer{db: db, queries: queries}
+func NewOAuthServer(db *pgxpool.Pool, queries *genDb.Queries, httpClient *http.Client) *OAuthServer {
+	return &OAuthServer{db: db, queries: queries, httpClient: httpClient}
 }
 
 func (s *OAuthServer) GithubOAuthDetails(
@@ -95,12 +96,10 @@ func (s *OAuthServer) ExchangeGithubToken(
 		slog.ErrorContext(ctx, "empty github access token")
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("github_access_token is required"))
 	}
-	// todo: reuse http client, with http2 transport.
-	httpClient := &http.Client{}
 
 	// todo: only create user if they don't already exist.
 	// todo: ctx should be first param
-	githubUser, err := isValidGithubUser(httpClient, ctx, req.Msg.GetGithubAccessToken())
+	githubUser, err := isValidGithubUser(s.httpClient, ctx, req.Msg.GetGithubAccessToken())
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to validate github token", "error", err)
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid github token: %w", err))

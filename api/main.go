@@ -17,6 +17,7 @@ import (
 	"github.com/nikumar1206/loco/api/middleware"
 	"github.com/nikumar1206/loco/api/pkg/kube"
 	"github.com/nikumar1206/loco/api/service"
+	"github.com/nikumar1206/loco/shared"
 	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/nikumar1206/loco/shared/proto/deployment/v1/deploymentv1connect"
 	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
@@ -97,7 +98,9 @@ func main() {
 	pool := dbConn.Pool()
 	queries := genDb.New(pool)
 
-	oAuthServiceHandler := service.NewOAuthServer(pool, queries)
+	httpClient := shared.NewHTTPClient()
+
+	oAuthServiceHandler := service.NewOAuthServer(pool, queries, httpClient)
 	userServiceHandler := service.NewUserServer(pool, queries)
 	orgServiceHandler := service.NewOrgServer(pool, queries)
 	workspaceServiceHandler := service.NewWorkspaceServer(pool, queries)
@@ -111,6 +114,7 @@ func main() {
 		ac.ProjectID,
 		ac.DeployTokenName,
 		ac.RegistryTag,
+		httpClient,
 	)
 
 	oauthPath, oauthHandler := oauthv1connect.NewOAuthServiceHandler(oAuthServiceHandler, interceptors)

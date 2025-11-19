@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -22,6 +23,7 @@ type RegistryServer struct {
 	gitlabProjectID   string
 	deployTokenName   string
 	registryBaseImage string
+	httpClient        *http.Client
 }
 
 // NewRegistryServer creates a new RegistryServer instance
@@ -33,6 +35,7 @@ func NewRegistryServer(
 	gitlabProjectID string,
 	deployTokenName string,
 	registryBaseImage string,
+	httpClient *http.Client,
 ) *RegistryServer {
 	return &RegistryServer{
 		db:                dbPool,
@@ -42,6 +45,7 @@ func NewRegistryServer(
 		gitlabProjectID:   gitlabProjectID,
 		deployTokenName:   deployTokenName,
 		registryBaseImage: registryBaseImage,
+		httpClient:        httpClient,
 	}
 }
 
@@ -65,7 +69,7 @@ func (s *RegistryServer) GitlabToken(
 		"expires_at": expiresAt,
 	}
 
-	gitlabClient := client.NewGitlabClient(s.gitlabURL)
+	gitlabClient := client.NewGitlabClient(s.gitlabURL, s.httpClient)
 	tokenResp, err := gitlabClient.CreateDeployToken(ctx, s.gitlabPAT, s.gitlabProjectID, payload)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create gitlab deploy token", slog.String("error", err.Error()))

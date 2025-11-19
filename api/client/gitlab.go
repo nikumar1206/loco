@@ -27,11 +27,10 @@ type GitlabClient struct {
 }
 
 // NewGitlabClient creates a new GitLab API client
-// todo: pass down an http client into this for re-use
-func NewGitlabClient(baseURL string) *GitlabClient {
+func NewGitlabClient(baseURL string, httpClient *http.Client) *GitlabClient {
 	return &GitlabClient{
 		baseURL: baseURL,
-		client:  &http.Client{},
+		client:  httpClient,
 	}
 }
 

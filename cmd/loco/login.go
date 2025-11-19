@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	osUser "os/user"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/keychain"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared"
 	oAuth "github.com/nikumar1206/loco/shared/proto/oauth/v1"
 	"github.com/nikumar1206/loco/shared/proto/oauth/v1/oauthv1connect"
 	orgv1 "github.com/nikumar1206/loco/shared/proto/org/v1"
@@ -98,7 +98,8 @@ var loginCmd = &cobra.Command{
 		}
 		c := api.NewClient("https://github.com")
 
-		oAuthClient := oauthv1connect.NewOAuthServiceClient(&http.Client{}, host)
+		httpClient := shared.NewHTTPClient()
+		oAuthClient := oauthv1connect.NewOAuthServiceClient(httpClient, host)
 		resp, err := oAuthClient.GithubOAuthDetails(cmd.Context(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
 			slog.Debug("failed to get oauth details", "error", err)
@@ -171,7 +172,7 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		orgClient := orgv1connect.NewOrgServiceClient(&http.Client{}, host)
+		orgClient := orgv1connect.NewOrgServiceClient(httpClient, host)
 
 		existingCfg, err := config.Load()
 		if err != nil {
@@ -206,7 +207,7 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		userClient := userv1connect.NewUserServiceClient(&http.Client{}, host)
+		userClient := userv1connect.NewUserServiceClient(httpClient, host)
 
 		currentUserReq := connect.NewRequest(&userv1.GetCurrentUserRequest{})
 		currentUserReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", locoResp.Msg.LocoToken))
@@ -247,7 +248,7 @@ var loginCmd = &cobra.Command{
 			}
 
 			workspaceName := "default"
-			wsClient := workspacev1connect.NewWorkspaceServiceClient(&http.Client{}, host)
+			wsClient := workspacev1connect.NewWorkspaceServiceClient(httpClient, host)
 			createWSReq := connect.NewRequest(&workspacev1.CreateWorkspaceRequest{
 				OrgId: createdOrg.Id,
 				Name:  workspaceName,

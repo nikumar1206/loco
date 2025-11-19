@@ -7,11 +7,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	json "github.com/goccy/go-json"
 
 	"connectrpc.com/connect"
+	"github.com/nikumar1206/loco/shared"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	deploymentv1 "github.com/nikumar1206/loco/shared/proto/deployment/v1"
@@ -40,7 +40,7 @@ type Client struct {
 }
 
 func NewClient(host, token string) *Client {
-	httpClient := &http.Client{}
+	httpClient := shared.NewHTTPClient()
 
 	return &Client{
 		host:       host,
@@ -370,8 +370,7 @@ func (c *Client) Post(path string, payload any, headers map[string]string) ([]by
 		req.Header.Set(k, v)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, &APIError{Body: fmt.Sprintf("request failed: %v", err)}
 	}

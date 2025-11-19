@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"connectrpc.com/connect"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/docker"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared"
 	"github.com/nikumar1206/loco/shared/config"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
@@ -107,9 +107,10 @@ func deployCmdFunc(cmd *cobra.Command) error {
 
 	apiClient := client.NewClient(host, locoToken.Token)
 
-	appClient := appv1connect.NewAppServiceClient(http.DefaultClient, host)
+	httpClient := shared.NewHTTPClient()
+	appClient := appv1connect.NewAppServiceClient(httpClient, host)
 
-	registryClient := registryv1connect.NewRegistryServiceClient(http.DefaultClient, host)
+	registryClient := registryv1connect.NewRegistryServiceClient(httpClient, host)
 
 	var appID int64
 

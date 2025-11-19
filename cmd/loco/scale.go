@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"connectrpc.com/connect"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/ui"
+	"github.com/nikumar1206/loco/shared"
 	appv1 "github.com/nikumar1206/loco/shared/proto/app/v1"
 	appv1connect "github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/spf13/cobra"
@@ -83,7 +83,7 @@ func scaleCmdFunc(cmd *cobra.Command) error {
 		return ErrLoginRequired
 	}
 
-	appClient := appv1connect.NewAppServiceClient(http.DefaultClient, host)
+	appClient := appv1connect.NewAppServiceClient(shared.NewHTTPClient(), host)
 
 	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
 

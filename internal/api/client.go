@@ -8,20 +8,20 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
+	"github.com/nikumar1206/loco/shared"
 )
 
-// todo: this can likely be the root http client
 type Client struct {
 	BaseURL    string
-	HTTPClient http.Client
+	HTTPClient *http.Client
 }
 
 func NewClient(baseURL string) *Client {
+	httpClient := shared.NewHTTPClient()
+	httpClient.Timeout = 10 * time.Second
 	return &Client{
-		BaseURL: baseURL,
-		HTTPClient: http.Client{
-			Timeout: 10 * time.Second,
-		},
+		BaseURL:    baseURL,
+		HTTPClient: httpClient,
 	}
 }
 
