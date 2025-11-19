@@ -14,7 +14,6 @@ import (
 	charmLog "github.com/charmbracelet/log"
 	"github.com/nikumar1206/loco/api/db"
 	genDb "github.com/nikumar1206/loco/api/gen/db"
-	"github.com/nikumar1206/loco/api/jwtutil"
 	"github.com/nikumar1206/loco/api/middleware"
 	"github.com/nikumar1206/loco/api/pkg/kube"
 	"github.com/nikumar1206/loco/api/service"
@@ -70,9 +69,6 @@ func newAppConfig() *AppConfig {
 
 func main() {
 	ac := newAppConfig()
-
-	// todo: gotta be a better way to do this?
-	jwtutil.SetJWTSecret(ac.JwtSecret)
 
 	logger := slog.New(CustomHandler{Handler: getLoggerHandler(ac)})
 	slog.SetDefault(logger)

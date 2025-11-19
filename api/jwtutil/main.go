@@ -3,6 +3,7 @@ package jwtutil
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,9 +16,17 @@ type LocoJWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// todo: cleanup? this seems hap-hazard.
-var jwtSecret = []byte("") // TODO: Load from env var
 const issuer = "loco-api"
+
+var jwtSecret []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("JWT_SECRET not set")
+	}
+	jwtSecret = []byte(secret)
+}
 
 // GenerateLocoJWT generates a JWT token for Loco API authentication
 func GenerateLocoJWT(userID int64, username string, externalUsername string, ttl time.Duration) (string, error) {
@@ -69,10 +78,4 @@ func ValidateLocoJWT(tokenString string) (*LocoJWTClaims, error) {
 	}
 
 	return claims, nil
-}
-
-// SetJWTSecret sets the JWT secret key.
-// populated at app startup.
-func SetJWTSecret(s string) {
-	jwtSecret = []byte(s)
 }
