@@ -14,7 +14,7 @@ import (
 )
 
 // CheckDeploymentExists checks if a Deployment exists in the specified namespace
-func (kc *KubernetesClient) CheckDeploymentExists(ctx context.Context, namespace string, deploymentName string) (bool, error) {
+func (kc *Client) CheckDeploymentExists(ctx context.Context, namespace string, deploymentName string) (bool, error) {
 	slog.DebugContext(ctx, "Checking if deployment exists", "namespace", namespace, "deployment", deploymentName)
 	_, err := kc.ClientSet.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metaV1.GetOptions{})
 	if err != nil {
@@ -26,7 +26,7 @@ func (kc *KubernetesClient) CheckDeploymentExists(ctx context.Context, namespace
 }
 
 // CreateDeployment creates a Kubernetes Deployment
-func (kc *KubernetesClient) CreateDeployment(ctx context.Context, ldc *LocoDeploymentContext) (*appsV1.Deployment, error) {
+func (kc *Client) CreateDeployment(ctx context.Context, ldc *LocoDeploymentContext) (*appsV1.Deployment, error) {
 	slog.InfoContext(ctx, "Creating deployment", "namespace", ldc.Namespace(), "deployment", ldc.DeploymentName())
 
 	existing, err := kc.CheckDeploymentExists(ctx, ldc.Namespace(), ldc.DeploymentName())
@@ -158,7 +158,7 @@ func (kc *KubernetesClient) CreateDeployment(ctx context.Context, ldc *LocoDeplo
 }
 
 // UpdateContainer updates the container image in an existing Deployment
-func (kc *KubernetesClient) UpdateContainer(ctx context.Context, ldc *LocoDeploymentContext) error {
+func (kc *Client) UpdateContainer(ctx context.Context, ldc *LocoDeploymentContext) error {
 	slog.InfoContext(ctx, "Updating container image", "namespace", ldc.Namespace(), "deployment", ldc.DeploymentName())
 
 	deploymentsClient := kc.ClientSet.AppsV1().Deployments(ldc.Namespace())
@@ -186,7 +186,7 @@ func (kc *KubernetesClient) UpdateContainer(ctx context.Context, ldc *LocoDeploy
 }
 
 // ScaleDeployment scales a Deployment to a specific number of replicas
-func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appName string, replicas *int32, cpu, memory *string) error {
+func (kc *Client) ScaleDeployment(ctx context.Context, namespace, appName string, replicas *int32, cpu, memory *string) error {
 	slog.InfoContext(ctx, "Scaling deployment", "namespace", namespace, "app", appName, "replicas", replicas)
 
 	deploymentsClient := kc.ClientSet.AppsV1().Deployments(namespace)
@@ -236,7 +236,7 @@ func (kc *KubernetesClient) ScaleDeployment(ctx context.Context, namespace, appN
 }
 
 // RestartDeployment triggers a rollout restart by updating pod template annotations
-func (kc *KubernetesClient) RestartDeployment(ctx context.Context, namespace, deploymentName string) error {
+func (kc *Client) RestartDeployment(ctx context.Context, namespace, deploymentName string) error {
 	slog.InfoContext(ctx, "Restarting deployment", "namespace", namespace, "deployment", deploymentName)
 
 	deploymentsClient := kc.ClientSet.AppsV1().Deployments(namespace)

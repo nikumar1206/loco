@@ -10,7 +10,7 @@ import (
 )
 
 // CreateHTTPRoute creates an HTTPRoute for the deployment via the Loco gateway
-func (kc *KubernetesClient) CreateHTTPRoute(ctx context.Context, ldc *LocoDeploymentContext) (*v1Gateway.HTTPRoute, error) {
+func (kc *Client) CreateHTTPRoute(ctx context.Context, ldc *LocoDeploymentContext) (*v1Gateway.HTTPRoute, error) {
 	slog.InfoContext(ctx, "Creating HTTPRoute", "namespace", ldc.Namespace(), "name", ldc.HTTPRouteName())
 
 	hostname := fmt.Sprintf("%s.%s", ldc.App.Subdomain, ldc.App.Domain)

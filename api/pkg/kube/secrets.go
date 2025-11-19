@@ -12,7 +12,7 @@ import (
 )
 
 // CreateSecret creates a Kubernetes Secret for environment variables
-func (kc *KubernetesClient) CreateSecret(ctx context.Context, ldc *LocoDeploymentContext, envVars map[string]string) (*v1.Secret, error) {
+func (kc *Client) CreateSecret(ctx context.Context, ldc *LocoDeploymentContext, envVars map[string]string) (*v1.Secret, error) {
 	slog.InfoContext(ctx, "Creating secret", "namespace", ldc.Namespace(), "name", ldc.EnvSecretName())
 
 	secretData := make(map[string][]byte)
@@ -41,7 +41,7 @@ func (kc *KubernetesClient) CreateSecret(ctx context.Context, ldc *LocoDeploymen
 }
 
 // UpdateSecret updates a Kubernetes Secret for environment variables
-func (kc *KubernetesClient) UpdateSecret(ctx context.Context, ldc *LocoDeploymentContext, envVars map[string]string) (*v1.Secret, error) {
+func (kc *Client) UpdateSecret(ctx context.Context, ldc *LocoDeploymentContext, envVars map[string]string) (*v1.Secret, error) {
 	slog.InfoContext(ctx, "Updating secret", "namespace", ldc.Namespace(), "name", ldc.EnvSecretName())
 
 	secretsClient := kc.ClientSet.CoreV1().Secrets(ldc.Namespace())
@@ -70,7 +70,7 @@ func (kc *KubernetesClient) UpdateSecret(ctx context.Context, ldc *LocoDeploymen
 }
 
 // CreateDockerPullSecret creates a Kubernetes Secret for Docker registry credentials
-func (kc *KubernetesClient) CreateDockerPullSecret(ctx context.Context, ldc *LocoDeploymentContext, registry DockerRegistryConfig) error {
+func (kc *Client) CreateDockerPullSecret(ctx context.Context, ldc *LocoDeploymentContext, registry DockerRegistryConfig) error {
 	slog.InfoContext(ctx, "Creating docker pull secret", "namespace", ldc.Namespace(), "registry", registry.Server)
 
 	auth := map[string]any{
@@ -115,7 +115,7 @@ func (kc *KubernetesClient) CreateDockerPullSecret(ctx context.Context, ldc *Loc
 }
 
 // UpdateDockerPullSecret updates a Kubernetes Secret for Docker registry credentials
-func (kc *KubernetesClient) UpdateDockerPullSecret(ctx context.Context, ldc *LocoDeploymentContext, registry DockerRegistryConfig) error {
+func (kc *Client) UpdateDockerPullSecret(ctx context.Context, ldc *LocoDeploymentContext, registry DockerRegistryConfig) error {
 	slog.InfoContext(ctx, "Updating docker pull secret", "namespace", ldc.Namespace(), "registry", registry.Server)
 
 	auth := map[string]any{

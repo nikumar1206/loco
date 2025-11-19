@@ -9,23 +9,23 @@ import (
 	gatewayCs "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
-// KubernetesClient implements Kubernetes operations for deployments
-type KubernetesClient struct {
+// Client implements Kubernetes operations for deployments
+type Client struct {
 	ClientSet  kubernetes.Interface
 	GatewaySet gatewayCs.Interface
 }
 
-// NewKubernetesClient initializes a new Kubernetes client based on the application environment.
+// NewClient initializes a new Kubernetes client based on the application environment.
 // For local development, it uses the kubeconfig file. For production, it uses in-cluster config.
 // todo: this is being called twice,
-func NewKubernetesClient(appEnv string) *KubernetesClient {
+func NewClient(appEnv string) *Client {
 	slog.Info("Initializing Kubernetes client", "env", appEnv)
 	config := buildConfig(appEnv)
 
 	clientSet := buildKubeClientSet(config)
 	gatewaySet := buildGatewayClient(config)
 
-	return &KubernetesClient{
+	return &Client{
 		ClientSet:  clientSet,
 		GatewaySet: gatewaySet,
 	}

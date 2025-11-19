@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -34,15 +33,11 @@ var imagePattern = regexp.MustCompile(`^([a-z0-9\-._]+(/[a-z0-9\-._]+)*)(:[a-z0-
 type DeploymentServer struct {
 	db         *pgxpool.Pool
 	queries    *genDb.Queries
-	kubeClient *kube.KubernetesClient
+	kubeClient *kube.Client
 }
 
 // NewDeploymentServer creates a new DeploymentServer instance
-func NewDeploymentServer(db *pgxpool.Pool, queries *genDb.Queries) *DeploymentServer {
-	// todo: we have an app config, we should get data from there. instead of randomly calling os.getenv everywhere.
-	appEnv := os.Getenv("APP_ENV")
-	kubeClient := kube.NewKubernetesClient(appEnv)
-
+func NewDeploymentServer(db *pgxpool.Pool, queries *genDb.Queries, kubeClient *kube.Client) *DeploymentServer {
 	return &DeploymentServer{
 		db:         db,
 		queries:    queries,
@@ -498,8 +493,6 @@ func (s *DeploymentServer) allocateDeployment(
 	s.updateDeploymentStatus(context.Background(), deployment.ID, genDb.DeploymentStatusSucceeded, "Deployment successful")
 	slog.InfoContext(ctx, "Deployment allocation completed", "deployment_id", deployment.ID)
 }
-
-
 
 // updateDeploymentStatus updates the deployment status in the database
 // todo: should we move these to the app service?

@@ -10,7 +10,7 @@ import (
 )
 
 // CheckNSExists checks if a namespace exists in the Kubernetes cluster.
-func (kc *KubernetesClient) CheckNSExists(ctx context.Context, namespace string) (bool, error) {
+func (kc *Client) CheckNSExists(ctx context.Context, namespace string) (bool, error) {
 	slog.DebugContext(ctx, "Checking if namespace exists", "namespace", namespace)
 	namespaces, err := kc.ClientSet.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
 	if err != nil {
@@ -30,7 +30,7 @@ func (kc *KubernetesClient) CheckNSExists(ctx context.Context, namespace string)
 }
 
 // CreateNS creates a new namespace in the Kubernetes cluster if it does not already exist.
-func (kc *KubernetesClient) CreateNS(ctx context.Context, ldc *LocoDeploymentContext) (*v1.Namespace, error) {
+func (kc *Client) CreateNS(ctx context.Context, ldc *LocoDeploymentContext) (*v1.Namespace, error) {
 	namespace := ldc.Namespace()
 	slog.InfoContext(ctx, "Creating namespace", "namespace", namespace)
 
@@ -67,7 +67,7 @@ func (kc *KubernetesClient) CreateNS(ctx context.Context, ldc *LocoDeploymentCon
 }
 
 // DeleteNS deletes a namespace in the Kubernetes cluster.
-func (kc *KubernetesClient) DeleteNS(ctx context.Context, namespace string) error {
+func (kc *Client) DeleteNS(ctx context.Context, namespace string) error {
 	slog.InfoContext(ctx, "Deleting namespace", "namespace", namespace)
 	err := kc.ClientSet.CoreV1().Namespaces().Delete(ctx, namespace, metaV1.DeleteOptions{})
 	if err != nil {

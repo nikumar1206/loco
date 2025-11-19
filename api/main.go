@@ -16,6 +16,7 @@ import (
 	genDb "github.com/nikumar1206/loco/api/gen/db"
 	"github.com/nikumar1206/loco/api/jwtutil"
 	"github.com/nikumar1206/loco/api/middleware"
+	"github.com/nikumar1206/loco/api/pkg/kube"
 	"github.com/nikumar1206/loco/api/service"
 	"github.com/nikumar1206/loco/shared/proto/app/v1/appv1connect"
 	"github.com/nikumar1206/loco/shared/proto/deployment/v1/deploymentv1connect"
@@ -89,6 +90,8 @@ func main() {
 		fmt.Fprintln(w, "Server is healthy.")
 	})
 
+	kubeClient := kube.NewClient(ac.Env)
+
 	dbConn, err := db.NewDB(context.Background(), ac.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
@@ -102,8 +105,8 @@ func main() {
 	userServiceHandler := service.NewUserServer(pool, queries)
 	orgServiceHandler := service.NewOrgServer(pool, queries)
 	workspaceServiceHandler := service.NewWorkspaceServer(pool, queries)
-	appServiceHandler := service.NewAppServer(pool, queries)
-	deploymentServiceHandler := service.NewDeploymentServer(pool, queries)
+	appServiceHandler := service.NewAppServer(pool, queries, kubeClient)
+	deploymentServiceHandler := service.NewDeploymentServer(pool, queries, kubeClient)
 	registryServiceHandler := service.NewRegistryServer(
 		pool,
 		queries,

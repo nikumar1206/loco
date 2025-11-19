@@ -11,7 +11,7 @@ import (
 )
 
 // CheckServiceExists checks if a Service exists in the specified namespace
-func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, serviceName string) (bool, error) {
+func (kc *Client) CheckServiceExists(ctx context.Context, namespace, serviceName string) (bool, error) {
 	slog.DebugContext(ctx, "Checking if service exists", "namespace", namespace, "service", serviceName)
 	_, err := kc.ClientSet.CoreV1().Services(namespace).Get(ctx, serviceName, metaV1.GetOptions{})
 	if err == nil {
@@ -22,7 +22,7 @@ func (kc *KubernetesClient) CheckServiceExists(ctx context.Context, namespace, s
 }
 
 // CreateService creates a Kubernetes Service for the deployment
-func (kc *KubernetesClient) CreateService(ctx context.Context, ldc *LocoDeploymentContext) (*v1.Service, error) {
+func (kc *Client) CreateService(ctx context.Context, ldc *LocoDeploymentContext) (*v1.Service, error) {
 	slog.InfoContext(ctx, "Creating service", "namespace", ldc.Namespace(), "name", ldc.ServiceName())
 
 	exists, err := kc.CheckServiceExists(ctx, ldc.Namespace(), ldc.ServiceName())

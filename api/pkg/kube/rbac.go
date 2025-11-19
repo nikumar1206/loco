@@ -11,7 +11,7 @@ import (
 )
 
 // CreateServiceAccount creates a Kubernetes ServiceAccount
-func (kc *KubernetesClient) CreateServiceAccount(ctx context.Context, ldc *LocoDeploymentContext) (*v1.ServiceAccount, error) {
+func (kc *Client) CreateServiceAccount(ctx context.Context, ldc *LocoDeploymentContext) (*v1.ServiceAccount, error) {
 	slog.InfoContext(ctx, "Creating service account", "namespace", ldc.Namespace(), "name", ldc.ServiceAccountName())
 
 	sa := &v1.ServiceAccount{
@@ -33,7 +33,7 @@ func (kc *KubernetesClient) CreateServiceAccount(ctx context.Context, ldc *LocoD
 }
 
 // CreateRole creates a Kubernetes Role for accessing secrets
-func (kc *KubernetesClient) CreateRole(ctx context.Context, ldc *LocoDeploymentContext, secret *v1.Secret) (*rbacV1.Role, error) {
+func (kc *Client) CreateRole(ctx context.Context, ldc *LocoDeploymentContext, secret *v1.Secret) (*rbacV1.Role, error) {
 	slog.InfoContext(ctx, "Creating role", "namespace", ldc.Namespace(), "name", ldc.RoleName())
 
 	role := &rbacV1.Role{
@@ -64,7 +64,7 @@ func (kc *KubernetesClient) CreateRole(ctx context.Context, ldc *LocoDeploymentC
 }
 
 // CreateRoleBinding creates a Kubernetes RoleBinding
-func (kc *KubernetesClient) CreateRoleBinding(ctx context.Context, ldc *LocoDeploymentContext) (*rbacV1.RoleBinding, error) {
+func (kc *Client) CreateRoleBinding(ctx context.Context, ldc *LocoDeploymentContext) (*rbacV1.RoleBinding, error) {
 	slog.InfoContext(ctx, "Creating role binding", "namespace", ldc.Namespace(), "name", ldc.RoleBindingName())
 
 	rb := &rbacV1.RoleBinding{

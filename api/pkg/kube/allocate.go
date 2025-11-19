@@ -12,7 +12,7 @@ import (
 
 // AllocateResources orchestrates the creation of all Kubernetes resources for a deployment.
 // If any step fails, it attempts to clean up by deleting the namespace.
-func (kc *KubernetesClient) AllocateResources(
+func (kc *Client) AllocateResources(
 	ctx context.Context,
 	ldc *LocoDeploymentContext,
 	envVars map[string]string,
@@ -91,7 +91,7 @@ func (kc *KubernetesClient) AllocateResources(
 }
 
 // createRoleWithSecretName is a helper that creates a role referencing a secret name
-func (kc *KubernetesClient) createRoleWithSecretName(ctx context.Context, ldc *LocoDeploymentContext, secretName string) (*rbacV1.Role, error) {
+func (kc *Client) createRoleWithSecretName(ctx context.Context, ldc *LocoDeploymentContext, secretName string) (*rbacV1.Role, error) {
 	slog.InfoContext(ctx, "Creating role", "namespace", ldc.Namespace(), "name", ldc.RoleName())
 
 	placeholderSecret := &v1.Secret{

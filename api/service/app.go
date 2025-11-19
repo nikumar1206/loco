@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"sort"
 
 	"connectrpc.com/connect"
@@ -35,15 +34,12 @@ var (
 type AppServer struct {
 	db         *pgxpool.Pool
 	queries    *genDb.Queries
-	kubeClient *kube.KubernetesClient
+	kubeClient *kube.Client
 }
 
 // NewAppServer creates a new AppServer instance
-func NewAppServer(db *pgxpool.Pool, queries *genDb.Queries) *AppServer {
+func NewAppServer(db *pgxpool.Pool, queries *genDb.Queries, kubeClient *kube.Client) *AppServer {
 	// todo: move this out.
-	appEnv := os.Getenv("APP_ENV")
-	kubeClient := kube.NewKubernetesClient(appEnv)
-
 	return &AppServer{
 		db:         db,
 		queries:    queries,
