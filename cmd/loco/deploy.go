@@ -21,14 +21,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// todo: implement recursive deploy flag
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy/Update an application to Loco.",
 	Long: "Deploy/Update an application to Loco.\n" +
-		"This builds and pushes a Docker image to the Loco registry and deploys it onto the Loco platform under the specified subdomain. " +
-		"This command can also discover all loco.toml files in the current directory using the -r flag.",
-
+		"This builds and pushes a Docker image to the Loco registry and deploys it onto the Loco platform under the specified subdomain.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return deployCmdFunc(cmd)
 	},

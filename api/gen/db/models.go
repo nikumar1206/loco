@@ -163,10 +163,6 @@ type Cluster struct {
 	Endpoint        pgtype.Text        `json:"endpoint"`
 	HealthStatus    pgtype.Text        `json:"healthStatus"`
 	LastHealthCheck pgtype.Timestamptz `json:"lastHealthCheck"`
-	AvailableCpu    pgtype.Int4        `json:"availableCpu"`
-	AvailableMemory pgtype.Int4        `json:"availableMemory"`
-	ReadyNodes      pgtype.Int4        `json:"readyNodes"`
-	TotalNodes      pgtype.Int4        `json:"totalNodes"`
 	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt       pgtype.Timestamptz `json:"updatedAt"`
 	CreatedBy       int64              `json:"createdBy"`

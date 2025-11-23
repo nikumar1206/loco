@@ -8,10 +8,6 @@ CREATE TABLE clusters (
     endpoint TEXT,
     health_status TEXT DEFAULT 'healthy' CHECK (health_status IN ('healthy', 'unhealthy', 'degraded')),
     last_health_check TIMESTAMP WITH TIME ZONE,
-    available_cpu INT,
-    available_memory INT,
-    ready_nodes INT,
-    total_nodes INT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_by BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT

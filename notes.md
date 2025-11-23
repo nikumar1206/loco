@@ -319,6 +319,7 @@ Phase I ends Here
 
   - a bundle of services. always deployed to 1 wkspc.
   - maybe deploy to existing workspace.
+  - support recursive deployments on the cli with the -r flag. where we discover all apps and do it?
   - should support one click deletes.
 
 - Loco UI
