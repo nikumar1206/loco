@@ -102,7 +102,7 @@ var loginCmd = &cobra.Command{
 		oAuthClient := oauthv1connect.NewOAuthServiceClient(httpClient, host)
 		resp, err := oAuthClient.GithubOAuthDetails(cmd.Context(), connect.NewRequest(&oAuth.GithubOAuthDetailsRequest{}))
 		if err != nil {
-			slog.Debug("failed to get oauth details", "error", err)
+			logRequestID(cmd.Context(), err, "failed to get oAuth details")
 			return err
 		}
 		slog.Debug("retrieved oauth details", "client_id", resp.Msg.ClientId)

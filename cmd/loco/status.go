@@ -67,7 +67,7 @@ func statusCmdFunc(cmd *cobra.Command) error {
 
 	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
 	if err != nil {
-		slog.Debug("failed to list apps", "error", err)
+		logRequestID(ctx, err, "list apps")
 		return fmt.Errorf("failed to list apps: %w", err)
 	}
 

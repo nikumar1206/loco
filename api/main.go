@@ -30,18 +30,17 @@ import (
 )
 
 type AppConfig struct {
-	Env             string `json:"env"`             // Environment (e.g., dev, prod)
-	ProjectID       string `json:"projectId"`       // GitLab project ID
-	GitlabURL       string `json:"gitlabUrl"`       // Container registry URL
-	RegistryURL     string `json:"registryUrl"`     // Container registry URL
-	DeployTokenName string `json:"deployTokenName"` // Deploy token name
-	GitlabPAT       string `json:"gitlabPAT"`       // GitLab Personal Access Token
-	DatabaseURL     string `json:"databaseUrl"`     // PostgreSQL connection string
+	Env             string     // Environment (e.g., dev, prod)
+	ProjectID       string     // GitLab project ID
+	GitlabURL       string     // Container registry URL
+	RegistryURL     string     // Container registry URL
+	DeployTokenName string     // Deploy token name
+	GitlabPAT       string     // GitLab Personal Access Token
+	DatabaseURL     string     // PostgreSQL connection string
 	LogLevel        slog.Level
 	Port            string
-
-	JwtSecret   string `json:"jwt_secret"`
-	RegistryTag string `json:"registry_tag"`
+	JwtSecret       string
+	RegistryTag     string
 }
 
 func newAppConfig() *AppConfig {

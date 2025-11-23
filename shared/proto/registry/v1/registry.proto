@@ -8,12 +8,6 @@ message GitlabTokenRequest {}
 message GitlabTokenResponse {
   string username = 1;
   string token = 2;
-  string registry = 3;
-  string image = 4;
-  string expires_at = 5;
-  bool revoked = 6;
-  bool expired = 7;
-  repeated string scopes = 8;
 }
 
 service RegistryService {

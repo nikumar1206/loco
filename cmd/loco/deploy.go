@@ -121,7 +121,7 @@ func deployCmdFunc(cmd *cobra.Command) error {
 
 	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
 	if err != nil {
-		slog.Debug("failed to list apps", "error", err)
+		logRequestID(ctx, err, "list apps")
 		return fmt.Errorf("failed to list apps: %w", err)
 	}
 
@@ -147,7 +147,7 @@ func deployCmdFunc(cmd *cobra.Command) error {
 
 		createAppResp, err := appClient.CreateApp(ctx, createAppReq)
 		if err != nil {
-			slog.Debug("failed to create app", "error", err)
+			logRequestID(ctx, err, "create app")
 			return fmt.Errorf("failed to create app: %w", err)
 		}
 
@@ -196,10 +196,9 @@ func deployCmdFunc(cmd *cobra.Command) error {
 		Run: func(logf func(string)) error {
 			tokenReq := connect.NewRequest(&registryv1.GitlabTokenRequest{})
 			tokenReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
-			fmt.Println("what is token req", tokenReq.Header())
 			tokenResp, err := registryClient.GitlabToken(ctx, tokenReq)
 			if err != nil {
-				slog.Debug("failed to fetch registry token", "error", err)
+				logRequestID(ctx, err, "gitlab token request")
 				return fmt.Errorf("failed to fetch registry credentials: %w", err)
 			}
 

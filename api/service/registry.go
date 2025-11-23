@@ -79,13 +79,6 @@ func (s *RegistryServer) GitlabToken(
 	res := connect.NewResponse(&registryv1.GitlabTokenResponse{
 		Username: tokenResp.Username,
 		Token:    tokenResp.Token,
-		// todo: registry url should come from one spot.
-		Registry:  "registry.gitlab.com",
-		Image:     s.registryBaseImage,
-		ExpiresAt: tokenResp.ExpiresAt,
-		Revoked:   tokenResp.Revoked,
-		Expired:   tokenResp.Expired,
-		Scopes:    tokenResp.Scopes,
 	})
 
 	slog.DebugContext(ctx, "generated gitlab deploy token successfully", slog.String("username", tokenResp.Username))

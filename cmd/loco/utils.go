@@ -2,12 +2,14 @@ package loco
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/user"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/nikumar1206/loco/internal/client"
 	"github.com/nikumar1206/loco/internal/config"
 	"github.com/nikumar1206/loco/internal/keychain"
@@ -231,4 +233,21 @@ func getWorkspaceId(cmd *cobra.Command) (int64, error) {
 	}
 
 	return 0, fmt.Errorf("workspace '%s' not found in organization", workspaceName)
+}
+
+// logRequestID extracts and logs the X-Loco-Request-Id only if err is not nil
+func logRequestID(ctx context.Context, err error, msg string) {
+	if err == nil {
+		return
+	}
+
+	const requestIDHeaderName = "X-Loco-Request-Id"
+	var headerValue string
+	var cErr *connect.Error
+
+	if errors.As(err, &cErr) {
+		headerValue = cErr.Meta().Get(requestIDHeaderName)
+	}
+
+	slog.ErrorContext(ctx, msg, requestIDHeaderName, headerValue, "error", err)
 }

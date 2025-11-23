@@ -26,7 +26,10 @@ import (
 
 // MINIMUM_DOCKER_ENGINE_VERSION is the lowest allowed docker version.
 // should be the limited to the last major docker version
-var MINIMUM_DOCKER_ENGINE_VERSION = "28.0.0"
+const (
+	MINIMUM_DOCKER_ENGINE_VERSION = "28.0.0"
+	GITLAB_REGISTRY_URL           = "registry.gitlab.com"
+)
 
 type DockerClient struct {
 	dockerClient *client.Client
@@ -53,7 +56,7 @@ func NewDockerClient(cfg *config.LoadedConfig) (*DockerClient, error) {
 	return &DockerClient{
 		dockerClient: cli,
 		cfg:          cfg,
-		registryUrl:  "registry.gitlab.com",
+		registryUrl:  GITLAB_REGISTRY_URL,
 	}, nil
 }
 

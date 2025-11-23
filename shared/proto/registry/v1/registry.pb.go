@@ -61,12 +61,6 @@ type GitlabTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	Registry      string                 `protobuf:"bytes,3,opt,name=registry,proto3" json:"registry,omitempty"`
-	Image         string                 `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
-	ExpiresAt     string                 `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Revoked       bool                   `protobuf:"varint,6,opt,name=revoked,proto3" json:"revoked,omitempty"`
-	Expired       bool                   `protobuf:"varint,7,opt,name=expired,proto3" json:"expired,omitempty"`
-	Scopes        []string               `protobuf:"bytes,8,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,64 +109,15 @@ func (x *GitlabTokenResponse) GetToken() string {
 	return ""
 }
 
-func (x *GitlabTokenResponse) GetRegistry() string {
-	if x != nil {
-		return x.Registry
-	}
-	return ""
-}
-
-func (x *GitlabTokenResponse) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *GitlabTokenResponse) GetExpiresAt() string {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return ""
-}
-
-func (x *GitlabTokenResponse) GetRevoked() bool {
-	if x != nil {
-		return x.Revoked
-	}
-	return false
-}
-
-func (x *GitlabTokenResponse) GetExpired() bool {
-	if x != nil {
-		return x.Expired
-	}
-	return false
-}
-
-func (x *GitlabTokenResponse) GetScopes() []string {
-	if x != nil {
-		return x.Scopes
-	}
-	return nil
-}
-
 var File_shared_proto_registry_v1_registry_proto protoreflect.FileDescriptor
 
 const file_shared_proto_registry_v1_registry_proto_rawDesc = "" +
 	"\n" +
 	"'shared/proto/registry/v1/registry.proto\x12\x18shared.proto.registry.v1\"\x14\n" +
-	"\x12GitlabTokenRequest\"\xe4\x01\n" +
+	"\x12GitlabTokenRequest\"G\n" +
 	"\x13GitlabTokenResponse\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\x12\x1a\n" +
-	"\bregistry\x18\x03 \x01(\tR\bregistry\x12\x14\n" +
-	"\x05image\x18\x04 \x01(\tR\x05image\x12\x1d\n" +
-	"\n" +
-	"expires_at\x18\x05 \x01(\tR\texpiresAt\x12\x18\n" +
-	"\arevoked\x18\x06 \x01(\bR\arevoked\x12\x18\n" +
-	"\aexpired\x18\a \x01(\bR\aexpired\x12\x16\n" +
-	"\x06scopes\x18\b \x03(\tR\x06scopes2\x7f\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token2\x7f\n" +
 	"\x0fRegistryService\x12l\n" +
 	"\vGitlabToken\x12,.shared.proto.registry.v1.GitlabTokenRequest\x1a-.shared.proto.registry.v1.GitlabTokenResponse\"\x00BAZ?github.com/nikumar1206/loco/shared/proto/registry/v1;registryv1b\x06proto3"
 

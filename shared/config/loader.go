@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -335,6 +336,10 @@ func Load(cfgPath string) (*LoadedConfig, error) {
 
 	file, err := os.Open(cfgPathAbs)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("loco.toml not found. Please run 'loco init' to create the file or run the cmd with --config to specify a custom path")
+		}
+
 		return nil, fmt.Errorf("failed to open loco.toml: %w", err)
 	}
 	defer file.Close()

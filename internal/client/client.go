@@ -3,8 +3,10 @@ package client
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -58,6 +60,24 @@ func (c *Client) WithAuth(ctx context.Context) context.Context {
 	return ctx
 }
 
+// logRequestID extracts and logs the X-Loco-Request-Id only if err is not nil
+// duplicate of function in cmd/loco/utils.go - will refactor
+func logRequestID(ctx context.Context, err error, msg string) {
+	if err == nil {
+		return
+	}
+
+	const requestIDHeaderName = "X-Loco-Request-Id"
+	var headerValue string
+	var cErr *connect.Error
+
+	if errors.As(err, &cErr) {
+		headerValue = cErr.Meta().Get(requestIDHeaderName)
+	}
+
+	slog.ErrorContext(ctx, msg, requestIDHeaderName, headerValue, "error", err)
+}
+
 func (c *Client) CreateUser(ctx context.Context, externalID, email, avatarURL string) (*userv1.User, error) {
 	req := connect.NewRequest(&userv1.CreateUserRequest{
 		ExternalId: externalID,
@@ -68,6 +88,7 @@ func (c *Client) CreateUser(ctx context.Context, externalID, email, avatarURL st
 
 	resp, err := c.User.CreateUser(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to create user")
 		return nil, err
 	}
 
@@ -80,6 +101,7 @@ func (c *Client) GetCurrentUser(ctx context.Context) (*userv1.User, error) {
 
 	resp, err := c.User.GetCurrentUser(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get current user")
 		return nil, err
 	}
 
@@ -92,6 +114,7 @@ func (c *Client) GetCurrentUserOrgs(ctx context.Context) ([]*orgv1.Organization,
 
 	resp, err := c.Org.GetCurrentUserOrgs(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get current user orgs")
 		return nil, err
 	}
 
@@ -104,6 +127,7 @@ func (c *Client) GetUserWorkspaces(ctx context.Context) ([]*workspacev1.Workspac
 
 	resp, err := c.Workspace.GetUserWorkspaces(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get user workspaces")
 		return nil, err
 	}
 
@@ -123,6 +147,7 @@ func (c *Client) CreateApp(ctx context.Context, appType int32, workspaceID int64
 
 	resp, err := c.App.CreateApp(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to create app")
 		return nil, err
 	}
 
@@ -132,6 +157,7 @@ func (c *Client) CreateApp(ctx context.Context, appType int32, workspaceID int64
 func (c *Client) GetApp(ctx context.Context, appID string) (*appv1.App, error) {
 	appIDInt, err := strconv.ParseInt(appID, 10, 64)
 	if err != nil {
+		logRequestID(ctx, err, "failed to parse app ID")
 		return nil, fmt.Errorf("invalid app ID: %w", err)
 	}
 
@@ -140,6 +166,7 @@ func (c *Client) GetApp(ctx context.Context, appID string) (*appv1.App, error) {
 
 	resp, err := c.App.GetApp(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get app")
 		return nil, err
 	}
 
@@ -149,6 +176,7 @@ func (c *Client) GetApp(ctx context.Context, appID string) (*appv1.App, error) {
 func (c *Client) ListApps(ctx context.Context, workspaceID string) ([]*appv1.App, error) {
 	wsID, err := strconv.ParseInt(workspaceID, 10, 64)
 	if err != nil {
+		logRequestID(ctx, err, "failed to parse workspace ID")
 		return nil, fmt.Errorf("invalid workspace ID: %w", err)
 	}
 
@@ -157,6 +185,7 @@ func (c *Client) ListApps(ctx context.Context, workspaceID string) ([]*appv1.App
 
 	resp, err := c.App.ListApps(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to list apps")
 		return nil, err
 	}
 
@@ -181,6 +210,7 @@ func (c *Client) CreateDeployment(ctx context.Context, appID, clusterID, image s
 
 	resp, err := c.Deployment.CreateDeployment(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to create deployment")
 		return nil, err
 	}
 
@@ -197,6 +227,7 @@ func (c *Client) GetDeployment(ctx context.Context, deploymentID string) (*deplo
 
 	resp, err := c.Deployment.GetDeployment(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get deployment")
 		return nil, err
 	}
 
@@ -213,6 +244,7 @@ func (c *Client) StreamDeployment(ctx context.Context, deploymentID string, even
 
 	stream, err := c.Deployment.StreamDeployment(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to stream deployment")
 		return err
 	}
 
@@ -224,6 +256,7 @@ func (c *Client) StreamDeployment(ctx context.Context, deploymentID string, even
 	}
 
 	if err := stream.Err(); err != nil {
+		logRequestID(ctx, err, "failed to stream deployment")
 		return err
 	}
 
@@ -239,6 +272,7 @@ func (c *Client) DeleteApp(ctx context.Context, appID string) error {
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 
 	_, err = c.App.DeleteApp(ctx, req)
+	logRequestID(ctx, err, "failed to delete app")
 	return err
 }
 
@@ -253,6 +287,7 @@ func (c *Client) ScaleApp(ctx context.Context, appID int64, replicas *int32, cpu
 
 	resp, err := c.App.ScaleApp(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to scale app")
 		return nil, err
 	}
 
@@ -268,6 +303,7 @@ func (c *Client) UpdateAppEnv(ctx context.Context, appID int64, env map[string]s
 
 	resp, err := c.App.UpdateAppEnv(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to update app env")
 		return nil, err
 	}
 
@@ -282,6 +318,7 @@ func (c *Client) GetAppStatus(ctx context.Context, appID int64) (*appv1.GetAppSt
 
 	resp, err := c.App.GetAppStatus(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to get app status")
 		return nil, err
 	}
 
@@ -298,6 +335,7 @@ func (c *Client) StreamLogs(ctx context.Context, appID int64, limit *int32, foll
 
 	stream, err := c.App.StreamLogs(ctx, req)
 	if err != nil {
+		logRequestID(ctx, err, "failed to stream logs")
 		return err
 	}
 
@@ -309,6 +347,7 @@ func (c *Client) StreamLogs(ctx context.Context, appID int64, limit *int32, foll
 	}
 
 	if err := stream.Err(); err != nil {
+		logRequestID(ctx, err, "failed to stream logs")
 		return err
 	}
 
