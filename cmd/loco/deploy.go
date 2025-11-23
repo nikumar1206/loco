@@ -91,11 +91,7 @@ func deployCmdFunc(cmd *cobra.Command) error {
 	config.FillSensibleDefaults(loadedCfg.Config)
 
 	cfgValid := lipgloss.NewStyle().
-		Foreground(ui.LocoLightGreen).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(ui.LocoLightGreen).
-		Padding(1, 1).
-		Render("🎉 Validated loco.toml. Beginning deployment!")
+		Render("Validated loco.toml. Beginning deployment!")
 
 	fmt.Println(cfgValid)
 
