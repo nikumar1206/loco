@@ -13,7 +13,7 @@ import (
 type LocoDeploymentContext struct {
 	App        *genDb.App
 	Deployment *genDb.Deployment
-	Config     *config.LocoConfig
+	Config     *config.AppConfig
 }
 
 // DockerRegistryConfig for creating docker pull secrets
@@ -60,9 +60,9 @@ const (
 	DefaultTimeFormat = "2006-01-02T15:04:05-0700"
 )
 
-// UnmarshalConfig unmarshals AppRevision.Config JSON into LocoConfig
-func UnmarshalConfig(configBytes []byte) (*config.LocoConfig, error) {
-	var cfg config.LocoConfig
+// UnmarshalConfig unmarshals AppRevision.Config JSON into AppConfig
+func UnmarshalConfig(configBytes []byte) (*config.AppConfig, error) {
+	var cfg config.AppConfig
 	if err := json.Unmarshal(configBytes, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal app config: %w", err)
 	}

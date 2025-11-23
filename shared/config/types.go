@@ -1,7 +1,7 @@
 package config
 
-// LocoConfig represents the full configuration from loco.toml
-type LocoConfig struct {
+// AppConfig represents the full configuration from loco.toml
+type AppConfig struct {
 	Metadata  Metadata  `json:"metadata" toml:"Metadata"`
 	Resources Resources `json:"resources" toml:"Resources"`
 	Build     Build     `json:"build" toml:"Build"`
@@ -15,6 +15,7 @@ type Metadata struct {
 	ConfigVersion string `json:"configVersion" toml:"ConfigVersion"`
 	Description   string `json:"description,omitempty" toml:"Description"`
 	Name          string `json:"name" toml:"Name"`
+	Type          string `json:"type,omitempty" toml:"Type"`
 }
 
 type Resources struct {

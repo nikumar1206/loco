@@ -2,6 +2,7 @@
 ConfigVersion = "0.1" # Version of the loco.toml config. Required: yes. No default.
 Description = "Optional description about the application" # Short description of the app. Required: no. Default: ""
 Name = "myapp" # Name of the application. Required: yes. No default.
+Type = "SERVICE" # App type (SERVICE, DATABASE, FUNCTION, CACHE, QUEUE, BLOB). Required: no. Default: "SERVICE"
 
 [Resources]
 CPU = "100m" # CPU request for the container. Required: no. Default: "100m"
