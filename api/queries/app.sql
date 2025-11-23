@@ -8,6 +8,9 @@ RETURNING *;
 -- name: GetAppByID :one
 SELECT * FROM apps WHERE id = $1;
 
+-- name: GetAppByNameAndWorkspace :one
+SELECT * FROM apps WHERE workspace_id = $1 AND name = $2;
+
 -- name: ListAppsForWorkspace :many
 SELECT * FROM apps
 WHERE workspace_id = $1

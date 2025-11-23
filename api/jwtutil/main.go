@@ -10,9 +10,9 @@ import (
 )
 
 type LocoJWTClaims struct {
-	UserId           int64  `json:"user_id"`
+	UserId           int64  `json:"userId"`
 	Username         string `json:"username"`
-	ExternalUsername string `json:"external_username"`
+	ExternalUsername string `json:"externalUsername"`
 	jwt.RegisteredClaims
 }
 

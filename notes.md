@@ -378,6 +378,10 @@ Phase I ends Here
 - imageTag is built on the cli; just feels weird.
 
 - 2 tone jwt secrets.
+
   - basically let a jwt be parseable with 2 different secrets. (only one is really correct)
   - but this lets us swap jwt secrets?
   - could probably just do this with a kubernetes job?
+
+- eventually use.go should be able to switch between different scopes.
+- we should have a way to list all the scopes and switch between them.

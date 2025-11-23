@@ -192,6 +192,22 @@ func (c *Client) ListApps(ctx context.Context, workspaceID string) ([]*appv1.App
 	return resp.Msg.Apps, nil
 }
 
+func (c *Client) GetAppByName(ctx context.Context, workspaceID int64, appName string) (*appv1.App, error) {
+	req := connect.NewRequest(&appv1.GetAppByNameRequest{
+		WorkspaceId: workspaceID,
+		Name:        appName,
+	})
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+
+	resp, err := c.App.GetAppByName(ctx, req)
+	if err != nil {
+		logRequestID(ctx, err, "failed to get app by name")
+		return nil, err
+	}
+
+	return resp.Msg.App, nil
+}
+
 func (c *Client) CreateDeployment(ctx context.Context, appID, clusterID, image string, replicas int32, message string, env map[string]string, ports []*deploymentv1.Port, resources *deploymentv1.ResourceSpec) (*deploymentv1.Deployment, error) {
 	appIDInt, err := strconv.ParseInt(appID, 10, 64)
 	if err != nil {

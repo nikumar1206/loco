@@ -48,8 +48,8 @@ func (i *githubAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryF
 		slog.Info("claims validated; populating ctx", slog.Int64("userId", claims.UserId))
 
 		c := context.WithValue(ctx, "user", claims.Username)
-		c = context.WithValue(c, "user_id", claims.UserId)
-		c = context.WithValue(c, "external_user_id", claims.ExternalUsername)
+		c = context.WithValue(c, "userId", claims.UserId)
+		c = context.WithValue(c, "externalUsername", claims.ExternalUsername)
 
 		return next(c, req)
 	})
@@ -96,8 +96,8 @@ func (i *githubAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandl
 		slog.Info("claims validated; populating ctx", slog.Int64("userId", claims.UserId))
 
 		c := context.WithValue(ctx, "user", claims.Username)
-		c = context.WithValue(c, "user_id", claims.UserId)
-		c = context.WithValue(c, "external_user_id", claims.ExternalUsername)
+		c = context.WithValue(c, "userId", claims.UserId)
+		c = context.WithValue(c, "externalUsername", claims.ExternalUsername)
 
 		return next(c, conn)
 	})

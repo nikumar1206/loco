@@ -108,6 +108,34 @@ func (q *Queries) GetAppByID(ctx context.Context, id int64) (App, error) {
 	return i, err
 }
 
+const getAppByNameAndWorkspace = `-- name: GetAppByNameAndWorkspace :one
+SELECT id, workspace_id, cluster_id, name, namespace, type, subdomain, domain, created_by, created_at, updated_at FROM apps WHERE workspace_id = $1 AND name = $2
+`
+
+type GetAppByNameAndWorkspaceParams struct {
+	WorkspaceID int64  `json:"workspaceId"`
+	Name        string `json:"name"`
+}
+
+func (q *Queries) GetAppByNameAndWorkspace(ctx context.Context, arg GetAppByNameAndWorkspaceParams) (App, error) {
+	row := q.db.QueryRow(ctx, getAppByNameAndWorkspace, arg.WorkspaceID, arg.Name)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ClusterID,
+		&i.Name,
+		&i.Namespace,
+		&i.Type,
+		&i.Subdomain,
+		&i.Domain,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getAppWorkspaceID = `-- name: GetAppWorkspaceID :one
 SELECT workspace_id FROM apps WHERE id = $1
 `

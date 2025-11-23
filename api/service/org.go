@@ -39,9 +39,9 @@ func (s *OrgServer) CreateOrg(
 ) (*connect.Response[orgv1.CreateOrgResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 	externalId, ok := ctx.Value("external_user_id").(string)
@@ -103,9 +103,9 @@ func (s *OrgServer) GetOrg(
 ) (*connect.Response[orgv1.GetOrgResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -119,7 +119,7 @@ func (s *OrgServer) GetOrg(
 	}
 
 	if !isMember {
-		slog.WarnContext(ctx, "user is not a member of org", "org_id", r.Id, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of org", "orgId", r.Id, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgMember)
 	}
 
@@ -145,9 +145,9 @@ func (s *OrgServer) GetCurrentUserOrgs(
 	ctx context.Context,
 	req *connect.Request[orgv1.GetCurrentUserOrgsRequest],
 ) (*connect.Response[orgv1.GetCurrentUserOrgsResponse], error) {
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -241,9 +241,9 @@ func (s *OrgServer) UpdateOrg(
 ) (*connect.Response[orgv1.UpdateOrgResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -252,12 +252,12 @@ func (s *OrgServer) UpdateOrg(
 		UserID:         userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of org", "org_id", r.Id, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of org", "orgId", r.Id, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgMember)
 	}
 
 	if role != genDb.OrganizationRoleAdmin {
-		slog.WarnContext(ctx, "user is not an admin of org", "org_id", r.Id, "user_id", userID, "role", string(role))
+		slog.WarnContext(ctx, "user is not an admin of org", "orgId", r.Id, "userId", userID, "role", string(role))
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgAdmin)
 	}
 
@@ -302,9 +302,9 @@ func (s *OrgServer) DeleteOrg(
 ) (*connect.Response[orgv1.DeleteOrgResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -313,12 +313,12 @@ func (s *OrgServer) DeleteOrg(
 		UserID:         userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of org", "org_id", r.Id, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of org", "orgId", r.Id, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgMember)
 	}
 
 	if role != genDb.OrganizationRoleAdmin {
-		slog.WarnContext(ctx, "user is not an admin of org", "org_id", r.Id, "user_id", userID, "role", string(role))
+		slog.WarnContext(ctx, "user is not an admin of org", "orgId", r.Id, "userId", userID, "role", string(role))
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgAdmin)
 	}
 
@@ -331,7 +331,7 @@ func (s *OrgServer) DeleteOrg(
 	}
 
 	if hasApps {
-		slog.WarnContext(ctx, "org has workspaces with apps", "org_id", r.Id)
+		slog.WarnContext(ctx, "org has workspaces with apps", "orgId", r.Id)
 		return nil, connect.NewError(connect.CodeFailedPrecondition, ErrOrgHasWorkspacesWithApps)
 	}
 
@@ -353,9 +353,9 @@ func (s *OrgServer) ListWorkspaces(
 ) (*connect.Response[orgv1.ListWorkspacesResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -369,7 +369,7 @@ func (s *OrgServer) ListWorkspaces(
 	}
 
 	if !isMember {
-		slog.WarnContext(ctx, "user is not a member of org", "org_id", r.OrgId, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of org", "orgId", r.OrgId, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotOrgMember)
 	}
 

@@ -83,7 +83,7 @@ func (s *OAuthServer) createOrGetUser(ctx context.Context, githubUser *GithubUse
 		return 0, false, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	slog.InfoContext(ctx, "new user created", "user_id", newUser.ID, "github_id", githubUser.ID)
+	slog.InfoContext(ctx, "new user created", "userId", newUser.ID, "github_id", githubUser.ID)
 	return newUser.ID, true, nil
 }
 
@@ -126,7 +126,7 @@ func (s *OAuthServer) ExchangeGithubToken(
 		Username:  githubUser.Login,
 	})
 
-	slog.InfoContext(ctx, "exchanged github token for loco token", "user_id", userID)
+	slog.InfoContext(ctx, "exchanged github token for loco token", "userId", userID)
 	return res, nil
 }
 

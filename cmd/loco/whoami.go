@@ -50,8 +50,11 @@ var whoamiCmd = &cobra.Command{
 		cfg, err := config.Load()
 		var currentOrg, currentWorkspace string
 		if err == nil {
-			currentOrg = cfg.CurrentOrg
-			currentWorkspace = cfg.CurrentWorkspace
+			scope, err := cfg.GetScope()
+			if err == nil {
+				currentOrg = scope.Organization.Name
+				currentWorkspace = scope.Workspace.Name
+			}
 		}
 
 		renderCard(usr, currentOrg, currentWorkspace)

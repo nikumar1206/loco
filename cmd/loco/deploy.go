@@ -92,15 +92,19 @@ func deployCmdFunc(cmd *cobra.Command) error {
 
 	cfgValid := lipgloss.NewStyle().
 		Foreground(ui.LocoLightGreen).
-		Render("\n🎉 Validated loco.toml. Beginning deployment!")
-	fmt.Print(cfgValid)
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(ui.LocoLightGreen).
+		Padding(1, 1).
+		Render("🎉 Validated loco.toml. Beginning deployment!")
 
-	dockerCli, err := docker.NewDockerClient(loadedCfg)
+	fmt.Println(cfgValid)
+
+	dockerClient, err := docker.NewClient(loadedCfg)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrDockerClient, err)
 	}
 	defer func() {
-		if closeErr := dockerCli.Close(); closeErr != nil {
+		if closeErr := dockerClient.Close(); closeErr != nil {
 			slog.Debug("failed to close docker client", "error", closeErr)
 		}
 	}()
@@ -109,33 +113,28 @@ func deployCmdFunc(cmd *cobra.Command) error {
 
 	httpClient := shared.NewHTTPClient()
 	appClient := appv1connect.NewAppServiceClient(httpClient, host)
-
 	registryClient := registryv1connect.NewRegistryServiceClient(httpClient, host)
 
 	var appID int64
 
-	listAppsReq := connect.NewRequest(&appv1.ListAppsRequest{
+	getAppByNameReq := connect.NewRequest(&appv1.GetAppByNameRequest{
 		WorkspaceId: workspaceID,
+		Name:        loadedCfg.Config.Metadata.Name,
 	})
-	listAppsReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+	getAppByNameReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
 
-	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
+	getAppByNameResp, err := appClient.GetAppByName(ctx, getAppByNameReq)
 	if err != nil {
-		logRequestID(ctx, err, "list apps")
-		return fmt.Errorf("failed to list apps: %w", err)
-	}
-
-	appExists := false
-	for _, app := range listAppsResp.Msg.Apps {
-		if app.Name == loadedCfg.Config.Metadata.Name {
-			appID = app.Id
-			appExists = true
-			slog.Debug("found existing app", "app_id", appID, "name", app.Name)
-			break
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			logRequestID(ctx, err, "get app by name")
+			return fmt.Errorf("failed to get app '%s': %w", loadedCfg.Config.Metadata.Name, err)
 		}
+	} else {
+		appID = getAppByNameResp.Msg.App.Id
+		slog.Debug("found existing app", "app_id", appID, "name", getAppByNameResp.Msg.App.Name)
 	}
 
-	if !appExists {
+	if appID == 0 {
 		createAppReq := connect.NewRequest(&appv1.CreateAppRequest{
 			WorkspaceId: workspaceID,
 			Name:        loadedCfg.Config.Metadata.Name,
@@ -155,15 +154,16 @@ func deployCmdFunc(cmd *cobra.Command) error {
 		slog.Debug("created app", "app_id", appID)
 	}
 
-	imageBase := fmt.Sprintf("registry.gitlab.com/locomotive-group/org-%d-wks-%d-app-%d", orgID, workspaceID, appID)
-	imageName := dockerCli.GenerateImageTag(imageBase, imageID)
-	dockerCli.ImageName = imageName
-	slog.Debug("generated image name for build", "image", dockerCli.ImageName)
+	imageBase := "registry.gitlab.com/locomotive-group/loco-ecr"
+	imageName := dockerClient.GenerateImageTag(imageBase, orgID, workspaceID, appID)
+
+	dockerClient.ImageName = imageName
+	slog.Debug("generated image name for build", "imageBase", imageBase, "imageName", imageName)
 
 	buildStep := ui.Step{
 		Title: "Build Docker image",
 		Run: func(logf func(string)) error {
-			if buildErr := dockerCli.BuildImage(ctx, logf); buildErr != nil {
+			if buildErr := dockerClient.BuildImage(ctx, logf); buildErr != nil {
 				return fmt.Errorf("%w: %w", ErrDockerBuild, buildErr)
 			}
 			return nil
@@ -173,10 +173,10 @@ func deployCmdFunc(cmd *cobra.Command) error {
 	validateStep := ui.Step{
 		Title: "Validate and Tag Docker image",
 		Run: func(logf func(string)) error {
-			if validateErr := dockerCli.ValidateImage(ctx, imageID, logf); validateErr != nil {
+			if validateErr := dockerClient.ValidateImage(ctx, imageID, logf); validateErr != nil {
 				return fmt.Errorf("%w: %w", ErrDockerValidate, validateErr)
 			}
-			if tagErr := dockerCli.ImageTag(ctx, imageID); tagErr != nil {
+			if tagErr := dockerClient.ImageTag(ctx, imageID); tagErr != nil {
 				return fmt.Errorf("failed to tag image: %w", tagErr)
 			}
 			return nil
@@ -203,12 +203,12 @@ func deployCmdFunc(cmd *cobra.Command) error {
 			}
 
 			if imageID != "" {
-				if tagErr := dockerCli.ImageTag(ctx, imageID); tagErr != nil {
+				if tagErr := dockerClient.ImageTag(ctx, imageID); tagErr != nil {
 					return fmt.Errorf("failed to tag image: %w", tagErr)
 				}
 			}
 
-			if pushErr := dockerCli.PushImage(ctx, logf, tokenResp.Msg.GetUsername(), tokenResp.Msg.GetToken()); pushErr != nil {
+			if pushErr := dockerClient.PushImage(ctx, logf, tokenResp.Msg.GetUsername(), tokenResp.Msg.GetToken()); pushErr != nil {
 				return fmt.Errorf("%w: %w", ErrDockerPush, pushErr)
 			}
 			return nil
@@ -218,7 +218,7 @@ func deployCmdFunc(cmd *cobra.Command) error {
 	steps = append(steps, ui.Step{
 		Title: "Create revision and deployment",
 		Run: func(logf func(string)) error {
-			return deployApp(ctx, apiClient, appID, dockerCli.ImageName, loadedCfg.Config, locoToken.Token, logf, wait)
+			return deployApp(ctx, apiClient, appID, dockerClient.ImageName, loadedCfg.Config, locoToken.Token, logf, wait)
 		},
 	})
 

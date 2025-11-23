@@ -63,32 +63,22 @@ func destroyCmdFunc(cmd *cobra.Command) error {
 
 	appClient := appv1connect.NewAppServiceClient(shared.NewHTTPClient(), host)
 
-	// List apps to find the one matching the name
-	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+	slog.Debug("fetching app by name", "workspaceId", workspaceID, "app_name", appName)
 
-	listAppsReq := connect.NewRequest(&appv1.ListAppsRequest{
+	getAppByNameReq := connect.NewRequest(&appv1.GetAppByNameRequest{
 		WorkspaceId: workspaceID,
+		Name:        appName,
 	})
-	listAppsReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
+	getAppByNameReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", locoToken.Token))
 
-	listAppsResp, err := appClient.ListApps(ctx, listAppsReq)
+	getAppByNameResp, err := appClient.GetAppByName(ctx, getAppByNameReq)
 	if err != nil {
-		slog.Debug("failed to list apps", "error", err)
-		return fmt.Errorf("failed to list apps: %w", err)
+		slog.Debug("failed to get app by name", "error", err)
+		return fmt.Errorf("failed to get app '%s': %w", appName, err)
 	}
 
-	var appID int64
-	for _, app := range listAppsResp.Msg.Apps {
-		if app.Name == appName {
-			appID = app.Id
-			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
-			break
-		}
-	}
-
-	if appID == 0 {
-		return fmt.Errorf("app '%s' not found in workspace", appName)
-	}
+	appID := getAppByNameResp.Msg.App.Id
+	slog.Debug("found app by name", "app_name", appName, "app_id", appID)
 
 	if !yes {
 		confirmed, err := ui.AskYesNo(fmt.Sprintf("Are you sure you want to destroy the app '%s'?", appName))

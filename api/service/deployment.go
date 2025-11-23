@@ -52,9 +52,9 @@ func (s *DeploymentServer) CreateDeployment(
 ) (*connect.Response[deploymentv1.CreateDeploymentResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 	// tood: move all validations into some sort of hook.
@@ -96,7 +96,7 @@ func (s *DeploymentServer) CreateDeployment(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", workspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", workspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -176,9 +176,9 @@ func (s *DeploymentServer) GetDeployment(
 ) (*connect.Response[deploymentv1.GetDeploymentResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -204,7 +204,7 @@ func (s *DeploymentServer) GetDeployment(
 	}
 
 	if !isMember {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -254,9 +254,9 @@ func (s *DeploymentServer) ListDeployments(
 ) (*connect.Response[deploymentv1.ListDeploymentsResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -276,7 +276,7 @@ func (s *DeploymentServer) ListDeployments(
 	}
 
 	if !isMember {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -354,9 +354,9 @@ func (s *DeploymentServer) StreamDeployment(
 ) error {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -382,7 +382,7 @@ func (s *DeploymentServer) StreamDeployment(
 	}
 
 	if !isMember {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 

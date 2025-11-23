@@ -37,6 +37,8 @@ const (
 	AppServiceCreateAppProcedure = "/loco.app.v1.AppService/CreateApp"
 	// AppServiceGetAppProcedure is the fully-qualified name of the AppService's GetApp RPC.
 	AppServiceGetAppProcedure = "/loco.app.v1.AppService/GetApp"
+	// AppServiceGetAppByNameProcedure is the fully-qualified name of the AppService's GetAppByName RPC.
+	AppServiceGetAppByNameProcedure = "/loco.app.v1.AppService/GetAppByName"
 	// AppServiceListAppsProcedure is the fully-qualified name of the AppService's ListApps RPC.
 	AppServiceListAppsProcedure = "/loco.app.v1.AppService/ListApps"
 	// AppServiceUpdateAppProcedure is the fully-qualified name of the AppService's UpdateApp RPC.
@@ -63,6 +65,7 @@ type AppServiceClient interface {
 	// App CRUD
 	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
 	GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error)
+	GetAppByName(context.Context, *connect.Request[v1.GetAppByNameRequest]) (*connect.Response[v1.GetAppByNameResponse], error)
 	ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error)
 	UpdateApp(context.Context, *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error)
 	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
@@ -98,6 +101,12 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+AppServiceGetAppProcedure,
 			connect.WithSchema(appServiceMethods.ByName("GetApp")),
+			connect.WithClientOptions(opts...),
+		),
+		getAppByName: connect.NewClient[v1.GetAppByNameRequest, v1.GetAppByNameResponse](
+			httpClient,
+			baseURL+AppServiceGetAppByNameProcedure,
+			connect.WithSchema(appServiceMethods.ByName("GetAppByName")),
 			connect.WithClientOptions(opts...),
 		),
 		listApps: connect.NewClient[v1.ListAppsRequest, v1.ListAppsResponse](
@@ -161,6 +170,7 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 type appServiceClient struct {
 	createApp                  *connect.Client[v1.CreateAppRequest, v1.CreateAppResponse]
 	getApp                     *connect.Client[v1.GetAppRequest, v1.GetAppResponse]
+	getAppByName               *connect.Client[v1.GetAppByNameRequest, v1.GetAppByNameResponse]
 	listApps                   *connect.Client[v1.ListAppsRequest, v1.ListAppsResponse]
 	updateApp                  *connect.Client[v1.UpdateAppRequest, v1.UpdateAppResponse]
 	deleteApp                  *connect.Client[v1.DeleteAppRequest, v1.DeleteAppResponse]
@@ -180,6 +190,11 @@ func (c *appServiceClient) CreateApp(ctx context.Context, req *connect.Request[v
 // GetApp calls loco.app.v1.AppService.GetApp.
 func (c *appServiceClient) GetApp(ctx context.Context, req *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error) {
 	return c.getApp.CallUnary(ctx, req)
+}
+
+// GetAppByName calls loco.app.v1.AppService.GetAppByName.
+func (c *appServiceClient) GetAppByName(ctx context.Context, req *connect.Request[v1.GetAppByNameRequest]) (*connect.Response[v1.GetAppByNameResponse], error) {
+	return c.getAppByName.CallUnary(ctx, req)
 }
 
 // ListApps calls loco.app.v1.AppService.ListApps.
@@ -232,6 +247,7 @@ type AppServiceHandler interface {
 	// App CRUD
 	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
 	GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error)
+	GetAppByName(context.Context, *connect.Request[v1.GetAppByNameRequest]) (*connect.Response[v1.GetAppByNameResponse], error)
 	ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error)
 	UpdateApp(context.Context, *connect.Request[v1.UpdateAppRequest]) (*connect.Response[v1.UpdateAppResponse], error)
 	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
@@ -263,6 +279,12 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		AppServiceGetAppProcedure,
 		svc.GetApp,
 		connect.WithSchema(appServiceMethods.ByName("GetApp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	appServiceGetAppByNameHandler := connect.NewUnaryHandler(
+		AppServiceGetAppByNameProcedure,
+		svc.GetAppByName,
+		connect.WithSchema(appServiceMethods.ByName("GetAppByName")),
 		connect.WithHandlerOptions(opts...),
 	)
 	appServiceListAppsHandler := connect.NewUnaryHandler(
@@ -325,6 +347,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 			appServiceCreateAppHandler.ServeHTTP(w, r)
 		case AppServiceGetAppProcedure:
 			appServiceGetAppHandler.ServeHTTP(w, r)
+		case AppServiceGetAppByNameProcedure:
+			appServiceGetAppByNameHandler.ServeHTTP(w, r)
 		case AppServiceListAppsProcedure:
 			appServiceListAppsHandler.ServeHTTP(w, r)
 		case AppServiceUpdateAppProcedure:
@@ -358,6 +382,10 @@ func (UnimplementedAppServiceHandler) CreateApp(context.Context, *connect.Reques
 
 func (UnimplementedAppServiceHandler) GetApp(context.Context, *connect.Request[v1.GetAppRequest]) (*connect.Response[v1.GetAppResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetApp is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) GetAppByName(context.Context, *connect.Request[v1.GetAppByNameRequest]) (*connect.Response[v1.GetAppByNameResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("loco.app.v1.AppService.GetAppByName is not implemented"))
 }
 
 func (UnimplementedAppServiceHandler) ListApps(context.Context, *connect.Request[v1.ListAppsRequest]) (*connect.Response[v1.ListAppsResponse], error) {

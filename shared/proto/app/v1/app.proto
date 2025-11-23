@@ -10,12 +10,17 @@ option go_package = "github.com/nikumar1206/loco/shared/proto/app/v1;appv1";
 enum AppType {
   SERVICE = 0;
   DATABASE = 1;
+  FUNCTION = 2;
+  CACHE = 3;
+  QUEUE = 4;
+  BLOB = 5;
 }
 
 service AppService {
   // App CRUD
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse);
   rpc GetApp(GetAppRequest) returns (GetAppResponse);
+  rpc GetAppByName(GetAppByNameRequest) returns (GetAppByNameResponse);
   rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
   rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse);
@@ -61,13 +66,20 @@ message CreateAppResponse {
   App app = 1;
 }
 
-// todo: need a get app by name but also needs a workspace name since that combo should be unique.
-
 message GetAppRequest {
   int64 id = 1;
 }
 
 message GetAppResponse {
+  App app = 1;
+}
+
+message GetAppByNameRequest {
+  int64 workspace_id = 1;
+  string name = 2;
+}
+
+message GetAppByNameResponse {
   App app = 1;
 }
 

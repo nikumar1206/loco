@@ -96,15 +96,16 @@ func getOrg(cmd *cobra.Command) (string, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Debug("failed to load default config", "error", err)
-		return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG")
+		return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG environment variable")
 	}
 
-	if cfg.CurrentOrg != "" {
+	scope, err := cfg.GetScope()
+	if err == nil {
 		slog.Debug("using org from default config")
-		return cfg.CurrentOrg, nil
+		return scope.Organization.Name, nil
 	}
 
-	return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG")
+	return "", fmt.Errorf("org not specified and no default found. Use -o/--org flag or set LOCO__ORG environment variable")
 }
 
 func getWorkspace(cmd *cobra.Command) (string, error) {
@@ -126,15 +127,16 @@ func getWorkspace(cmd *cobra.Command) (string, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Debug("failed to load default config", "error", err)
-		return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE")
+		return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE environment variable")
 	}
 
-	if cfg.CurrentWorkspace != "" {
+	scope, err := cfg.GetScope()
+	if err == nil {
 		slog.Debug("using workspace from default config")
-		return cfg.CurrentWorkspace, nil
+		return scope.Workspace.Name, nil
 	}
 
-	return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE")
+	return "", fmt.Errorf("workspace not specified and no default found. Use -w/--workspace flag or set LOCO__WORKSPACE environment variable")
 }
 
 // todo: lots wrong here, we can potentially pass down clients, not-reload config a thousand times.
@@ -151,13 +153,9 @@ func getOrgId(cmd *cobra.Command) (int64, error) {
 		return 0, err
 	}
 
-	if orgName == cfg.CurrentOrg {
-		return cfg.CurrentOrgID, nil
-	}
-
-	if cfg.CurrentOrgID != 0 {
-		slog.Debug("using org id from config", "org_id", cfg.CurrentOrgID)
-		return cfg.CurrentOrgID, nil
+	scope, err := cfg.GetScope()
+	if err == nil && orgName == scope.Organization.Name {
+		return scope.Organization.ID, nil
 	}
 
 	host, err := getHost(cmd)
@@ -179,7 +177,7 @@ func getOrgId(cmd *cobra.Command) (int64, error) {
 
 	for _, org := range orgs {
 		if org.Name == orgName {
-			slog.Debug("found org id from api", "org_id", org.Id)
+			slog.Debug("found org id from api", "orgId", org.Id)
 			return org.Id, nil
 		}
 	}
@@ -198,9 +196,10 @@ func getWorkspaceId(cmd *cobra.Command) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// if matches local state, just return it.
-	if workspaceName == cfg.CurrentWorkspace {
-		return cfg.CurrentWorkspaceID, nil
+
+	scope, err := cfg.GetScope()
+	if err == nil && workspaceName == scope.Workspace.Name {
+		return scope.Workspace.ID, nil
 	}
 
 	orgId, err := getOrgId(cmd)
@@ -227,7 +226,7 @@ func getWorkspaceId(cmd *cobra.Command) (int64, error) {
 
 	for _, ws := range workspaces {
 		if ws.Name == workspaceName && ws.OrgId == orgId {
-			slog.Debug("found workspace id from api", "workspace_id", ws.Id)
+			slog.Debug("found workspace id from api", "workspaceId", ws.Id)
 			return ws.Id, nil
 		}
 	}

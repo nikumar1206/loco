@@ -93,12 +93,10 @@ func useCmdFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("workspace '%s' not found in organization '%s'", workspaceName, orgName)
 	}
 
-	cfg.CurrentOrg = orgName
-	cfg.CurrentOrgID = orgID
-	cfg.CurrentWorkspace = workspaceName
-	cfg.CurrentWorkspaceID = workspaceID
-
-	if err := cfg.Save(); err != nil {
+	if err := cfg.SetDefaultScope(
+		config.SimpleOrg{ID: orgID, Name: orgName},
+		config.SimpleWorkspace{ID: workspaceID, Name: workspaceName},
+	); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 

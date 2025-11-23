@@ -179,20 +179,23 @@ var loginCmd = &cobra.Command{
 			slog.Debug("failed to load existing config", "error", err)
 		}
 
-		// use existing values if they exist.
-		if existingCfg != nil && existingCfg.CurrentOrg != "" && existingCfg.CurrentWorkspace != "" && existingCfg.CurrentOrgID != 0 && existingCfg.CurrentWorkspaceID != 0 {
-			keychain.SetLocoToken(user.Name, keychain.UserToken{
-				Token: locoResp.Msg.LocoToken,
-				// sub 10 mins
-				ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
-			})
+		// use existing scope if it exists.
+		if existingCfg != nil {
+			scope, err := existingCfg.GetScope()
+			if err == nil {
+				keychain.SetLocoToken(user.Name, keychain.UserToken{
+					Token: locoResp.Msg.LocoToken,
+					// sub 10 mins
+					ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
+				})
 
-			checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
-			title := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Logged in!")
-			orgLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Organization: %s", existingCfg.CurrentOrg))
-			wsLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Workspace: %s", existingCfg.CurrentWorkspace))
-			fmt.Printf("%s %s\n%s\n%s\n", checkmark, title, orgLine, wsLine)
-			return nil
+				checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
+				title := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Logged in!")
+				orgLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Organization: %s", scope.Organization.Name))
+				wsLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Workspace: %s", scope.Workspace.Name))
+				fmt.Printf("%s %s\n%s\n%s\n", checkmark, title, orgLine, wsLine)
+				return nil
+			}
 		}
 
 		var selectedOrg *orgv1.Organization
@@ -266,13 +269,11 @@ var loginCmd = &cobra.Command{
 				return fmt.Errorf("workspace creation returned empty response")
 			}
 
-			cfg := config.CLIState{
-				CurrentOrg:         createdOrg.Name,
-				CurrentOrgID:       createdOrg.Id,
-				CurrentWorkspace:   createdWS.Name,
-				CurrentWorkspaceID: createdWS.Id,
-			}
-			if err := cfg.Save(); err != nil {
+			cfg := config.NewSessionConfig()
+			if err := cfg.SetDefaultScope(
+				config.SimpleOrg{ID: createdOrg.Id, Name: createdOrg.Name},
+				config.SimpleWorkspace{ID: createdWS.Id, Name: createdWS.Name},
+			); err != nil {
 				slog.Error(err.Error())
 				return err
 			}
@@ -302,7 +303,7 @@ var loginCmd = &cobra.Command{
 
 			wsResp, err := orgClient.ListWorkspaces(context.Background(), wsReq)
 			if err != nil {
-				slog.Debug("failed to get workspaces for org", "org_id", selectedOrg.Id, "error", err)
+				slog.Debug("failed to get workspaces for org", "orgId", selectedOrg.Id, "error", err)
 				return fmt.Errorf("failed to list workspaces: %w", err)
 			}
 
@@ -322,7 +323,7 @@ var loginCmd = &cobra.Command{
 
 			wsResp, err := orgClient.ListWorkspaces(context.Background(), wsReq)
 			if err != nil {
-				slog.Debug("failed to get workspaces for org", "org_id", selectedOrg.Id, "error", err)
+				slog.Debug("failed to get workspaces for org", "orgId", selectedOrg.Id, "error", err)
 				return fmt.Errorf("failed to list workspaces: %w", err)
 			}
 
@@ -334,13 +335,11 @@ var loginCmd = &cobra.Command{
 			selectedWorkspace = workspaces[0]
 		}
 
-		cfg := config.CLIState{
-			CurrentOrg:         selectedOrg.Name,
-			CurrentOrgID:       selectedOrg.Id,
-			CurrentWorkspace:   selectedWorkspace.Name,
-			CurrentWorkspaceID: selectedWorkspace.Id,
-		}
-		if err := cfg.Save(); err != nil {
+		cfg := config.NewSessionConfig()
+		if err := cfg.SetDefaultScope(
+			config.SimpleOrg{ID: selectedOrg.Id, Name: selectedOrg.Name},
+			config.SimpleWorkspace{ID: selectedWorkspace.Id, Name: selectedWorkspace.Name},
+		); err != nil {
 			slog.Error(err.Error())
 			return err
 		}
@@ -351,9 +350,11 @@ var loginCmd = &cobra.Command{
 			ExpiresAt: time.Now().Add(time.Duration(locoResp.Msg.ExpiresIn)*time.Second - (10 * time.Minute)),
 		})
 
-		checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✓")
-		message := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Authentication successful!")
-		fmt.Printf("%s %s\n", checkmark, message)
+		checkmark := lipgloss.NewStyle().Foreground(ui.LocoGreen).Render("✔")
+		title := lipgloss.NewStyle().Bold(true).Foreground(ui.LocoOrange).Render("Authentication successful!")
+		orgLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Organization: %s", selectedOrg.Name))
+		wsLine := lipgloss.NewStyle().Foreground(ui.LocoLightGray).Render(fmt.Sprintf("  Workspace: %s", selectedWorkspace.Name))
+		fmt.Printf("%s %s\n%s\n%s\n", checkmark, title, orgLine, wsLine)
 
 		return nil
 	},

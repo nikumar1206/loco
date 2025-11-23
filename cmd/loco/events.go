@@ -73,26 +73,16 @@ func eventsCmdFunc(cmd *cobra.Command) error {
 
 	apiClient := client.NewClient(host, locoToken.Token)
 
-	slog.Debug("listing apps to find app by name", "workspace_id", workspaceID, "app_name", appName)
+	slog.Debug("fetching app by name", "workspaceId", workspaceID, "app_name", appName)
 
-	appList, err := apiClient.ListApps(ctx, fmt.Sprintf("%d", workspaceID))
+	app, err := apiClient.GetAppByName(ctx, workspaceID, appName)
 	if err != nil {
-		slog.Debug("failed to list apps", "error", err)
-		return fmt.Errorf("failed to list apps: %w", err)
+		slog.Debug("failed to get app by name", "error", err)
+		return fmt.Errorf("failed to get app '%s': %w", appName, err)
 	}
 
-	var appID int64
-	for _, app := range appList {
-		if app.Name == appName {
-			appID = app.Id
-			slog.Debug("found app by name", "app_name", appName, "app_id", appID)
-			break
-		}
-	}
-
-	if appID == 0 {
-		return fmt.Errorf("app '%s' not found in workspace", appName)
-	}
+	appID := app.Id
+	slog.Debug("found app by name", "app_name", appName, "app_id", appID)
 
 	slog.Debug("fetching events for app", "app_id", appID, "app_name", appName)
 

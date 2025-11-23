@@ -54,9 +54,9 @@ func (s *AppServer) CreateApp(
 ) (*connect.Response[appv1.CreateAppResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -66,12 +66,12 @@ func (s *AppServer) CreateApp(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", r.WorkspaceId, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", r.WorkspaceId, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
 	if role != "admin" && role != "deploy" {
-		slog.WarnContext(ctx, "user does not have permission to create app", "workspace_id", r.WorkspaceId, "user_id", userID, "role", role)
+		slog.WarnContext(ctx, "user does not have permission to create app", "workspaceId", r.WorkspaceId, "userId", userID, "role", role)
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or have deploy role"))
 	}
 
@@ -136,9 +136,9 @@ func (s *AppServer) GetApp(
 	r := req.Msg
 
 	// todo: role checks should actually be done first.
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -153,11 +153,47 @@ func (s *AppServer) GetApp(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
 	return connect.NewResponse(&appv1.GetAppResponse{
+		App: dbAppToProto(app),
+	}), nil
+}
+
+// GetAppByName retrieves an app by workspace and name
+func (s *AppServer) GetAppByName(
+	ctx context.Context,
+	req *connect.Request[appv1.GetAppByNameRequest],
+) (*connect.Response[appv1.GetAppByNameResponse], error) {
+	r := req.Msg
+
+	userID, ok := ctx.Value("userId").(int64)
+	if !ok {
+		slog.ErrorContext(ctx, "userId not found in context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
+	}
+
+	_, err := s.queries.GetWorkspaceMember(ctx, genDb.GetWorkspaceMemberParams{
+		WorkspaceID: r.WorkspaceId,
+		UserID:      userID,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", r.WorkspaceId, "userId", userID)
+		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
+	}
+
+	app, err := s.queries.GetAppByNameAndWorkspace(ctx, genDb.GetAppByNameAndWorkspaceParams{
+		WorkspaceID: r.WorkspaceId,
+		Name:        r.Name,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "app not found", "workspaceId", r.WorkspaceId, "app_name", r.Name)
+		return nil, connect.NewError(connect.CodeNotFound, ErrAppNotFound)
+	}
+
+	return connect.NewResponse(&appv1.GetAppByNameResponse{
 		App: dbAppToProto(app),
 	}), nil
 }
@@ -169,9 +205,9 @@ func (s *AppServer) ListApps(
 ) (*connect.Response[appv1.ListAppsResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -180,7 +216,7 @@ func (s *AppServer) ListApps(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", r.WorkspaceId, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", r.WorkspaceId, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -207,9 +243,9 @@ func (s *AppServer) UpdateApp(
 ) (*connect.Response[appv1.UpdateAppResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -226,12 +262,12 @@ func (s *AppServer) UpdateApp(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", fmt.Sprintf("%d", workspaceID), "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
 	if role != genDb.WorkspaceRoleAdmin && role != genDb.WorkspaceRoleDeploy {
-		slog.WarnContext(ctx, "user does not have permission to update app", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID, "role", string(role))
+		slog.WarnContext(ctx, "user does not have permission to update app", "workspaceId", fmt.Sprintf("%d", workspaceID), "userId", userID, "role", string(role))
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin or deploy role to update app"))
 	}
 
@@ -269,9 +305,9 @@ func (s *AppServer) DeleteApp(
 ) (*connect.Response[appv1.DeleteAppResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -288,12 +324,12 @@ func (s *AppServer) DeleteApp(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", fmt.Sprintf("%d", workspaceID), "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
 	if role != genDb.WorkspaceRoleAdmin {
-		slog.WarnContext(ctx, "user is not an admin of workspace", "workspace_id", fmt.Sprintf("%d", workspaceID), "user_id", userID, "role", string(role))
+		slog.WarnContext(ctx, "user is not an admin of workspace", "workspaceId", fmt.Sprintf("%d", workspaceID), "userId", userID, "role", string(role))
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("must be workspace admin to delete app"))
 	}
 
@@ -336,9 +372,9 @@ func (s *AppServer) GetAppStatus(
 ) (*connect.Response[appv1.GetAppStatusResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -353,7 +389,7 @@ func (s *AppServer) GetAppStatus(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -397,9 +433,9 @@ func (s *AppServer) StreamLogs(
 ) error {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -414,7 +450,7 @@ func (s *AppServer) StreamLogs(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -487,9 +523,9 @@ func (s *AppServer) GetEvents(
 ) (*connect.Response[appv1.GetEventsResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -504,7 +540,7 @@ func (s *AppServer) GetEvents(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspace_id", app.WorkspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of app's workspace", "workspaceId", app.WorkspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -562,9 +598,9 @@ func (s *AppServer) ScaleApp(
 ) (*connect.Response[appv1.ScaleAppResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -588,7 +624,7 @@ func (s *AppServer) ScaleApp(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", workspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", workspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -612,18 +648,18 @@ func (s *AppServer) ScaleApp(
 
 	currentDeployment := deploymentList[0]
 
-	var config map[string]interface{}
+	var config map[string]any
 	if len(currentDeployment.Config) > 0 {
 		if err := json.Unmarshal(currentDeployment.Config, &config); err != nil {
 			slog.ErrorContext(ctx, "failed to parse deployment config", "error", err)
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
 		}
 	} else {
-		config = make(map[string]interface{})
+		config = make(map[string]any)
 	}
 
 	var env map[string]string
-	if envData, ok := config["env"].(map[string]interface{}); ok {
+	if envData, ok := config["env"].(map[string]any); ok {
 		env = make(map[string]string)
 		for k, v := range envData {
 			env[k] = v.(string)
@@ -633,7 +669,7 @@ func (s *AppServer) ScaleApp(
 	}
 
 	var cpu, memory *string
-	if resourceData, ok := config["resources"].(map[string]interface{}); ok {
+	if resourceData, ok := config["resources"].(map[string]any); ok {
 		if cpuVal, ok := resourceData["cpu"].(string); ok && cpuVal != "" {
 			cpu = &cpuVal
 		}
@@ -642,8 +678,8 @@ func (s *AppServer) ScaleApp(
 		}
 	}
 
-	var ports []interface{}
-	if portData, ok := config["ports"].([]interface{}); ok {
+	var ports []any
+	if portData, ok := config["ports"].([]any); ok {
 		ports = portData
 	}
 
@@ -660,7 +696,7 @@ func (s *AppServer) ScaleApp(
 		memory = r.Memory
 	}
 
-	resources := map[string]interface{}{}
+	resources := map[string]any{}
 	if cpu != nil {
 		resources["cpu"] = *cpu
 	}
@@ -668,7 +704,7 @@ func (s *AppServer) ScaleApp(
 		resources["memory"] = *memory
 	}
 
-	updatedConfig := map[string]interface{}{
+	updatedConfig := map[string]any{
 		"env":       env,
 		"ports":     ports,
 		"resources": resources,
@@ -729,9 +765,9 @@ func (s *AppServer) UpdateAppEnv(
 ) (*connect.Response[appv1.UpdateAppEnvResponse], error) {
 	r := req.Msg
 
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -751,7 +787,7 @@ func (s *AppServer) UpdateAppEnv(
 		UserID:      userID,
 	})
 	if err != nil {
-		slog.WarnContext(ctx, "user is not a member of workspace", "workspace_id", workspaceID, "user_id", userID)
+		slog.WarnContext(ctx, "user is not a member of workspace", "workspaceId", workspaceID, "userId", userID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrNotWorkspaceMember)
 	}
 
@@ -775,18 +811,18 @@ func (s *AppServer) UpdateAppEnv(
 
 	currentDeployment := deploymentList[0]
 
-	var config map[string]interface{}
+	var config map[string]any
 	if len(currentDeployment.Config) > 0 {
 		if err := json.Unmarshal(currentDeployment.Config, &config); err != nil {
 			slog.ErrorContext(ctx, "failed to parse deployment config", "error", err)
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid config: %w", err))
 		}
 	} else {
-		config = make(map[string]interface{})
+		config = make(map[string]any)
 	}
 
 	var cpu, memory *string
-	if resourceData, ok := config["resources"].(map[string]interface{}); ok {
+	if resourceData, ok := config["resources"].(map[string]any); ok {
 		if cpuVal, ok := resourceData["cpu"].(string); ok && cpuVal != "" {
 			cpu = &cpuVal
 		}
@@ -795,12 +831,12 @@ func (s *AppServer) UpdateAppEnv(
 		}
 	}
 
-	var ports []interface{}
-	if portData, ok := config["ports"].([]interface{}); ok {
+	var ports []any
+	if portData, ok := config["ports"].([]any); ok {
 		ports = portData
 	}
 
-	resources := map[string]interface{}{}
+	resources := map[string]any{}
 	if cpu != nil {
 		resources["cpu"] = *cpu
 	}
@@ -808,7 +844,7 @@ func (s *AppServer) UpdateAppEnv(
 		resources["memory"] = *memory
 	}
 
-	updatedConfig := map[string]interface{}{
+	updatedConfig := map[string]any{
 		"env":       r.Env,
 		"ports":     ports,
 		"resources": resources,
@@ -871,7 +907,7 @@ func (s *AppServer) allocateDeployment(
 ) {
 	slog.InfoContext(ctx, "Starting deployment allocation", "deployment_id", deployment.ID, "app_id", app.ID)
 
-	var config map[string]interface{}
+	var config map[string]any
 	if len(deployment.Config) > 0 {
 		if err := json.Unmarshal(deployment.Config, &config); err != nil {
 			slog.ErrorContext(ctx, "Failed to parse deployment config", "deployment_id", deployment.ID, "error", err)

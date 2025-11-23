@@ -54,13 +54,13 @@ func (s *RegistryServer) GitlabToken(
 	ctx context.Context,
 	req *connect.Request[registryv1.GitlabTokenRequest],
 ) (*connect.Response[registryv1.GitlabTokenResponse], error) {
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
-	slog.DebugContext(ctx, "generating gitlab deploy token", slog.Int64("user_id", userID))
+	slog.DebugContext(ctx, "generating gitlab deploy token", slog.Int64("userId", userID))
 
 	expiresAt := time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339)
 	payload := map[string]any{

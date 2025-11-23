@@ -3,14 +3,12 @@ package docker
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
 	"strings"
-	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
 
@@ -38,7 +36,7 @@ type DockerClient struct {
 	ImageName    string
 }
 
-func NewDockerClient(cfg *config.LoadedConfig) (*DockerClient, error) {
+func NewClient(cfg *config.LoadedConfig) (*DockerClient, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
@@ -191,25 +189,13 @@ func (c *DockerClient) ImageTag(ctx context.Context, imageID string) error {
 	return c.dockerClient.ImageTag(ctx, imageID, c.ImageName)
 }
 
-func (c *DockerClient) GenerateImageTag(imageBase string, imageid string) string {
-	if imageid != "" {
-		return imageid
-	}
-
+func (c *DockerClient) GenerateImageTag(imageBase string, orgID, workspaceID, appID int64) string {
 	imageNameBase := imageBase
 
-	tag := fmt.Sprintf("%s-%s", c.cfg.Config.Metadata.Name, time.Now().Format("20060102-150405")+"-"+GenerateRand(4))
+	tag := fmt.Sprintf("org-%d-wks-%d-app-%d", orgID, workspaceID, appID)
 
 	if !strings.Contains(imageNameBase, ":") {
 		imageNameBase += ":" + tag
 	}
 	return imageNameBase
-}
-
-func GenerateRand(n int) string {
-	token := make([]byte, n)
-	if _, err := rand.Read(token); err != nil {
-		panic(err)
-	}
-	return fmt.Sprintf("%x", token)
 }

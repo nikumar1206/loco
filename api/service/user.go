@@ -142,9 +142,9 @@ func (s *UserServer) GetCurrentUser(
 	ctx context.Context,
 	req *connect.Request[userv1.GetCurrentUserRequest],
 ) (*connect.Response[userv1.GetCurrentUserResponse], error) {
-	userID, ok := ctx.Value("user_id").(int64)
+	userID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
@@ -165,14 +165,14 @@ func (s *UserServer) UpdateUser(
 ) (*connect.Response[userv1.UpdateUserResponse], error) {
 	r := req.Msg
 
-	currentUserID, ok := ctx.Value("user_id").(int64)
+	currentUserID, ok := ctx.Value("userId").(int64)
 	if !ok {
-		slog.ErrorContext(ctx, "user_id not found in context")
+		slog.ErrorContext(ctx, "userId not found in context")
 		return nil, connect.NewError(connect.CodeUnauthenticated, ErrUnauthorized)
 	}
 
 	if r.Id != currentUserID {
-		slog.WarnContext(ctx, "user attempted to update another user", "target_user", r.Id, "current_user", currentUserID)
+		slog.WarnContext(ctx, "user attempted to update another user", "target_user", r.Id, "currentUser", currentUserID)
 		return nil, connect.NewError(connect.CodePermissionDenied, ErrUnauthorized)
 	}
 
@@ -256,7 +256,7 @@ func (s *UserServer) DeleteUser(
 	}
 
 	if hasWorkspaces {
-		slog.WarnContext(ctx, "cannot delete user with active workspace memberships", "user_id", r.Id)
+		slog.WarnContext(ctx, "cannot delete user with active workspace memberships", "userId", r.Id)
 		return nil, connect.NewError(connect.CodeFailedPrecondition, ErrUserHasActiveResources)
 	}
 
@@ -267,7 +267,7 @@ func (s *UserServer) DeleteUser(
 	}
 
 	if hasOrganizations {
-		slog.WarnContext(ctx, "cannot delete user with owned organizations", "user_id", r.Id)
+		slog.WarnContext(ctx, "cannot delete user with owned organizations", "userId", r.Id)
 		return nil, connect.NewError(connect.CodeFailedPrecondition, ErrUserHasOrganizations)
 	}
 
