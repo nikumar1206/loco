@@ -15,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/joho/godotenv v1.5.1
 	github.com/moby/go-archive v0.1.0
-	github.com/nikumar1206/loco/shared v0.0.0-20251118132441-34a9b17446d8
+	github.com/nikumar1206/loco/shared v0.0.0-20251123182415-9216adda056e
 	github.com/spf13/cobra v1.10.1
 	github.com/zalando/go-keyring v0.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -28,7 +28,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.3.3 // indirect
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20251116181749-377898bcce38 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20251120225753-26363bddd922 // indirect
 	github.com/charmbracelet/x/ansi v0.11.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251118172736-77d017256798 // indirect
