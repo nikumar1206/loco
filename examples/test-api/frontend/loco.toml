@@ -2,9 +2,10 @@
 ConfigVersion = "0.1"
 Description = "Default Loco app configuration"
 Name = "frontend"
+Type = "SERVICE"
 
 [Resources]
-Cpu = "100m"
+CPU = "100m"
 Memory = "256Mi"
 
 [Resources.Replicas]
@@ -12,8 +13,9 @@ Max = 1
 Min = 1
 
 [Resources.Scalers]
-CpuTarget = 70
-Enabled = true
+CPUTarget = 0
+Enabled = false
+MemoryTarget = 0
 
 [Build]
 DockerfilePath = "Dockerfile"
@@ -22,10 +24,11 @@ Type = "docker"
 [Routing]
 IdleTimeout = 60
 PathPrefix = "/"
-Port = 8080
-Subdomain = "test-api"
+Port = 8000
+Subdomain = "frontend"
 
 [Health]
+FailThreshold = 3
 Interval = 30
 Path = "/health"
 StartupGracePeriod = 0
@@ -33,6 +36,7 @@ Timeout = 5
 
 [Env]
 File = ""
+[Env.Variables]
 
 [Obs]
 [Obs.Logging]
@@ -46,6 +50,7 @@ Path = "/metrics"
 Port = 9090
 
 [Obs.Tracing]
-
 Enabled = false
 SampleRate = 0.1
+
+[Obs.Tracing.Tags]

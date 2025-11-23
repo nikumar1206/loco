@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// todo: implement recursive deploy flag
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy/Update an application to Loco.",
