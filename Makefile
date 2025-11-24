@@ -45,7 +45,7 @@ reload-api:
 	@(air \
 		--build.cmd "cd api && go build -o ./bin/loco-api ." \
 		--build.bin "./api/bin/loco-api" \
-		--build.exclude_dir "bin,archive,assets,cmd,docs,internal,terraform")
+		--build.exclude_dir "bin,archive,assets,cmd,docs,internal,terraform,web")
 
 # Reload CLI with air
 reload-cli:
@@ -53,7 +53,7 @@ reload-cli:
 	@(air \
 		--build.cmd "mkdir -p ./bin; go build -o ./bin/loco .; chmod +x ./bin/loco" \
 		--build.bin "./bin/loco" \
-		--build.exclude_dir "bin,api,archive,assets,dashboards,docs,kube,terraform")
+		--build.exclude_dir "bin,api,archive,assets,dashboards,docs,kube,terraform,web")
 
 lint: clean
 	@(golangci-lint run)

@@ -10,6 +10,7 @@
   - but we will need multi-cluster for things like different envs, as well as multi-region
   - can we get cross cluster metrics dashboards :O
   - no clue what this would look like; perhaps we actually need some cross-cluster communication.
+  - aka we will need some admin apis for managing cluster as well as loco.
 
 - should certficates be created and managed in the region they are deployed?
 - this should technically also be a 1-time process as well; how do we manage that.
